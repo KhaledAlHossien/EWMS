@@ -33,6 +33,8 @@ namespace Infrastructure
             services.AddScoped<IProjectAssignmentService, ProjectAssignmentService>();
             services.AddScoped<IProjectTransferService, ProjectTransferService>();
             services.AddScoped<IProjectFileService, ProjectFileService>();
+            services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddScoped<IPasswordHasher, PasswordHasher>();
 
             // ==================== JWT Services ====================
             services.AddScoped<IJwtService, JwtService>();

@@ -10,15 +10,18 @@ namespace Application.Features.Department.Command.Update
     {
         private readonly IDepartmentService _departmentService;
         private readonly IBranchService _branchService;
+        private readonly ICurrentUserService _currentUserService;
         private readonly IMapper _mapper;
 
         public UpdateDepartmentCommandHandler(
             IDepartmentService departmentService,
             IBranchService branchService,
+            ICurrentUserService currentUserService,
             IMapper mapper)
         {
             _departmentService = departmentService;
             _branchService = branchService;
+            _currentUserService = currentUserService;
             _mapper = mapper;
         }
 
@@ -33,6 +36,11 @@ namespace Application.Features.Department.Command.Update
             // 2. التحقق من الفرع
             if (!await _branchService.ExistsAsync(request.DepartmentDto.BranchId))
                 throw new KeyNotFoundException("الفرع المحدد غير موجود");
+
+            if (!_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
+                && (_currentUserService.BranchId != department.BranchId
+                    || _currentUserService.BranchId != request.DepartmentDto.BranchId))
+                throw new UnauthorizedAccessException("لا يمكنك تعديل قسم خارج فرعك");
 
             // 3. التحقق من عدم تكرار الاسم (مع استثناء القسم الحالي)
             if (await _departmentService.ExistsByNameAsync(request.DepartmentDto.Name, request.Id))

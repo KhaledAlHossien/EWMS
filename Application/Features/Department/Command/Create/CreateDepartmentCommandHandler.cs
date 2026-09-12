@@ -11,15 +11,18 @@ namespace Application.Features.Department.Command.Create
     {
         private readonly IDepartmentService _departmentService;
         private readonly IBranchService _branchService;
+        private readonly ICurrentUserService _currentUserService;
         private readonly IMapper _mapper;
 
         public CreateDepartmentCommandHandler(
             IDepartmentService departmentService,
             IBranchService branchService,
+            ICurrentUserService currentUserService,
             IMapper mapper)
         {
             _departmentService = departmentService;
             _branchService = branchService;
+            _currentUserService = currentUserService;
             _mapper = mapper;
         }
 
@@ -31,6 +34,10 @@ namespace Application.Features.Department.Command.Create
             // 1. التحقق من وجود الفرع
             if (!await _branchService.ExistsAsync(request.DepartmentDto.BranchId))
                 throw new KeyNotFoundException("الفرع المحدد غير موجود");
+
+            if (!_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
+                && _currentUserService.BranchId != request.DepartmentDto.BranchId)
+                throw new UnauthorizedAccessException("لا يمكنك إضافة قسم خارج فرعك");
 
             // 2. التحقق من عدم تكرار الاسم
             if (await _departmentService.ExistsByNameAsync(request.DepartmentDto.Name))

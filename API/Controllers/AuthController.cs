@@ -28,7 +28,7 @@ namespace API.Controllers
         }
 
         [HttpPost("register")]
-        [Authorize(Roles = "ACC")]
+        [Authorize(Policy = "ManageUsers")]
         
         public async Task<IActionResult> Register([FromForm] RegisterRequest request)
         {
