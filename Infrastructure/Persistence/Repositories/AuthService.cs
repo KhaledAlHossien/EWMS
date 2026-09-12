@@ -14,11 +14,16 @@ namespace Infrastructure.Persistence.Repositories
     {
         private readonly DataContext _context;
         private readonly IJwtService _jwtService;
+        private readonly ICurrentUserService _currentUserService;
 
-        public AuthService(DataContext context, IJwtService jwtService)
+        public AuthService(
+            DataContext context,
+            IJwtService jwtService,
+            ICurrentUserService currentUserService)
         {
             _context = context;
             _jwtService = jwtService;
+            _currentUserService = currentUserService;
         }
 
         public async Task<LoginResponse?> LoginAsync(LoginRequest request)
@@ -67,6 +72,33 @@ namespace Infrastructure.Persistence.Repositories
             // التحقق من عدم وجود البريد
             var exists = await _context.Users.AnyAsync(u => u.Email == request.Email);
             if (exists) return false;
+
+            var branchExists = await _context.Branches.AnyAsync(b => b.Id == request.BranchId);
+            var department = await _context.Departments.FirstOrDefaultAsync(d => d.Id == request.DepartmentId);
+            var role = await _context.Roles.FirstOrDefaultAsync(r => r.Id == request.RoleId);
+
+            if (!branchExists || department == null || role == null)
+                return false;
+
+            if (department.BranchId != request.BranchId)
+                return false;
+
+            if (!_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+            {
+                if (_currentUserService.BranchId != request.BranchId)
+                    return false;
+
+                if (role.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                var roleHasBranchManagement = await _context.RolePermissions
+                    .Include(rp => rp.Permission)
+                    .AnyAsync(rp => rp.RoleId == request.RoleId
+                                 && rp.Permission.Name == "ManageBranches");
+
+                if (roleHasBranchManagement)
+                    return false;
+            }
 
             var user = new User
             {

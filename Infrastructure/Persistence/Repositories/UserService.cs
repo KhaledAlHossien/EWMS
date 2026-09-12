@@ -100,6 +100,9 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<List<User>> GetByDepartmentAsync(int departmentId)
         {
             return await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Department)
+                .Include(u => u.Branch)
                 .Where(u => u.DepartmentId == departmentId)
                 .ToListAsync();
         }
@@ -107,6 +110,9 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<List<User>> GetByBranchAsync(int branchId)
         {
             return await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Department)
+                .Include(u => u.Branch)
                 .Where(u => u.BranchId == branchId)
                 .ToListAsync();
         }

@@ -61,6 +61,9 @@ namespace Infrastructure.Persistence.Repositories
         {
             return await _context.ProjectAssignments
                 .Include(pa => pa.Project)
+                    .ThenInclude(p => p.User)
+                .Include(pa => pa.Project)
+                    .ThenInclude(p => p.Department)
                 .Where(pa => pa.AssignedUserId == userId)
                 .ToListAsync();
         }

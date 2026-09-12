@@ -13,7 +13,7 @@ namespace API.Controllers
 {
     [ApiController]
     [Route("api/Department")]
-    [Authorize]  // ← فعّلها لاحقاً عند الحاجة
+    [Authorize]
     public class DepartmentsController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -24,6 +24,7 @@ namespace API.Controllers
         }
 
         [HttpPost("Create")]
+        [Authorize(Policy = "ManageDepartments")]
         public async Task<ActionResult<DepartmentResponseDto>> Create([FromForm] CreateDepartmentRequestDto dto)
         {
             var result = await _mediator.Send(new CreateDepartmentCommand(dto));
@@ -31,6 +32,7 @@ namespace API.Controllers
         }
 
         [HttpPut("Update/{id}")]
+        [Authorize(Policy = "ManageDepartments")]
         public async Task<ActionResult<DepartmentResponseDto>> Update(int id, [FromForm] UpdateDepartmentRequestDto dto)
         {
             var result = await _mediator.Send(new UpdateDepartmentCommand(id, dto));
@@ -38,6 +40,7 @@ namespace API.Controllers
         }
 
         [HttpDelete("Delete/{id}")]
+        [Authorize(Policy = "ManageDepartments")]
         public async Task<ActionResult> Delete(int id)
         {
             await _mediator.Send(new DeleteDepartmentCommand(id));
