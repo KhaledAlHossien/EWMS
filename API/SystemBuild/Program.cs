@@ -10,12 +10,16 @@ builder.Services.AddAPIServices(builder.Configuration);
 // ==================== 2. CORS ====================
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowBlazor", policy =>
+    options.AddPolicy("AllowAngular", policy =>
     {
-        policy.WithOrigins("https://localhost:7276") // رابط Blazor
+        policy.WithOrigins(
+                "http://localhost:4200",   // ← Angular
+                "https://localhost:4200",  // ← Angular (احتياطًا)
+                "https://localhost:7276"   // ← Blazor (إذا ما زلت تستخدمه)
+              )
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowCredentials();   // ← مهم لـ JWT
     });
 });
 

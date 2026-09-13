@@ -18,7 +18,7 @@ namespace API.Controllers
 
         [HttpPost("login")]
         [AllowAnonymous]
-        public async Task<IActionResult> Login([FromForm] LoginRequest request)
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             var result = await _authService.LoginAsync(request);
             if (result == null)
@@ -30,7 +30,7 @@ namespace API.Controllers
         [HttpPost("register")]
         [Authorize(Policy = "ManageUsers")]
         
-        public async Task<IActionResult> Register([FromForm] RegisterRequest request)
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
             var result = await _authService.RegisterAsync(request);
             if (!result)
