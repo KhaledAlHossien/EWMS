@@ -10,7 +10,7 @@ namespace API.SystemBuild
             app.UseMiddleware<ExceptionMiddleware>();
 
             // 2. CORS
-            app.UseCors("AllowBlazor");
+            app.UseCors("AllowAngular");
 
             // 3. Swagger
             app.UseSwagger();
