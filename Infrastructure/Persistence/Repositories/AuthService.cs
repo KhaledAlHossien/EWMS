@@ -40,6 +40,12 @@ namespace Infrastructure.Persistence.Repositories
             if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
                 return null;
 
+            // جلب أسماء صلاحيات الدور
+            var permissions = await _context.RolePermissions
+                .Where(rp => rp.RoleId == user.RoleId)
+                .Select(rp => rp.Permission.Name)
+                .ToListAsync();
+
             // توليد التوكن
             var token = _jwtService.GenerateToken(user);
             var expiresAt = _jwtService.GetExpirationDate();
@@ -63,7 +69,8 @@ namespace Infrastructure.Persistence.Repositories
                 ExpiresAt = expiresAt,
                 FullName = user.FullName,
                 Email = user.Email,
-                Role = user.Role.Name
+                Role = user.Role.Name,
+                Permissions = permissions
             };
         }
 
