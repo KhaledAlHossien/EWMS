@@ -32,6 +32,7 @@ namespace Infrastructure
             services.AddScoped<IRolePermissionService, RolePermissionService>();
             services.AddScoped<IVacationService, VacationService>();
             services.AddScoped<IVacationTypeService, VacationTypeService>();
+            services.AddScoped<INotificationService, NotificationService>();
 
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();

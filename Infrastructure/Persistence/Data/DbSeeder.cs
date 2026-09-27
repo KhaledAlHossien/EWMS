@@ -167,6 +167,15 @@ namespace Infrastructure.Persistence.Data
             await EnsureRolePermissionsAsync(context, "Manager", managerPermissionNames);
             await EnsureRolePermissionsAsync(context, "BranchManager", managerPermissionNames);
 
+            // الموظف العادي: يقدّم طلب إجازة ويرى إجازاته فقط (لا موافقة ولا إدارة)
+            var empPermissionNames = new[]
+            {
+                "ViewVacations",
+                "CreateVacation"
+            };
+
+            await EnsureRolePermissionsAsync(context, "Emp", empPermissionNames);
+
             await context.SaveChangesAsync();
         }
 

@@ -13,12 +13,15 @@ namespace Application.Interfaces
         // ==================== استعلامات المستخدم ====================
         Task<List<Vacation>> GetByUserIdAsync(int userId);
 
+        // ==================== استعلامات النطاق (كل الحالات) ====================
+        Task<List<Vacation>> GetByDepartmentIdAsync(int departmentId);
+        Task<List<Vacation>> GetByBranchIdAsync(int branchId);
+
         // ==================== استعلامات سير العمل ====================
         Task<List<Vacation>> GetByStatusAsync(
             VacationStatus status, int? departmentId, int? branchId);
 
         Task<List<Vacation>> GetPendingForManagerAsync(int departmentId);
-        Task<List<Vacation>> GetPendingForAdministrativeAsync();
         Task<List<Vacation>> GetPendingForBranchManagerAsync(int branchId);  // ⬅️
         Task<List<Vacation>> GetAllPendingAsync();
 

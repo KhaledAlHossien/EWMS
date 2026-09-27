@@ -61,6 +61,32 @@ namespace Infrastructure.Persistence.Repositories
                 .ToListAsync();
         }
 
+        // ==================== استعلامات النطاق (كل الحالات) ====================
+
+        public async Task<List<Vacation>> GetByDepartmentIdAsync(int departmentId)
+        {
+            return await _context.Vacation
+                .Include(v => v.VacationType)
+                .Include(v => v.User)
+                .Include(v => v.Department)
+                .Include(v => v.Branch)
+                .Where(v => v.DepartmentId == departmentId)
+                .OrderByDescending(v => v.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<List<Vacation>> GetByBranchIdAsync(int branchId)
+        {
+            return await _context.Vacation
+                .Include(v => v.VacationType)
+                .Include(v => v.User)
+                .Include(v => v.Department)
+                .Include(v => v.Branch)
+                .Where(v => v.BranchId == branchId)
+                .OrderByDescending(v => v.CreatedAt)
+                .ToListAsync();
+        }
+
         // ==================== استعلامات سير العمل ====================
 
         public async Task<List<Vacation>> GetByStatusAsync(
@@ -91,18 +117,6 @@ namespace Infrastructure.Persistence.Repositories
                 .Include(v => v.Branch)
                 .Where(v => v.DepartmentId == departmentId
                          && v.Status == VacationStatus.PendingManager)
-                .OrderBy(v => v.StartVac)
-                .ToListAsync();
-        }
-
-        public async Task<List<Vacation>> GetPendingForAdministrativeAsync()
-        {
-            return await _context.Vacation
-                .Include(v => v.VacationType)
-                .Include(v => v.User)
-                .Include(v => v.Department)
-                .Include(v => v.Branch)
-                .Where(v => v.Status == VacationStatus.PendingAdministrative)
                 .OrderBy(v => v.StartVac)
                 .ToListAsync();
         }
@@ -179,7 +193,6 @@ namespace Infrastructure.Persistence.Repositories
                     v.EndVac >= start &&
                     (v.Status == VacationStatus.Approved ||
                      v.Status == VacationStatus.PendingManager ||
-                     v.Status == VacationStatus.PendingAdministrative ||
                      v.Status == VacationStatus.PendingBranchManager));  // ⬅️
         }
 
@@ -198,7 +211,6 @@ namespace Infrastructure.Persistence.Repositories
                     v.EndVac >= monthStart &&
                     (v.Status == VacationStatus.Approved ||
                      v.Status == VacationStatus.PendingManager ||
-                     v.Status == VacationStatus.PendingAdministrative ||
                      v.Status == VacationStatus.PendingBranchManager))  // ⬅️
                 .Select(v => new { v.StartVac, v.EndVac })
                 .ToListAsync();
@@ -220,7 +232,6 @@ namespace Infrastructure.Persistence.Repositories
                     v.EndVac >= monthStart &&
                     (v.Status == VacationStatus.Approved ||
                      v.Status == VacationStatus.PendingManager ||
-                     v.Status == VacationStatus.PendingAdministrative ||
                      v.Status == VacationStatus.PendingBranchManager))  // ⬅️
                 .Select(v => new { v.StartVac, v.EndVac })
                 .ToListAsync();
@@ -241,7 +252,6 @@ namespace Infrastructure.Persistence.Repositories
                     v.EndVac >= yearStart &&
                     (v.Status == VacationStatus.Approved ||
                      v.Status == VacationStatus.PendingManager ||
-                     v.Status == VacationStatus.PendingAdministrative ||
                      v.Status == VacationStatus.PendingBranchManager))  // ⬅️
                 .Select(v => new { v.StartVac, v.EndVac })
                 .ToListAsync();
@@ -262,7 +272,6 @@ namespace Infrastructure.Persistence.Repositories
                     v.EndVac >= yearStart &&
                     (v.Status == VacationStatus.Approved ||
                      v.Status == VacationStatus.PendingManager ||
-                     v.Status == VacationStatus.PendingAdministrative ||
                      v.Status == VacationStatus.PendingBranchManager))  // ⬅️
                 .Select(v => new { v.StartVac, v.EndVac })
                 .ToListAsync();

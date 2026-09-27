@@ -13,11 +13,16 @@ namespace Application.Features.Vacations.Queries.GetById
         : IRequestHandler<GetVacationByIdQuery, VacationResponseDto>
     {
         private readonly IVacationService _service;
+        private readonly IUserService _userService;
         private readonly IMapper _mapper;
 
-        public GetVacationByIdQueryHandler(IVacationService service, IMapper mapper)
+        public GetVacationByIdQueryHandler(
+            IVacationService service,
+            IUserService userService,
+            IMapper mapper)
         {
             _service = service;
+            _userService = userService;
             _mapper = mapper;
         }
 
@@ -26,6 +31,18 @@ namespace Application.Features.Vacations.Queries.GetById
         {
             var vacation = await _service.GetWithDetailsAsync(request.Id)
                 ?? throw new KeyNotFoundException("الإجازة غير موجودة");
+
+            var currentUser = await _userService.GetByIdAsync(_userService.UserId)
+                ?? throw new UnauthorizedAccessException("المستخدم غير مصادق");
+
+            var roleName = currentUser.Role?.Name ?? "";
+            var isOwner = vacation.UserId == currentUser.Id;
+            var isSuperAdmin = roleName == "SuperAdmin";
+            var isDepartmentManager = roleName == "Manager" && currentUser.DepartmentId == vacation.DepartmentId;
+            var isBranchManager = roleName == "BranchManager" && currentUser.BranchId == vacation.BranchId;
+
+            if (!isOwner && !isSuperAdmin && !isDepartmentManager && !isBranchManager)
+                throw new UnauthorizedAccessException("لا تملك صلاحية عرض هذه الإجازة");
 
             return _mapper.Map<VacationResponseDto>(vacation);
         }
