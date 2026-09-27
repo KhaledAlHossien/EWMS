@@ -6,13 +6,16 @@ namespace Application.Features.Offices.Commands.Delete
     public class DeleteOfficeCommandHandler : IRequestHandler<DeleteOfficeCommand, bool>
     {
         private readonly IOfficeService _officeService;
+        private readonly IDepartmentService _departmentService;
         private readonly ICurrentUserService _currentUserService;
 
         public DeleteOfficeCommandHandler(
             IOfficeService officeService,
+            IDepartmentService departmentService,
             ICurrentUserService currentUserService)
         {
             _officeService = officeService;
+            _departmentService = departmentService;
             _currentUserService = currentUserService;
         }
 
@@ -21,9 +24,9 @@ namespace Application.Features.Offices.Commands.Delete
             var office = await _officeService.GetByIdAsync(request.Id)
                 ?? throw new KeyNotFoundException("المكتب غير موجود");
 
-            if (!_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
-                && _currentUserService.DepartmentId != office.DepartmentId)
-                throw new UnauthorizedAccessException("لا يمكنك حذف مكتب خارج قسمك");
+            await OfficeRules.EnsureCanManageDepartmentAsync(
+                _currentUserService, _departmentService, office.DepartmentId,
+                "لا يمكنك حذف مكتب خارج نطاقك");
 
             // منع الحذف لو فيه موظفون منتمون لهذا المكتب
             if (await _officeService.HasUsersAsync(request.Id))

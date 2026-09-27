@@ -1,4 +1,5 @@
 ﻿using Application.DTOs.Response;
+using Application.Features.Offices;
 using Application.Interfaces;
 using AutoMapper;
 using MediatR;
@@ -37,10 +38,13 @@ namespace Application.Features.Offices.Commands.Update
             if (!await _departmentService.ExistsAsync(request.OfficeDto.DepartmentId))
                 throw new KeyNotFoundException("القسم المحدد غير موجود");
 
-            if (!_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
-                && (_currentUserService.DepartmentId != office.DepartmentId
-                    || _currentUserService.DepartmentId != request.OfficeDto.DepartmentId))
-                throw new UnauthorizedAccessException("لا يمكنك تعديل مكتب خارج قسمك");
+            // المكتب الحالي والقسم الجديد كلاهما يجب أن يكونا ضمن نطاقي
+            await OfficeRules.EnsureCanManageDepartmentAsync(
+                _currentUserService, _departmentService, office.DepartmentId,
+                "لا يمكنك تعديل مكتب خارج نطاقك");
+            await OfficeRules.EnsureCanManageDepartmentAsync(
+                _currentUserService, _departmentService, request.OfficeDto.DepartmentId,
+                "لا يمكنك نقل المكتب إلى قسم خارج نطاقك");
 
             // 3. التحقق من عدم تكرار الاسم (مع استثناء المكتب الحالي)
             if (await _officeService.ExistsByNameAsync(request.OfficeDto.Name, request.Id))

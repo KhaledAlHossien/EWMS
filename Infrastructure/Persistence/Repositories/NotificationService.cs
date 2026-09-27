@@ -8,16 +8,21 @@ namespace Infrastructure.Persistence.Repositories
     public class NotificationService : INotificationService
     {
         private readonly DataContext _context;
+        private readonly INotificationPusher _pusher;
 
-        public NotificationService(DataContext context)
+        public NotificationService(DataContext context, INotificationPusher pusher)
         {
             _context = context;
+            _pusher = pusher;
         }
 
         public async Task AddAsync(Notification notification)
         {
             await _context.Notifications.AddAsync(notification);
             await SaveChangesAsync();
+
+            // بعد الحفظ (ليكون لدينا Id) نرسله لحظياً لصاحبه إن كان متصلاً
+            await _pusher.PushAsync([notification]);
         }
 
         public async Task AddRangeAsync(IEnumerable<Notification> notifications)
@@ -27,6 +32,8 @@ namespace Infrastructure.Persistence.Repositories
 
             await _context.Notifications.AddRangeAsync(list);
             await SaveChangesAsync();
+
+            await _pusher.PushAsync(list);
         }
 
         public async Task<Notification?> GetByIdAsync(int id)

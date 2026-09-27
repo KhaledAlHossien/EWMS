@@ -1,5 +1,7 @@
 using API.Authorization;
+using API.Hubs;
 using Application;
+using Application.Interfaces;
 using Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi;
@@ -13,6 +15,10 @@ namespace API.SystemBuild
             IConfiguration configuration)
         {
             services.AddControllers();
+
+            // الإشعارات اللحظية (SignalR)
+            services.AddSignalR();
+            services.AddScoped<INotificationPusher, SignalRNotificationPusher>();
             services.AddEndpointsApiExplorer();
 
             services.AddSwaggerGen(c =>

@@ -17,14 +17,16 @@ namespace Domain.Entities
         public required int RoleId { get; set; }
         public Role Role { get; set; } = null!;
 
-        public required int DepartmentId { get; set; }
-        public Department Department { get; set; } = null!;
+        // التبعية التنظيمية حسب الدور (راجع Application/Features/Users/UserPlacement):
+        // SuperAdmin لا يتبع لشيء، BranchManager فرع فقط، Manager فرع + قسم، الموظف فرع + قسم + مكتب
+        public int? DepartmentId { get; set; }
+        public Department? Department { get; set; }
 
-        public required int OfficeId { get; set; }
-        public Office Office { get; set; } = null!;
+        public int? OfficeId { get; set; }
+        public Office? Office { get; set; }
 
-        public required int BranchId { get; set; }
-        public Branch Branch { get; set; } = null!;
+        public int? BranchId { get; set; }
+        public Branch? Branch { get; set; }
 
         public bool IsActive { get; set; }=true;
 

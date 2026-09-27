@@ -1,4 +1,5 @@
 ﻿using Application.DTOs.Response;
+using Application.Features.Users;
 using Application.Features.Vacations;
 using Application.Interfaces;
 using AutoMapper;
@@ -54,6 +55,18 @@ namespace Application.Features.Vacations.Commands.Create
             var user = await _userService.GetByIdAsync(request.UserId)
                 ?? throw new KeyNotFoundException("المستخدم غير موجود");
 
+            // رئيس الفرع و SuperAdmin لا يتبعان لقسم → لا يقدّمان إجازات من النظام (قرار المستخدم 2026-09-27)
+            var roleName = user.Role?.Name ?? "";
+            if (!UserPlacement.For(roleName).NeedsDepartment)
+                throw new InvalidOperationException("لا يمكن لرئيس الفرع أو مدير النظام تقديم طلب إجازة من النظام");
+            if (user.DepartmentId is not int departmentId || user.BranchId is not int branchId)
+                throw new InvalidOperationException("حسابك غير مرتبط بقسم وفرع، تواصل مع المسؤول");
+
+            // إجازة رئيس القسم تتجاوز مرحلة رئيس القسم وتذهب مباشرة لرئيس الفرع
+            var initialStatus = roleName == "Manager"
+                ? VacationStatus.PendingBranchManager
+                : VacationStatus.PendingManager;
+
             // 4) تحقق من عدم وجود إجازة متداخلة (على كامل المدة المطلوبة)
             if (await _vacationService.HasOverlappingVacationAsync(
                     request.UserId, dto.StartVac, dto.EndVac))
@@ -73,13 +86,13 @@ namespace Application.Features.Vacations.Commands.Create
                 {
                     VacationTypeId = dto.VacationTypeId,
                     UserId = request.UserId,
-                    DepartmentId = user.DepartmentId,
-                    BranchId = user.BranchId,
+                    DepartmentId = departmentId,
+                    BranchId = branchId,
                     VacReason = dto.VacReason,
                     StartVac = segment.Start,
                     EndVac = segment.End,
                     VacDayCount = (segment.End - segment.Start).Days + 1,
-                    Status = VacationStatus.PendingManager,
+                    Status = initialStatus,
                     IsPaid = segment.IsPaid,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -88,7 +101,7 @@ namespace Application.Features.Vacations.Commands.Create
                 await _vacationService.AddAsync(vacation);
                 created.Add(vacation);
 
-                // إشعار رئيس/رؤساء القسم بطلب الإجازة الجديد (لكل مقطع تم إنشاؤه)
+                // إشعار من ينتظر قراره (رئيس القسم، أو رئيس الفرع لإجازة رئيس القسم) — لكل مقطع
                 await VacationNotifier.NotifySubmittedAsync(
                     _userService, _notificationService, vacation, user.FullName);
             }

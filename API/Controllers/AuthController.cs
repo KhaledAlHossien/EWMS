@@ -1,5 +1,8 @@
 ﻿using Application.DTOs.Request;
+using Application.DTOs.Response;
+using Application.Features.Users.Queries.GetMe;
 using Application.Interfaces;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,11 +13,19 @@ namespace API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IMediator _mediator;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IMediator mediator)
         {
             _authService = authService;
+            _mediator = mediator;
         }
+
+        // ========== بيانات المستخدم الحالي (الفرع/القسم/المكتب/الدور) ==========
+        [HttpGet("Me")]
+        [Authorize]
+        public async Task<ActionResult<UserResponseDto>> Me()
+            => Ok(await _mediator.Send(new GetMeQuery()));
 
         [HttpPost("login")]
         [AllowAnonymous]

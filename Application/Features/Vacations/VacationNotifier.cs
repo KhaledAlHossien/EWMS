@@ -16,13 +16,20 @@ namespace Application.Features.Vacations
             Vacation vacation,
             string employeeFullName)
         {
-            var managers = await GetDepartmentManagersAsync(userService, vacation.DepartmentId);
+            // إجازة رئيس القسم تبدأ مباشرة بانتظار رئيس الفرع
+            var toBranch = vacation.Status == VacationStatus.PendingBranchManager;
 
-            var notifications = managers.Select(m => new Notification
+            var recipients = toBranch
+                ? await GetBranchManagersAsync(userService, vacation.BranchId, vacation.UserId)
+                : await GetDepartmentManagersAsync(userService, vacation.DepartmentId, vacation.UserId);
+
+            var notifications = recipients.Select(m => new Notification
             {
                 UserId = m.Id,
-                Title = "طلب إجازة جديد",
-                Message = $"قدّم {employeeFullName} طلب إجازة ({vacation.VacDayCount} يوم) بحاجة لموافقتك",
+                Title = toBranch ? "طلب إجازة بانتظار اعتمادك" : "طلب إجازة جديد",
+                Message = toBranch
+                    ? $"قدّم رئيس القسم {employeeFullName} طلب إجازة ({vacation.VacDayCount} يوم) بحاجة لاعتمادك"
+                    : $"قدّم {employeeFullName} طلب إجازة ({vacation.VacDayCount} يوم) بحاجة لموافقتك",
                 Type = NotificationType.VacationSubmitted,
                 RelatedEntityType = "Vacation",
                 RelatedEntityId = vacation.Id,
@@ -49,7 +56,7 @@ namespace Application.Features.Vacations
                 CreatedAt = DateTime.UtcNow
             };
 
-            var branchManagers = await GetBranchManagersAsync(userService, vacation.BranchId);
+            var branchManagers = await GetBranchManagersAsync(userService, vacation.BranchId, vacation.UserId);
 
             var toBranchManagers = branchManagers.Select(bm => new Notification
             {
@@ -103,7 +110,7 @@ namespace Application.Features.Vacations
                 CreatedAt = DateTime.UtcNow
             };
 
-            var managers = await GetDepartmentManagersAsync(userService, vacation.DepartmentId);
+            var managers = await GetParticipatingDepartmentManagersAsync(userService, vacation);
 
             var toManagers = managers.Select(m => new Notification
             {
@@ -139,7 +146,7 @@ namespace Application.Features.Vacations
                 CreatedAt = DateTime.UtcNow
             };
 
-            var managers = await GetDepartmentManagersAsync(userService, vacation.DepartmentId);
+            var managers = await GetParticipatingDepartmentManagersAsync(userService, vacation);
 
             var toManagers = managers.Select(m => new Notification
             {
@@ -162,10 +169,15 @@ namespace Application.Features.Vacations
             string employeeFullName,
             bool hadReachedBranchManager)
         {
-            var recipients = await GetDepartmentManagersAsync(userService, vacation.DepartmentId);
+            // إجازة رئيس القسم لم تمر على رؤساء القسم أصلاً → لا نبلغهم بإلغائها
+            var skippedManagerStage = hadReachedBranchManager && !vacation.ManagerAccept;
+
+            var recipients = skippedManagerStage
+                ? new List<User>()
+                : await GetDepartmentManagersAsync(userService, vacation.DepartmentId, vacation.UserId);
 
             if (hadReachedBranchManager)
-                recipients = recipients.Concat(await GetBranchManagersAsync(userService, vacation.BranchId)).ToList();
+                recipients = recipients.Concat(await GetBranchManagersAsync(userService, vacation.BranchId, vacation.UserId)).ToList();
 
             var notifications = recipients.Select(r => new Notification
             {
@@ -183,16 +195,24 @@ namespace Application.Features.Vacations
 
         // ==================== دوال مساعدة ====================
 
-        private static async Task<List<User>> GetDepartmentManagersAsync(IUserService userService, int departmentId)
+        // excludeUserId: صاحب الطلب — رئيس القسم لا يُبلَّغ بإجازته الخاصة كأنه مراجِع لها
+        private static async Task<List<User>> GetDepartmentManagersAsync(IUserService userService, int departmentId, int excludeUserId)
         {
             var users = await userService.GetByDepartmentAsync(departmentId);
-            return users.Where(u => u.Role?.Name == "Manager").ToList();
+            return users.Where(u => u.Role?.Name == "Manager" && u.Id != excludeUserId).ToList();
         }
 
-        private static async Task<List<User>> GetBranchManagersAsync(IUserService userService, int branchId)
+        private static async Task<List<User>> GetBranchManagersAsync(IUserService userService, int branchId, int excludeUserId)
         {
             var users = await userService.GetByBranchAsync(branchId);
-            return users.Where(u => u.Role?.Name == "BranchManager").ToList();
+            return users.Where(u => u.Role?.Name == "BranchManager" && u.Id != excludeUserId).ToList();
+        }
+
+        // رؤساء القسم يُبلَّغون بالقرار النهائي فقط إن كانوا قد وافقوا على الطلب في المرحلة الأولى
+        private static async Task<List<User>> GetParticipatingDepartmentManagersAsync(IUserService userService, Vacation vacation)
+        {
+            if (!vacation.ManagerAccept) return new List<User>();
+            return await GetDepartmentManagersAsync(userService, vacation.DepartmentId, vacation.UserId);
         }
     }
 }

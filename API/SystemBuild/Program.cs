@@ -1,3 +1,4 @@
+using API.Hubs;
 using API.SystemBuild;
 using Infrastructure.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,7 @@ var app = builder.Build();
 // ==================== 3. Pipeline ====================
 app.UseApplicationPipeline();
 app.MapControllers();
+app.MapHub<NotificationHub>(NotificationHub.Path);
 
 // ==================== 4. Migrations + Seeding ====================
 using (var scope = app.Services.CreateScope())
