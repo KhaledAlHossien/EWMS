@@ -7,7 +7,9 @@ using System.Text;
 
 namespace Application.Features.Vacations.Commands.Create
 {
-    public class CreateVacationCommand : IRequest<VacationResponseDto>
+    // قد ينتج عن الطلب الواحد أكثر من إجازة (مثلاً: أيام مدفوعة + أيام غير مدفوعة
+    // عند تجاوز الحد الشهري)، لذلك النتيجة قائمة وليست عنصراً واحداً
+    public class CreateVacationCommand : IRequest<List<VacationResponseDto>>
     {
         public CreateVacationRequestDto VacationDto { get; set; }
         public int UserId { get; set; }

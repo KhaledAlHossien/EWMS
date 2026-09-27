@@ -1,4 +1,5 @@
-﻿using Application.Interfaces;
+﻿using Application.Features.Vacations;
+using Application.Interfaces;
 using Domain.Enums;
 using MediatR;
 using System;
@@ -12,13 +13,16 @@ namespace Application.Features.Vacations.Commands.Approve
     {
         private readonly IVacationService _service;
         private readonly IUserService _userService;
+        private readonly INotificationService _notificationService;
 
         public ApproveVacationCommandHandler(
             IVacationService service,
-            IUserService userService)
+            IUserService userService,
+            INotificationService notificationService)
         {
             _service = service;
             _userService = userService;
+            _notificationService = notificationService;
         }
 
         public async Task<Unit> Handle(ApproveVacationCommand request, CancellationToken ct)
@@ -35,6 +39,10 @@ namespace Application.Features.Vacations.Commands.Approve
             var roleName = currentUser.Role?.Name ?? "";
             var isSuperAdmin = roleName == "SuperAdmin";
 
+            // لا يمكن لأحد (سوى SuperAdmin) الموافقة على إجازته الخاصة
+            if (!isSuperAdmin && vacation.UserId == currentUser.Id)
+                throw new UnauthorizedAccessException("لا يمكنك الموافقة على إجازتك الخاصة");
+
             // ══════════════════════════════════════════════════════
             // 2. فحوصات الحالة
             // ══════════════════════════════════════════════════════
@@ -47,6 +55,8 @@ namespace Application.Features.Vacations.Commands.Approve
             // ══════════════════════════════════════════════════════
             // 3. switch حسب المرحلة + التحقق من الدور
             // ══════════════════════════════════════════════════════
+            var stageBeforeDecision = vacation.Status;
+
             switch (vacation.Status)
             {
                 case VacationStatus.PendingManager:
@@ -89,6 +99,32 @@ namespace Application.Features.Vacations.Commands.Approve
 
             vacation.UpdatedAt = DateTime.UtcNow;
             await _service.UpdateAsync(vacation);
+
+            // ══════════════════════════════════════════════════════
+            // 4. إشعار الأطراف المعنية حسب نتيجة القرار
+            // ══════════════════════════════════════════════════════
+            var employee = await _userService.GetByIdAsync(vacation.UserId);
+            var employeeFullName = employee?.FullName ?? "موظف";
+
+            if (stageBeforeDecision == VacationStatus.PendingManager)
+            {
+                if (request.Dto.Approve)
+                    await VacationNotifier.NotifyApprovedByManagerAsync(
+                        _userService, _notificationService, vacation, employeeFullName);
+                else
+                    await VacationNotifier.NotifyRejectedByManagerAsync(
+                        _notificationService, vacation, request.Dto.Reason);
+            }
+            else // PendingBranchManager
+            {
+                if (request.Dto.Approve)
+                    await VacationNotifier.NotifyApprovedFinalAsync(
+                        _userService, _notificationService, vacation, employeeFullName);
+                else
+                    await VacationNotifier.NotifyRejectedByBranchManagerAsync(
+                        _userService, _notificationService, vacation, employeeFullName, request.Dto.Reason);
+            }
+
             return Unit.Value;
         }
 

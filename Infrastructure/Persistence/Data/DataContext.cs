@@ -22,6 +22,7 @@ namespace Infrastructure.Persistence.Data
         public DbSet<Vacation> Vacation { get; set; }
         public DbSet<VacationType> VacationType { get; set; }
         public DbSet<UserToken> UserTokens { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -124,6 +125,27 @@ namespace Infrastructure.Persistence.Data
                 .WithMany()
                 .HasForeignKey(ut => ut.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // ==================== تكوين Notification ====================
+            builder.Entity<Notification>(entity =>
+            {
+                entity.HasKey(n => n.Id);
+
+                entity.Property(n => n.Title).HasMaxLength(200).IsRequired();
+                entity.Property(n => n.Message).HasMaxLength(1000).IsRequired();
+                entity.Property(n => n.RelatedEntityType).HasMaxLength(100);
+                entity.Property(n => n.Type).HasConversion<int>();
+                entity.Property(n => n.IsRead).HasDefaultValue(false);
+
+                // 8. Notification -> User (تُحذف إشعارات المستخدم إن حُذف حسابه)
+                entity.HasOne(n => n.User)
+                    .WithMany()
+                    .HasForeignKey(n => n.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(n => new { n.UserId, n.IsRead });
+                entity.HasIndex(n => new { n.UserId, n.CreatedAt });
+            });
 
             // ==================== تكوين VacationType ====================
             builder.Entity<VacationType>(entity =>

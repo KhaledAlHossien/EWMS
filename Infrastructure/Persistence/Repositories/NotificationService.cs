@@ -1,0 +1,86 @@
+﻿using Application.Interfaces;
+using Domain.Entities;
+using Infrastructure.Persistence.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace Infrastructure.Persistence.Repositories
+{
+    public class NotificationService : INotificationService
+    {
+        private readonly DataContext _context;
+
+        public NotificationService(DataContext context)
+        {
+            _context = context;
+        }
+
+        public async Task AddAsync(Notification notification)
+        {
+            await _context.Notifications.AddAsync(notification);
+            await SaveChangesAsync();
+        }
+
+        public async Task AddRangeAsync(IEnumerable<Notification> notifications)
+        {
+            var list = notifications.ToList();
+            if (list.Count == 0) return;
+
+            await _context.Notifications.AddRangeAsync(list);
+            await SaveChangesAsync();
+        }
+
+        public async Task<Notification?> GetByIdAsync(int id)
+        {
+            return await _context.Notifications.FirstOrDefaultAsync(n => n.Id == id);
+        }
+
+        public async Task<List<Notification>> GetByUserIdAsync(int userId, bool unreadOnly = false)
+        {
+            var query = _context.Notifications.Where(n => n.UserId == userId);
+
+            if (unreadOnly)
+                query = query.Where(n => !n.IsRead);
+
+            return await query
+                .OrderByDescending(n => n.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<int> GetUnreadCountAsync(int userId)
+        {
+            return await _context.Notifications
+                .CountAsync(n => n.UserId == userId && !n.IsRead);
+        }
+
+        public async Task<bool> MarkAsReadAsync(Notification notification)
+        {
+            notification.IsRead = true;
+            notification.ReadAt = DateTime.UtcNow;
+            _context.Notifications.Update(notification);
+            return await SaveChangesAsync();
+        }
+
+        public async Task<bool> MarkAllAsReadAsync(int userId)
+        {
+            var unread = await _context.Notifications
+                .Where(n => n.UserId == userId && !n.IsRead)
+                .ToListAsync();
+
+            if (unread.Count == 0) return false;
+
+            var now = DateTime.UtcNow;
+            foreach (var notification in unread)
+            {
+                notification.IsRead = true;
+                notification.ReadAt = now;
+            }
+
+            return await SaveChangesAsync();
+        }
+
+        public async Task<bool> SaveChangesAsync()
+        {
+            return (await _context.SaveChangesAsync()) > 0;
+        }
+    }
+}

@@ -1,4 +1,5 @@
 ﻿using Application.DTOs.Response;
+using Application.Features.Vacations;
 using Application.Interfaces;
 using AutoMapper;
 using Domain.Entities;
@@ -11,11 +12,12 @@ using System.Text;
 namespace Application.Features.Vacations.Commands.Create
 {
     public class CreateVacationCommandHandler
-       : IRequestHandler<CreateVacationCommand, VacationResponseDto>
+       : IRequestHandler<CreateVacationCommand, List<VacationResponseDto>>
     {
         private readonly IVacationService _vacationService;
         private readonly IVacationTypeService _vacationTypeService;
         private readonly IUserService _userService;
+        private readonly INotificationService _notificationService;
         private readonly IMapper _mapper;
 
         // ==================== الإعدادات ====================
@@ -25,15 +27,17 @@ namespace Application.Features.Vacations.Commands.Create
             IVacationService vacationService,
             IVacationTypeService vacationTypeService,
             IUserService userService,
+            INotificationService notificationService,
             IMapper mapper)
         {
             _vacationService = vacationService;
             _vacationTypeService = vacationTypeService;
             _userService = userService;
+            _notificationService = notificationService;
             _mapper = mapper;
         }
 
-        public async Task<VacationResponseDto> Handle(
+        public async Task<List<VacationResponseDto>> Handle(
             CreateVacationCommand request, CancellationToken ct)
         {
             var dto = request.VacationDto;
@@ -50,108 +54,114 @@ namespace Application.Features.Vacations.Commands.Create
             var user = await _userService.GetByIdAsync(request.UserId)
                 ?? throw new KeyNotFoundException("المستخدم غير موجود");
 
-            // 4) تحقق من عدم وجود إجازة متداخلة
+            // 4) تحقق من عدم وجود إجازة متداخلة (على كامل المدة المطلوبة)
             if (await _vacationService.HasOverlappingVacationAsync(
                     request.UserId, dto.StartVac, dto.EndVac))
                 throw new InvalidOperationException("يوجد إجازة متداخلة في نفس الفترة");
 
-            // 5) ✅ تحديد هل الإجازة مدفوعة أم لا
-            var isPaid = await DetermineIsPaidAsync(
-                request.UserId,
-                vacationType,
-                dto.StartVac,
-                dto.EndVac);
+            // 5) ✅ تقسيم المدة المطلوبة إلى مقاطع مدفوعة/غير مدفوعة حسب الحد الشهري
+            //    مثال: استخدم الموظف يوماً مدفوعاً هذا الشهر وطلب 3 أيام إضافية
+            //    → يوم واحد مدفوع (ضمن الحد) + يومان غير مدفوعين، كإجازتين منفصلتين
+            var segments = await BuildPaidUnpaidSegmentsAsync(
+                request.UserId, vacationType.IsPaid, dto.StartVac, dto.EndVac);
 
-            // 6) إنشاء الكيان
-            var vacation = new Vacation
+            // 6) إنشاء كيان لكل مقطع
+            var created = new List<Vacation>();
+            foreach (var segment in segments)
             {
-                VacationTypeId = dto.VacationTypeId,
-                UserId = request.UserId,
-                DepartmentId = user.DepartmentId,
-                BranchId = user.BranchId,
-                VacReason = dto.VacReason,
-                StartVac = dto.StartVac,
-                EndVac = dto.EndVac,
-                VacDayCount = (dto.EndVac - dto.StartVac).Days + 1,
-                Status = VacationStatus.PendingManager,
-                IsPaid = isPaid,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+                var vacation = new Vacation
+                {
+                    VacationTypeId = dto.VacationTypeId,
+                    UserId = request.UserId,
+                    DepartmentId = user.DepartmentId,
+                    BranchId = user.BranchId,
+                    VacReason = dto.VacReason,
+                    StartVac = segment.Start,
+                    EndVac = segment.End,
+                    VacDayCount = (segment.End - segment.Start).Days + 1,
+                    Status = VacationStatus.PendingManager,
+                    IsPaid = segment.IsPaid,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
 
-            await _vacationService.AddAsync(vacation);
+                await _vacationService.AddAsync(vacation);
+                created.Add(vacation);
 
-            // 7) إعادة القراءة مع العلاقات
-            var created = await _vacationService.GetWithDetailsAsync(vacation.Id);
-            return _mapper.Map<VacationResponseDto>(created);
+                // إشعار رئيس/رؤساء القسم بطلب الإجازة الجديد (لكل مقطع تم إنشاؤه)
+                await VacationNotifier.NotifySubmittedAsync(
+                    _userService, _notificationService, vacation, user.FullName);
+            }
+
+            // 7) إعادة القراءة مع العلاقات لكل إجازة تم إنشاؤها
+            var result = new List<VacationResponseDto>();
+            foreach (var vacation in created)
+            {
+                var withDetails = await _vacationService.GetWithDetailsAsync(vacation.Id) ?? vacation;
+                result.Add(_mapper.Map<VacationResponseDto>(withDetails));
+            }
+
+            return result;
         }
 
         // ==================== المنطق الذكي ====================
 
         /// <summary>
-        /// يحدد إذا كانت الإجازة مدفوعة أم لا:
-        /// 1. إذا نوع الإجازة غير مدفوع → غير مدفوعة دائماً
-        /// 2. إذا نوع الإجازة مدفوع → تحقق من الحد الشهري:
-        ///    - إذا لم يتجاوز الحد → مدفوعة
-        ///    - إذا تجاوز الحد → تصبح غير مدفوعة
+        /// يقسّم المدة المطلوبة يوماً بيوم حسب الحد الشهري للأيام المدفوعة (2 يوم/شهر)،
+        /// ثم يجمع الأيام المتتالية التي لها نفس الحالة (مدفوعة/غير مدفوعة) في مقطع واحد.
+        /// - إذا كان نوع الإجازة غير مدفوع أصلاً → مقطع واحد غير مدفوع لكامل المدة.
+        /// - إذا كانت كل الأيام ضمن الحد المتبقي → مقطع واحد مدفوع لكامل المدة.
+        /// - إذا تجاوزت المدة الحد في شهر ما → يُقسَّم الطلب إلى أكثر من مقطع/إجازة.
         /// </summary>
-        private async Task<bool> DetermineIsPaidAsync(
+        private async Task<List<(DateTime Start, DateTime End, bool IsPaid)>> BuildPaidUnpaidSegmentsAsync(
             int userId,
-            VacationType vacationType,
+            bool vacationTypeIsPaid,
             DateTime startVac,
             DateTime endVac)
         {
-            // ───────── الحالة 1: النوع غير مدفوع ─────────
-            if (!vacationType.IsPaid)
-                return false;
+            if (!vacationTypeIsPaid)
+                return new List<(DateTime, DateTime, bool)> { (startVac, endVac, false) };
 
-            // ───────── الحالة 2: النوع مدفوع → تحقق من الحد ─────────
-            var monthsInRange = GetMonthsInRange(startVac, endVac);
+            // عدد الأيام المدفوعة المستخدمة مسبقاً في كل شهر يمر به الطلب (تُحمَّل عند الحاجة)
+            var usedPaidDaysPerMonth = new Dictionary<(int Year, int Month), int>();
 
-            foreach (var (year, month) in monthsInRange)
+            var dailyStatus = new List<(DateTime Date, bool IsPaid)>();
+
+            for (var date = startVac.Date; date <= endVac.Date; date = date.AddDays(1))
             {
-                var usedPaidDays = await _vacationService
-                    .GetPaidVacationDaysInMonthAsync(userId, year, month);
+                var monthKey = (date.Year, date.Month);
 
-                var newDaysInMonth = GetDaysInMonthForRange(
-                    startVac, endVac, year, month);
+                if (!usedPaidDaysPerMonth.TryGetValue(monthKey, out var usedDays))
+                {
+                    usedDays = await _vacationService.GetPaidVacationDaysInMonthAsync(
+                        userId, date.Year, date.Month);
+                    usedPaidDaysPerMonth[monthKey] = usedDays;
+                }
 
-                if (usedPaidDays + newDaysInMonth > MaxPaidVacationDaysPerMonth)
-                    return false;   // ❌ تجاوز الحد → غير مدفوعة
+                var isPaidDay = usedDays < MaxPaidVacationDaysPerMonth;
+                if (isPaidDay)
+                    usedPaidDaysPerMonth[monthKey] = usedDays + 1;
+
+                dailyStatus.Add((date, isPaidDay));
             }
 
-            return true;   // ✅ مدفوعة
-        }
+            // تجميع الأيام المتتالية المتشابهة الحالة في مقاطع
+            var segments = new List<(DateTime Start, DateTime End, bool IsPaid)>();
+            var segStart = dailyStatus[0].Date;
+            var segIsPaid = dailyStatus[0].IsPaid;
 
-        // ==================== دوال مساعدة ====================
-
-        private static List<(int Year, int Month)> GetMonthsInRange(
-            DateTime start, DateTime end)
-        {
-            var months = new List<(int Year, int Month)>();
-            var cursor = new DateTime(start.Year, start.Month, 1);
-
-            while (cursor <= end)
+            for (var i = 1; i < dailyStatus.Count; i++)
             {
-                months.Add((cursor.Year, cursor.Month));
-                cursor = cursor.AddMonths(1);
+                if (dailyStatus[i].IsPaid != segIsPaid)
+                {
+                    segments.Add((segStart, dailyStatus[i - 1].Date, segIsPaid));
+                    segStart = dailyStatus[i].Date;
+                    segIsPaid = dailyStatus[i].IsPaid;
+                }
             }
 
-            return months;
-        }
-
-        private static int GetDaysInMonthForRange(
-            DateTime start, DateTime end, int year, int month)
-        {
-            var monthStart = new DateTime(year, month, 1);
-            var monthEnd = monthStart.AddMonths(1).AddDays(-1);
-
-            var overlapStart = start > monthStart ? start : monthStart;
-            var overlapEnd = end < monthEnd ? end : monthEnd;
-
-            if (overlapStart > overlapEnd) return 0;
-
-            return (overlapEnd - overlapStart).Days + 1;
+            segments.Add((segStart, dailyStatus[^1].Date, segIsPaid));
+            return segments;
         }
     }
 }

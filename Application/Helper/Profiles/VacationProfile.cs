@@ -40,20 +40,20 @@ namespace Application.Helper.Profiles
         private static string TranslateStatus(VacationStatus status) => status switch
         {
             VacationStatus.PendingManager => "بانتظار رئيس القسم",
-            VacationStatus.PendingAdministrative => "بانتظار الرئيس الإداري",
             VacationStatus.PendingBranchManager => "بانتظار رئيس الفرع",
             VacationStatus.Approved => "معتمدة",
             VacationStatus.Rejected => "مرفوضة",
+            VacationStatus.Cancelled => "ملغاة",
             _ => "غير معروفة"
         };
 
         private static string GetCurrentStage(VacationStatus status) => status switch
         {
             VacationStatus.PendingManager => "Manager",
-            VacationStatus.PendingAdministrative => "Administrative",
             VacationStatus.PendingBranchManager => "BranchManager",
             VacationStatus.Approved => "Done",
             VacationStatus.Rejected => "Rejected",
+            VacationStatus.Cancelled => "Cancelled",
             _ => "Unknown"
         };
     }
