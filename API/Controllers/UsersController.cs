@@ -6,6 +6,7 @@ using Application.Features.Users.Commands.Update;
 using Application.Features.Users.Queries.GetAll;
 using Application.Features.Users.Queries.GetByBranch;
 using Application.Features.Users.Queries.GetByDepartment;
+using Application.Features.Users.Queries.GetByOffice;
 using Application.Features.Users.Queries.GetById;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -66,6 +67,12 @@ namespace API.Controllers
         public async Task<ActionResult<List<UserResponseDto>>> GetByDepartment(int departmentId)
         {
             return Ok(await _mediator.Send(new GetUsersByDepartmentQuery(departmentId)));
+        }
+
+        [HttpGet("Office/{officeId}")]
+        public async Task<ActionResult<List<UserResponseDto>>> GetByOffice(int officeId)
+        {
+            return Ok(await _mediator.Send(new GetUsersByOfficeQuery(officeId)));
         }
     }
 }

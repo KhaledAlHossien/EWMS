@@ -46,6 +46,25 @@ namespace Infrastructure.Persistence.Data
                 await context.SaveChangesAsync();
             }
 
+            // ==================== 3.1 المكاتب ====================
+            {
+                var operationsDept = await context.Departments.FirstAsync(d => d.Name == "العمليات");
+
+                var officeNames = new[]
+                {
+                    new Office { Name = "مكتب البرمجة", Description = "مكتب البرمجة التابع لقسم العمليات", DepartmentId = operationsDept.Id },
+                    new Office { Name = "مكتب السيرفر", Description = "مكتب السيرفر التابع لقسم العمليات", DepartmentId = operationsDept.Id }
+                };
+
+                foreach (var office in officeNames)
+                {
+                    if (!await context.Offices.AnyAsync(o => o.Name == office.Name))
+                        await context.Offices.AddAsync(office);
+                }
+
+                await context.SaveChangesAsync();
+            }
+
             // ==================== 4. أنواع الإجازات ====================
             if (!await context.VacationType.AnyAsync())
             {
@@ -84,6 +103,7 @@ namespace Infrastructure.Persistence.Data
                 new Permission { Name = "ManageUsers", Description = "إدارة المستخدمين" },
                 new Permission { Name = "ManageBranches", Description = "إدارة الفروع" },
                 new Permission { Name = "ManageDepartments", Description = "إدارة الأقسام" },
+                new Permission { Name = "ManageOffices", Description = "إدارة المكاتب" },
                 new Permission { Name = "ManageRoles", Description = "إدارة الأدوار والصلاحيات" },
 
                 new Permission { Name = "ViewVacations",        Description = "عرض الإجازات" },
@@ -106,6 +126,7 @@ namespace Infrastructure.Persistence.Data
             {
                 var adminRole = await context.Roles.FirstAsync(r => r.Name == "SuperAdmin");
                 var adminDept = await context.Departments.FirstAsync(d => d.Name == "العمليات");
+                var adminOffice = await context.Offices.FirstAsync(o => o.DepartmentId == adminDept.Id && o.Name == "مكتب البرمجة");
                 var mainBranch = await context.Branches.FirstAsync(b => b.Name == "الفرع التقني");
 
                 var admin = new User
@@ -115,6 +136,7 @@ namespace Infrastructure.Persistence.Data
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("it@123456"),
                     RoleId = adminRole.Id,
                     DepartmentId = adminDept.Id,
+                    OfficeId = adminOffice.Id,
                     BranchId = mainBranch.Id,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
@@ -133,6 +155,7 @@ namespace Infrastructure.Persistence.Data
             {
                 "ManageUsers",
                 "ManageDepartments",
+                "ManageOffices",
                 "ManageRoles",
                 "ViewVacations",
                 "CreateVacation",

@@ -25,6 +25,7 @@ namespace Infrastructure
             // ==================== Services / Repositories ====================
             services.AddScoped<IBranchService, BranchService>();
             services.AddScoped<IDepartmentService, DepartmentService>();
+            services.AddScoped<IOfficeService, OfficeService>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IPermissionService, PermissionService>();

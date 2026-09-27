@@ -82,12 +82,16 @@ namespace Infrastructure.Persistence.Repositories
 
             var branchExists = await _context.Branches.AnyAsync(b => b.Id == request.BranchId);
             var department = await _context.Departments.FirstOrDefaultAsync(d => d.Id == request.DepartmentId);
+            var office = await _context.Offices.FirstOrDefaultAsync(o => o.Id == request.OfficeId);
             var role = await _context.Roles.FirstOrDefaultAsync(r => r.Id == request.RoleId);
 
-            if (!branchExists || department == null || role == null)
+            if (!branchExists || department == null || office == null || role == null)
                 return false;
 
             if (department.BranchId != request.BranchId)
+                return false;
+
+            if (office.DepartmentId != request.DepartmentId)
                 return false;
 
             if (!_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
@@ -114,6 +118,7 @@ namespace Infrastructure.Persistence.Repositories
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 RoleId = request.RoleId,
                 DepartmentId = request.DepartmentId,
+                OfficeId = request.OfficeId,
                 BranchId = request.BranchId,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow

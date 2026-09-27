@@ -10,6 +10,7 @@ namespace Application.Features.Users.Commands.Update
         private readonly IUserService _userService;
         private readonly IBranchService _branchService;
         private readonly IDepartmentService _departmentService;
+        private readonly IOfficeService _officeService;
         private readonly IRoleService _roleService;
         private readonly IRolePermissionService _rolePermissionService;
         private readonly ICurrentUserService _currentUserService;
@@ -20,6 +21,7 @@ namespace Application.Features.Users.Commands.Update
             IUserService userService,
             IBranchService branchService,
             IDepartmentService departmentService,
+            IOfficeService officeService,
             IRoleService roleService,
             IRolePermissionService rolePermissionService,
             ICurrentUserService currentUserService,
@@ -29,6 +31,7 @@ namespace Application.Features.Users.Commands.Update
             _userService = userService;
             _branchService = branchService;
             _departmentService = departmentService;
+            _officeService = officeService;
             _roleService = roleService;
             _rolePermissionService = rolePermissionService;
             _currentUserService = currentUserService;
@@ -49,9 +52,11 @@ namespace Application.Features.Users.Commands.Update
             await UserRules.EnsureUserReferencesAsync(
                 _branchService,
                 _departmentService,
+                _officeService,
                 _roleService,
                 request.UserDto.BranchId,
                 request.UserDto.DepartmentId,
+                request.UserDto.OfficeId,
                 request.UserDto.RoleId);
 
             await UserRules.EnsureCanManageUserAsync(
@@ -65,6 +70,7 @@ namespace Application.Features.Users.Commands.Update
             user.Email = request.UserDto.Email;
             user.RoleId = request.UserDto.RoleId;
             user.DepartmentId = request.UserDto.DepartmentId;
+            user.OfficeId = request.UserDto.OfficeId;
             user.BranchId = request.UserDto.BranchId;
             user.IsActive = request.UserDto.IsActive;
 
