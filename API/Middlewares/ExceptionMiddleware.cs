@@ -62,7 +62,10 @@ namespace API.Middlewares
 
                 var statusCode = ex switch
                 {
-                    UnauthorizedAccessException => (int)HttpStatusCode.Unauthorized,
+                    // مستخدم مسجّل لكن غير مخوّل → 403 (وليس 401 حتى لا يُسجَّل خروجه من الواجهة)
+                    UnauthorizedAccessException => context.User.Identity?.IsAuthenticated == true
+                        ? (int)HttpStatusCode.Forbidden
+                        : (int)HttpStatusCode.Unauthorized,
                     KeyNotFoundException => (int)HttpStatusCode.NotFound,
                     ArgumentException => (int)HttpStatusCode.BadRequest,
                     InvalidOperationException => (int)HttpStatusCode.BadRequest,

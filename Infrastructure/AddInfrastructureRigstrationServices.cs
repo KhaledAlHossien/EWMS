@@ -64,6 +64,19 @@ namespace Infrastructure
 
                 options.Events = new JwtBearerEvents
                 {
+                    // WebSocket (SignalR) لا يستطيع إرسال هيدر Authorization — التوكن يأتي في الـ query
+                    // نقبله فقط لمسار الـ hubs، ثم يمر بنفس فحص الإبطال في OnTokenValidated
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(accessToken)
+                            && context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                        {
+                            context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    },
+
                     // ✅ التحقق من أن التوكن موجود في قاعدة البيانات ولم يُبطَل
                     OnTokenValidated = async context =>
                     {
@@ -74,6 +87,13 @@ namespace Infrastructure
                             var tokenString = context.HttpContext.Request.Headers["Authorization"]
                                 .ToString()
                                 .Replace("Bearer ", "");
+
+                            // اتصال SignalR: التوكن في الـ query (راجع OnMessageReceived)
+                            if (string.IsNullOrEmpty(tokenString)
+                                && context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                            {
+                                tokenString = context.HttpContext.Request.Query["access_token"].ToString();
+                            }
 
                             if (string.IsNullOrEmpty(tokenString))
                             {

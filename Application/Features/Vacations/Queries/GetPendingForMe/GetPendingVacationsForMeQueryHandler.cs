@@ -42,13 +42,13 @@ namespace Application.Features.Vacations.Queries.GetPendingForMe
                 // ─────────── مدير: يرى إجازات قسمه فقط ───────────
                 case "Manager":
                     list = await _service.GetPendingForManagerAsync(
-                        currentUser.DepartmentId);
+                        currentUser.DepartmentId ?? 0);
                     break;
 
                 // ─────────── رئيس فرع: يرى كل إجازات فرعه ───────────
                 case "BranchManager":
                     list = await _service.GetPendingForBranchManagerAsync(
-                        currentUser.BranchId);
+                        currentUser.BranchId ?? 0);
                     break;
 
                 // ─────────── SuperAdmin: يرى كل شيء ───────────

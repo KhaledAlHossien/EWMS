@@ -1,4 +1,5 @@
 ﻿using Application.DTOs.Response;
+using Application.Features.Offices;
 using Application.Interfaces;
 using AutoMapper;
 using MediatR;
@@ -34,9 +35,9 @@ namespace Application.Features.Offices.Commands.Create
             if (!await _departmentService.ExistsAsync(request.OfficeDto.DepartmentId))
                 throw new KeyNotFoundException("القسم المحدد غير موجود");
 
-            if (!_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
-                && _currentUserService.DepartmentId != request.OfficeDto.DepartmentId)
-                throw new UnauthorizedAccessException("لا يمكنك إضافة مكتب خارج قسمك");
+            await OfficeRules.EnsureCanManageDepartmentAsync(
+                _currentUserService, _departmentService, request.OfficeDto.DepartmentId,
+                "لا يمكنك إضافة مكتب خارج نطاقك");
 
             // 2. التحقق من عدم تكرار الاسم
             if (await _officeService.ExistsByNameAsync(request.OfficeDto.Name))

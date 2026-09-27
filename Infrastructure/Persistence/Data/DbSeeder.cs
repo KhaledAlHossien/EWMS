@@ -125,9 +125,6 @@ namespace Infrastructure.Persistence.Data
             if (!await context.Users.AnyAsync(u => u.Email == "admin@system.com"))
             {
                 var adminRole = await context.Roles.FirstAsync(r => r.Name == "SuperAdmin");
-                var adminDept = await context.Departments.FirstAsync(d => d.Name == "العمليات");
-                var adminOffice = await context.Offices.FirstAsync(o => o.DepartmentId == adminDept.Id && o.Name == "مكتب البرمجة");
-                var mainBranch = await context.Branches.FirstAsync(b => b.Name == "الفرع التقني");
 
                 var admin = new User
                 {
@@ -135,9 +132,7 @@ namespace Infrastructure.Persistence.Data
                     Email = "admin@system.com",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("it@123456"),
                     RoleId = adminRole.Id,
-                    DepartmentId = adminDept.Id,
-                    OfficeId = adminOffice.Id,
-                    BranchId = mainBranch.Id,
+                    // SuperAdmin لا يتبع لفرع أو قسم أو مكتب
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 };

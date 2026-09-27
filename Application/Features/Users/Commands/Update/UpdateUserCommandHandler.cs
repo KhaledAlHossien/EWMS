@@ -49,7 +49,7 @@ namespace Application.Features.Users.Commands.Update
             if (!await _userService.IsEmailUniqueAsync(request.UserDto.Email, request.Id))
                 throw new InvalidOperationException("البريد الإلكتروني مستخدم مسبقاً");
 
-            await UserRules.EnsureUserReferencesAsync(
+            var placement = await UserRules.EnsureUserReferencesAsync(
                 _branchService,
                 _departmentService,
                 _officeService,
@@ -63,15 +63,15 @@ namespace Application.Features.Users.Commands.Update
                 _currentUserService,
                 _roleService,
                 _rolePermissionService,
-                request.UserDto.BranchId,
+                placement.BranchId,
                 request.UserDto.RoleId);
 
             user.FullName = request.UserDto.FullName;
             user.Email = request.UserDto.Email;
             user.RoleId = request.UserDto.RoleId;
-            user.DepartmentId = request.UserDto.DepartmentId;
-            user.OfficeId = request.UserDto.OfficeId;
-            user.BranchId = request.UserDto.BranchId;
+            user.DepartmentId = placement.DepartmentId;
+            user.OfficeId = placement.OfficeId;
+            user.BranchId = placement.BranchId;
             user.IsActive = request.UserDto.IsActive;
 
             if (!string.IsNullOrWhiteSpace(request.UserDto.Password))

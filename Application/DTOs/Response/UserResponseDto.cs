@@ -7,11 +7,11 @@ namespace Application.DTOs.Response
         public string Email { get; set; } = string.Empty;
         public int RoleId { get; set; }
         public string RoleName { get; set; } = string.Empty;
-        public int DepartmentId { get; set; }
+        public int? DepartmentId { get; set; }
         public string DepartmentName { get; set; } = string.Empty;
-        public int OfficeId { get; set; }
+        public int? OfficeId { get; set; }
         public string OfficeName { get; set; } = string.Empty;
-        public int BranchId { get; set; }
+        public int? BranchId { get; set; }
         public string BranchName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }

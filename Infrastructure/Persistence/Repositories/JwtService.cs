@@ -31,8 +31,8 @@ namespace Infrastructure.Persistence.Repositories
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Name, user.FullName),
                 new Claim(ClaimTypes.Role, user.Role?.Name ?? string.Empty),
-                new Claim("DepartmentId", user.DepartmentId.ToString()),
-                new Claim("BranchId", user.BranchId.ToString())
+                new Claim("DepartmentId", user.DepartmentId?.ToString() ?? ""),
+                new Claim("BranchId", user.BranchId?.ToString() ?? "")
             };
 
             var token = new JwtSecurityToken(

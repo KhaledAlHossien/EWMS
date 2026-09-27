@@ -40,8 +40,8 @@ namespace Application.Features.Vacations.Queries.GetAll
             var list = roleName switch
             {
                 "SuperAdmin" => await _service.GetAllAsync(),
-                "BranchManager" => await _service.GetByBranchIdAsync(currentUser.BranchId),
-                "Manager" => await _service.GetByDepartmentIdAsync(currentUser.DepartmentId),
+                "BranchManager" => await _service.GetByBranchIdAsync(currentUser.BranchId ?? 0),
+                "Manager" => await _service.GetByDepartmentIdAsync(currentUser.DepartmentId ?? 0),
                 _ => await _service.GetByUserIdAsync(currentUser.Id)
             };
 

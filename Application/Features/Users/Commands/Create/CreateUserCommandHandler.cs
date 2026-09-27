@@ -45,7 +45,7 @@ namespace Application.Features.Users.Commands.Create
             if (!await _userService.IsEmailUniqueAsync(request.UserDto.Email))
                 throw new InvalidOperationException("البريد الإلكتروني مستخدم مسبقاً");
 
-            await UserRules.EnsureUserReferencesAsync(
+            var placement = await UserRules.EnsureUserReferencesAsync(
                 _branchService,
                 _departmentService,
                 _officeService,
@@ -59,7 +59,7 @@ namespace Application.Features.Users.Commands.Create
                 _currentUserService,
                 _roleService,
                 _rolePermissionService,
-                request.UserDto.BranchId,
+                placement.BranchId,
                 request.UserDto.RoleId);
 
             var user = new User
@@ -68,9 +68,9 @@ namespace Application.Features.Users.Commands.Create
                 Email = request.UserDto.Email,
                 PasswordHash = _passwordHasher.Hash(request.UserDto.Password),
                 RoleId = request.UserDto.RoleId,
-                DepartmentId = request.UserDto.DepartmentId,
-                OfficeId = request.UserDto.OfficeId,
-                BranchId = request.UserDto.BranchId,
+                DepartmentId = placement.DepartmentId,
+                OfficeId = placement.OfficeId,
+                BranchId = placement.BranchId,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };
