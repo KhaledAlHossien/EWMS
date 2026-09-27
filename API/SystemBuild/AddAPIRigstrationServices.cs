@@ -74,6 +74,19 @@ namespace API.SystemBuild
                     policy.Requirements.Add(new PermissionRequirement("ManageDepartments")));
                 options.AddPolicy("ManageRoles", policy =>
                     policy.Requirements.Add(new PermissionRequirement("ManageRoles")));
+
+                options.AddPolicy("ViewVacations", policy =>
+    policy.Requirements.Add(new PermissionRequirement("ViewVacations")));
+                options.AddPolicy("CreateVacation", policy =>
+                    policy.Requirements.Add(new PermissionRequirement("CreateVacation")));
+                options.AddPolicy("ApproveVacation", policy =>
+                    policy.Requirements.Add(new PermissionRequirement("ApproveVacation")));
+                options.AddPolicy("ManageVacations", policy =>
+                    policy.Requirements.Add(new PermissionRequirement("ManageVacations")));
+                options.AddPolicy("ManageVacationTypes", policy =>
+                    policy.Requirements.Add(new PermissionRequirement("ManageVacationTypes")));
+
+
             });
 
             return services;

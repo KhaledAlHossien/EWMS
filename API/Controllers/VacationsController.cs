@@ -1,0 +1,76 @@
+﻿using Application.DTOs.Request;
+using Application.DTOs.Response;
+using Application.Features.Vacations.Commands.Approve;
+using Application.Features.Vacations.Commands.Create;
+using Application.Features.Vacations.Queries.GetByUser;
+using Application.Features.Vacations.Query.GetAll;
+using Application.Features.Vacations.Query.GetById;
+using Application.Features.Vacations.Query.GetPendingForMe;
+using Application.Interfaces;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace API.Controllers
+{
+    [ApiController]
+    [Route("api/Vacations")]
+    [Authorize]
+    public class VacationsController : ControllerBase
+    {
+        private readonly IMediator _mediator;
+        private readonly IUserService _userService;
+
+        public VacationsController(IMediator mediator, IUserService userService)
+        {
+            _mediator = mediator;
+            _userService = userService;
+        }
+
+        // ========== تقديم إجازة ==========
+        [HttpPost("Create")]
+        public async Task<ActionResult<VacationResponseDto>> Create(
+            [FromForm] CreateVacationRequestDto dto)
+        {
+            var currentUserId = _userService.UserId;
+            return Ok(await _mediator.Send(new CreateVacationCommand(dto, currentUserId)));
+        }
+
+        // ========== الموافقة / الرفض ==========
+        [HttpPut("Approve/{id}")]
+        public async Task<ActionResult> Approve(
+            int id, [FromBody] ApproveVacationRequestDto dto)
+        {
+            await _mediator.Send(new ApproveVacationCommand(id, dto));
+            return Ok(new { message = "تم تحديث حالة الإجازة بنجاح" });
+        }
+
+        // ========== الإجازات المعلقة للموافق الحالي ==========
+        [HttpGet("PendingForMe")]
+        public async Task<ActionResult<List<VacationResponseDto>>> GetPendingForMe()
+            => Ok(await _mediator.Send(new GetPendingVacationsForMeQuery()));
+
+        // ========== تفاصيل إجازة ==========
+        [HttpGet("Get/{id}")]
+        public async Task<ActionResult<VacationResponseDto>> GetById(int id)
+            => Ok(await _mediator.Send(new GetVacationByIdQuery(id)));
+
+        // ========== كل الإجازات (للإدارة) ==========
+        [HttpGet("GetAll")]
+        public async Task<ActionResult<List<VacationResponseDto>>> GetAll()
+            => Ok(await _mediator.Send(new GetAllVacationsQuery()));
+
+        // ========== إجازات مستخدم معين ==========
+        [HttpGet("User/{userId}")]
+        public async Task<ActionResult<List<VacationResponseDto>>> GetByUser(int userId)
+            => Ok(await _mediator.Send(new GetVacationsByUserQuery(userId)));
+
+        // ========== إجازاتي أنا ==========
+        [HttpGet("My")]
+        public async Task<ActionResult<List<VacationResponseDto>>> GetMy()
+        {
+            var currentUserId = _userService.UserId;
+            return Ok(await _mediator.Send(new GetVacationsByUserQuery(currentUserId)));
+        }
+    }
+}

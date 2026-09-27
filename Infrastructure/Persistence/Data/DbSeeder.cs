@@ -13,7 +13,7 @@ namespace Infrastructure.Persistence.Data
         public static async Task SeedAsync(DataContext context)
         {
             // ==================== 1. الأدوار ====================
-            var roleNames = new[] { "SuperAdmin", "BranchManager", "Admin", "Manager", "ACC" };
+            var roleNames = new[] { "SuperAdmin", "BranchManager", "Manager", "Emp" };
             foreach (var roleName in roleNames)
             {
                 if (!await context.Roles.AnyAsync(r => r.Name == roleName))
@@ -26,8 +26,10 @@ namespace Infrastructure.Persistence.Data
             if (!await context.Branches.AnyAsync())
             {
                 await context.Branches.AddRangeAsync(
-                    new Branch { Name = "الفرع الرئيسي", Description = "المركز الرئيسي للشركة" },
-                    new Branch { Name = "فرع دمشق", Description = "فرع العاصمة" }
+                    new Branch { Name = "الفرع التقني", Description = "الفرع التقني الخاص بالادارة" },
+                    new Branch { Name = "فرع التصميم", Description = "الفرع التصميمي الخاص بالادارة" },
+                    new Branch { Name = "فرع التقييم", Description = "الفرع التقييمي الخاص بالادارة" },
+                    new Branch { Name = "فرع الدراسات", Description = "الفرع الدراسي الخاص بالادارة" }
                 );
                 await context.SaveChangesAsync();
             }
@@ -35,30 +37,60 @@ namespace Infrastructure.Persistence.Data
             // ==================== 3. الأقسام ====================
             if (!await context.Departments.AnyAsync())
             {
-                var mainBranch = await context.Branches.FirstAsync(b => b.Name == "الفرع الرئيسي");
+                var mainBranch = await context.Branches.FirstAsync(b => b.Name == "الفرع التقني");
 
                 await context.Departments.AddRangeAsync(
-                    new Department { Name = "الإدارة العامة", Description = "القسم الرئيسي", BranchId = mainBranch.Id },
-                    new Department { Name = "قسم المشاريع", Description = "إدارة المشاريع", BranchId = mainBranch.Id },
-                    new Department { Name = "قسم المالية", Description = "الشؤون المالية", BranchId = mainBranch.Id }
+                    new Department { Name = "العمليات", Description = "القسم الخاص بالعمليات", BranchId = mainBranch.Id },
+                    new Department { Name = "التنفيذ", Description = "القسم الخاص بالتنفيذ", BranchId = mainBranch.Id }
                 );
                 await context.SaveChangesAsync();
             }
 
-            // ==================== 4. الصلاحيات ====================
+            // ==================== 4. أنواع الإجازات ====================
+            if (!await context.VacationType.AnyAsync())
+            {
+                await context.VacationType.AddRangeAsync(
+                    new VacationType
+                    {
+                        Name = "إجازة مدفوعة الأجر",
+                        Description = "إجازة مدفوعة الأجر، يحق للموظف إجازتين كل شهر",
+                        IsPaid = true   // ✅ يخضع للحد الشهري
+                    },
+                    new VacationType
+                    {
+                        Name = "إجازة غير مدفوعة الأجر",
+                        Description = "إجازة غير مدفوعة الأجر يتم خصمها على الموظف",
+                        IsPaid = false  // ❌ غير مدفوعة دائماً
+                    },
+                    new VacationType
+                    {
+                        Name = "إجازة مرضية",
+                        Description = "إجازة تمنح للموظف في الحالات المرضية",
+                        IsPaid = true   // ✅ مدفوعة (حسب الحد)
+                    },
+                    new VacationType
+                    {
+                        Name = "إجازة مكافأة عمل إضافي",
+                        Description = "إجازة تمنح للموظف عند العمل الإضافي",
+                        IsPaid = true   // ✅ مدفوعة
+                    }
+                );
+                await context.SaveChangesAsync();
+            }
+
+            // ==================== 5. الصلاحيات ====================
             var permissions = new[]
             {
-                new Permission { Name = "ViewProjects", Description = "عرض المشاريع" },
-                new Permission { Name = "CreateProject", Description = "إنشاء مشروع" },
-                new Permission { Name = "EditProject", Description = "تعديل مشروع" },
-                new Permission { Name = "DeleteProject", Description = "حذف مشروع" },
-                new Permission { Name = "AssignUser", Description = "تعيين مستخدم" },
-                new Permission { Name = "TransferProject", Description = "نقل مشروع" },
-                new Permission { Name = "UploadProjectFile", Description = "رفع ملفات المشروع" },
                 new Permission { Name = "ManageUsers", Description = "إدارة المستخدمين" },
                 new Permission { Name = "ManageBranches", Description = "إدارة الفروع" },
                 new Permission { Name = "ManageDepartments", Description = "إدارة الأقسام" },
-                new Permission { Name = "ManageRoles", Description = "إدارة الأدوار والصلاحيات" }
+                new Permission { Name = "ManageRoles", Description = "إدارة الأدوار والصلاحيات" },
+
+                new Permission { Name = "ViewVacations",        Description = "عرض الإجازات" },
+                new Permission { Name = "CreateVacation",       Description = "تقديم طلب إجازة" },
+                new Permission { Name = "ApproveVacation",      Description = "الموافقة على الإجازات" },
+                new Permission { Name = "ManageVacations",      Description = "إدارة كل الإجازات" },
+                new Permission { Name = "ManageVacationTypes",  Description = "إدارة أنواع الإجازات" },
             };
 
             foreach (var permission in permissions)
@@ -69,12 +101,12 @@ namespace Infrastructure.Persistence.Data
 
             await context.SaveChangesAsync();
 
-            // ==================== 5. المستخدم SuperAdmin ====================
+            // ==================== 6. المستخدم SuperAdmin ====================
             if (!await context.Users.AnyAsync(u => u.Email == "admin@system.com"))
             {
                 var adminRole = await context.Roles.FirstAsync(r => r.Name == "SuperAdmin");
-                var adminDept = await context.Departments.FirstAsync(d => d.Name == "الإدارة العامة");
-                var mainBranch = await context.Branches.FirstAsync(b => b.Name == "الفرع الرئيسي");
+                var adminDept = await context.Departments.FirstAsync(d => d.Name == "العمليات");
+                var mainBranch = await context.Branches.FirstAsync(b => b.Name == "الفرع التقني");
 
                 var admin = new User
                 {
@@ -92,29 +124,25 @@ namespace Infrastructure.Persistence.Data
                 await context.SaveChangesAsync();
             }
 
-            // ==================== 6. ربط الصلاحيات بالأدوار ====================
+            // ==================== 7. ربط الصلاحيات بالأدوار ====================
             var allPermissions = await context.Permissions.ToListAsync();
 
             await EnsureRolePermissionsAsync(context, "SuperAdmin", allPermissions.Select(p => p.Name));
-            await EnsureRolePermissionsAsync(context, "Admin", allPermissions.Select(p => p.Name));
 
             var managerPermissionNames = new[]
             {
-                "ViewProjects",
-                "CreateProject",
-                "EditProject",
-                "AssignUser",
-                "TransferProject",
-                "UploadProjectFile",
                 "ManageUsers",
                 "ManageDepartments",
-                "ManageRoles"
+                "ManageRoles",
+                "ViewVacations",
+                "CreateVacation",
+                "ApproveVacation",
+                "ManageVacations",
+                "ManageVacationTypes"
             };
 
             await EnsureRolePermissionsAsync(context, "Manager", managerPermissionNames);
             await EnsureRolePermissionsAsync(context, "BranchManager", managerPermissionNames);
-
-            await EnsureRolePermissionsAsync(context, "ACC", new[] { "ViewProjects" });
 
             await context.SaveChangesAsync();
         }

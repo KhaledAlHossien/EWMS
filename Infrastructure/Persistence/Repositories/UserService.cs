@@ -117,18 +117,6 @@ namespace Infrastructure.Persistence.Repositories
                 .ToListAsync();
         }
 
-        public async Task<bool> IsUserUsedAsync(int userId)
-        {
-            // نتحقق إن كان المستخدم مرتبطاً بأي مشروع أو تعيين أو تحويل أو ملف
-            var usedInProjects = await _context.Projects.AnyAsync(p => p.CreatedById == userId);
-            var usedInAssignments = await _context.ProjectAssignments
-                .AnyAsync(pa => pa.AssignedUserId == userId || pa.AssignedByUserId == userId);
-            var usedInTransfers = await _context.ProjectTransfers
-                .AnyAsync(pt => pt.TransferredById == userId);
-            var usedInFiles = await _context.ProjectFiles
-                .AnyAsync(pf => pf.UploadedById == userId);
-
-            return usedInProjects || usedInAssignments || usedInTransfers || usedInFiles;
-        }
+        
     }
 }
