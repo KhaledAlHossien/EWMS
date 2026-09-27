@@ -23,7 +23,7 @@ namespace Domain.Entities
 
         // ===== سجل الموافقات (Audit Trail) =====
         public bool ManagerAccept { get; set; } = false;
-        public bool AdministrativeAccept { get; set; } = false;
+        
         public bool BranchManagerAccept { get; set; } = false;  // ⚠️ غيّرنا الافتراضي إلى false
 
         // ===== حالة سير العمل (جديد) =====

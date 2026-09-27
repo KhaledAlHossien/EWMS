@@ -21,7 +21,7 @@ namespace Application.DTOs.Response
         public bool IsPaid { get; set; }
         public string PaymentStatusAr => IsPaid ? "مدفوعة" : "غير مدفوعة";
         public bool ManagerAccept { get; set; }
-        public bool AdministrativeAccept { get; set; }
+        
         public bool BranchManagerAccept { get; set; }
 
         public string? RejectionReason { get; set; }

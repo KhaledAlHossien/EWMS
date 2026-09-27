@@ -130,8 +130,7 @@ namespace Infrastructure.Persistence.Data
                 entity.Property(v => v.ManagerAccept)
                     .HasDefaultValue(false);
 
-                entity.Property(v => v.AdministrativeAccept)
-                    .HasDefaultValue(false);
+                
 
                 entity.Property(v => v.BranchManagerAccept)
                     .HasDefaultValue(true);
