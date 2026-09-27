@@ -24,8 +24,7 @@ namespace Application.Features.Users.Commands.Delete
 
             UserRules.EnsureCanChangeExistingUser(_currentUserService, user);
 
-            if (await _userService.IsUserUsedAsync(user.Id))
-                throw new InvalidOperationException("لا يمكن حذف مستخدم مرتبط بمشاريع أو ملفات أو تحويلات");
+           
 
             return await _userService.DeleteAsync(user);
         }

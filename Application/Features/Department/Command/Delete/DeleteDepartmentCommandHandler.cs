@@ -29,9 +29,7 @@ namespace Application.Features.Department.Command.Delete
             if (await _departmentService.HasUsersAsync(request.Id))
                 throw new InvalidOperationException("لا يمكن حذف قسم يحتوي على مستخدمين");
 
-            // منع الحذف لو فيه مشاريع
-            if (await _departmentService.HasProjectsAsync(request.Id))
-                throw new InvalidOperationException("لا يمكن حذف قسم يحتوي على مشاريع");
+            
 
             return await _departmentService.DeleteAsync(department);
         }

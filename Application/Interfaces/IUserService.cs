@@ -19,6 +19,9 @@ namespace Application.Interfaces
         Task<bool> IsEmailUniqueAsync(string email, int? excludeId = null);
         Task<List<User>> GetByDepartmentAsync(int departmentId);
         Task<List<User>> GetByBranchAsync(int branchId);
-        Task<bool> IsUserUsedAsync(int userId); // للتحقق قبل الحذف
+
+        // ===== المستخدم الحالي =====
+        int UserId { get; }
+
     }
 }

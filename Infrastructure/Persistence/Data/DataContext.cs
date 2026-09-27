@@ -1,4 +1,5 @@
 ﻿using Domain.Entities;
+using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -17,10 +18,8 @@ namespace Infrastructure.Persistence.Data
         public DbSet<Role> Roles { get; set; }
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
-        public DbSet<Project> Projects { get; set; }
-        public DbSet<ProjectAssignments> ProjectAssignments { get; set; }
-        public DbSet<ProjectFile> ProjectFiles { get; set; }
-        public DbSet<ProjectTransfers> ProjectTransfers { get; set; }
+        public DbSet<Vacation> Vacation { get; set; }
+        public DbSet<VacationType> VacationType { get; set; }
         public DbSet<UserToken> UserTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -35,6 +34,10 @@ namespace Infrastructure.Persistence.Data
             builder.Entity<Role>()
                 .HasIndex(r => r.Name)
                 .IsUnique();
+
+            builder.Entity<VacationType>()
+               .HasIndex(u => u.Name)
+               .IsUnique();
 
             builder.Entity<Branch>()
                 .HasIndex(b => b.Name)
@@ -95,93 +98,101 @@ namespace Infrastructure.Persistence.Data
                 .HasForeignKey(rp => rp.PermissionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ---------- Project ----------
-            // 7. Project -> User (المنشئ)
-            builder.Entity<Project>()
-                .HasOne(p => p.User)
-                .WithMany()
-                .HasForeignKey(p => p.CreatedById)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // 8. Project -> Department (القسم الحالي)
-            builder.Entity<Project>()
-                .HasOne(p => p.Department)
-                .WithMany()
-                .HasForeignKey(p => p.CurrentDepartmentId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // ---------- ProjectAssignments ----------
-            // 9. ProjectAssignments -> Project
-            builder.Entity<ProjectAssignments>()
-                .HasOne(pa => pa.Project)
-                .WithMany()
-                .HasForeignKey(pa => pa.ProjectId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // 10. ProjectAssignments -> AssignedUser
-            builder.Entity<ProjectAssignments>()
-                .HasOne(pa => pa.AssignedUser)
-                .WithMany()
-                .HasForeignKey(pa => pa.AssignedUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // 11. ProjectAssignments -> AssignedByUser
-            builder.Entity<ProjectAssignments>()
-                .HasOne(pa => pa.AssignedByUser)
-                .WithMany()
-                .HasForeignKey(pa => pa.AssignedByUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // ---------- ProjectFile ----------
-            // 12. ProjectFile -> Project
-            builder.Entity<ProjectFile>()
-                .HasOne(pf => pf.Project)
-                .WithMany()
-                .HasForeignKey(pf => pf.ProjectId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // 13. ProjectFile -> User (الذي رفع الملف)
-            builder.Entity<ProjectFile>()
-                .HasOne(pf => pf.User)
-                .WithMany()
-                .HasForeignKey(pf => pf.UploadedById)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // ---------- ProjectTransfers ----------
-            // 14. ProjectTransfers -> Project
-            builder.Entity<ProjectTransfers>()
-                .HasOne(pt => pt.Project)
-                .WithMany()
-                .HasForeignKey(pt => pt.ProjectId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // 15. ProjectTransfers -> FromDepartment
-            builder.Entity<ProjectTransfers>()
-                .HasOne(pt => pt.FromDepartment)
-                .WithMany()
-                .HasForeignKey(pt => pt.FromDepartmentId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // 16. ProjectTransfers -> ToDepartment
-            builder.Entity<ProjectTransfers>()
-                .HasOne(pt => pt.ToDepartment)
-                .WithMany()
-                .HasForeignKey(pt => pt.ToDepartmentId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // 17. ProjectTransfers -> TransferredByUser
-            builder.Entity<ProjectTransfers>()
-                .HasOne(pt => pt.TransferredByUser)
-                .WithMany()
-                .HasForeignKey(pt => pt.TransferredById)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // 18. User -> UserToken
+            // 7. User -> UserToken
             builder.Entity<UserToken>()
                 .HasOne(ut => ut.User)
                 .WithMany()
                 .HasForeignKey(ut => ut.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // ==================== تكوين VacationType ====================
+            builder.Entity<VacationType>(entity =>
+            {
+                entity.HasKey(vt => vt.Id);
+
+                entity.Property(vt => vt.Name)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity.Property(vt => vt.Description)
+                    .HasMaxLength(500);
+            });
+
+            // ==================== تكوين Vacation ====================
+            builder.Entity<Vacation>(entity =>
+            {
+                entity.HasKey(v => v.Id);
+
+                // ----- الخصائص -----
+                entity.Property(v => v.VacReason)
+                    .HasMaxLength(500);
+
+                entity.Property(v => v.ManagerAccept)
+                    .HasDefaultValue(false);
+
+                entity.Property(v => v.AdministrativeAccept)
+                    .HasDefaultValue(false);
+
+                entity.Property(v => v.BranchManagerAccept)
+                    .HasDefaultValue(true);
+
+                entity.Property(v => v.Status)
+                    .HasConversion<int>()   // خزّنه كـ int
+                    .HasDefaultValue(VacationStatus.PendingManager);
+
+                entity.Property(v => v.RejectionReason)
+                    .HasMaxLength(500);
+
+                entity.Property(v => v.IsPaid)
+                    .HasDefaultValue(true);
+
+
+                // ----- العلاقات -----
+
+                // 8. Vacation -> VacationType
+                entity.HasOne(v => v.VacationType)
+                    .WithMany()
+                    .HasForeignKey(v => v.VacationTypeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // 9. Vacation -> User
+                entity.HasOne(v => v.User)
+                    .WithMany()
+                    .HasForeignKey(v => v.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // 10. Vacation -> Department
+                entity.HasOne(v => v.Department)
+                    .WithMany()
+                    .HasForeignKey(v => v.DepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // 11. Vacation -> Branch
+                entity.HasOne(v => v.Branch)
+                    .WithMany()
+                    .HasForeignKey(v => v.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+
+                
+
+                // علاقة RejectedByUser
+                entity.HasOne(v => v.RejectedByUser)
+                    .WithMany()
+                    .HasForeignKey(v => v.RejectedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // فهرس على Status لتسريع الاستعلامات
+                entity.HasIndex(v => v.Status);
+
+                // ----- الفهارس (Indexes) -----
+                entity.HasIndex(v => v.UserId);
+                entity.HasIndex(v => v.DepartmentId);
+                entity.HasIndex(v => v.BranchId);
+                entity.HasIndex(v => v.StartVac);
+                entity.HasIndex(v => new { v.UserId, v.StartVac, v.EndVac });
+                entity.HasIndex(v => new { v.UserId, v.IsPaid });
+            });
         }
     }
 }

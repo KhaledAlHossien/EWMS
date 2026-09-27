@@ -68,10 +68,7 @@ namespace Infrastructure.Persistence.Repositories
             return await _context.Users.AnyAsync(u => u.DepartmentId == departmentId);
         }
 
-        public async Task<bool> HasProjectsAsync(int departmentId)
-        {
-            return await _context.Projects.AnyAsync(p => p.CurrentDepartmentId == departmentId);
-        }
+       
 
         public async Task<List<Department>> GetByBranchAsync(int branchId)
         {
@@ -79,5 +76,7 @@ namespace Infrastructure.Persistence.Repositories
                 .Where(d => d.BranchId == branchId)
                 .ToListAsync();
         }
+
+       
     }
 }

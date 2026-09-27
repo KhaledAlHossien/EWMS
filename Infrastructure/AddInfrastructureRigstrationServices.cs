@@ -29,10 +29,9 @@ namespace Infrastructure
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IPermissionService, PermissionService>();
             services.AddScoped<IRolePermissionService, RolePermissionService>();
-            services.AddScoped<IProjectService, ProjectService>();
-            services.AddScoped<IProjectAssignmentService, ProjectAssignmentService>();
-            services.AddScoped<IProjectTransferService, ProjectTransferService>();
-            services.AddScoped<IProjectFileService, ProjectFileService>();
+            services.AddScoped<IVacationService, VacationService>();
+            services.AddScoped<IVacationTypeService, VacationTypeService>();
+
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();
 
