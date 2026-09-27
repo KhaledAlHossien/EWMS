@@ -20,6 +20,9 @@ namespace Domain.Entities
         public required int DepartmentId { get; set; }
         public Department Department { get; set; } = null!;
 
+        public required int OfficeId { get; set; }
+        public Office Office { get; set; } = null!;
+
         public required int BranchId { get; set; }
         public Branch Branch { get; set; } = null!;
 

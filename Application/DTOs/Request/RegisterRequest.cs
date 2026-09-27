@@ -11,6 +11,7 @@ namespace Application.DTOs.Request
         public required string Password { get; set; }
         public required int RoleId { get; set; }
         public required int DepartmentId { get; set; }
+        public required int OfficeId { get; set; }
         public required int BranchId { get; set; }
     }
 }

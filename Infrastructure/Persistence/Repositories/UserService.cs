@@ -37,6 +37,7 @@ namespace Infrastructure.Persistence.Repositories
             return await _context.Users
                 .Include(u => u.Role)
                 .Include(u => u.Department)
+                .Include(u => u.Office)
                 .Include(u => u.Branch)
                 .FirstOrDefaultAsync(u => u.Id == id);
         }
@@ -46,6 +47,7 @@ namespace Infrastructure.Persistence.Repositories
             return await _context.Users
                 .Include(u => u.Role)
                 .Include(u => u.Department)
+                .Include(u => u.Office)
                 .Include(u => u.Branch)
                 .ToListAsync();
         }
@@ -78,6 +80,7 @@ namespace Infrastructure.Persistence.Repositories
             return await _context.Users
                 .Include(u => u.Role)
                 .Include(u => u.Department)
+                .Include(u => u.Office)
                 .Include(u => u.Branch)
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
@@ -87,6 +90,7 @@ namespace Infrastructure.Persistence.Repositories
             return await _context.Users
                 .Include(u => u.Role)
                 .Include(u => u.Department)
+                .Include(u => u.Office)
                 .Include(u => u.Branch)
                 .FirstOrDefaultAsync(u => u.Id == id);
         }
@@ -102,8 +106,20 @@ namespace Infrastructure.Persistence.Repositories
             return await _context.Users
                 .Include(u => u.Role)
                 .Include(u => u.Department)
+                .Include(u => u.Office)
                 .Include(u => u.Branch)
                 .Where(u => u.DepartmentId == departmentId)
+                .ToListAsync();
+        }
+
+        public async Task<List<User>> GetByOfficeAsync(int officeId)
+        {
+            return await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Department)
+                .Include(u => u.Office)
+                .Include(u => u.Branch)
+                .Where(u => u.OfficeId == officeId)
                 .ToListAsync();
         }
 
@@ -112,11 +128,12 @@ namespace Infrastructure.Persistence.Repositories
             return await _context.Users
                 .Include(u => u.Role)
                 .Include(u => u.Department)
+                .Include(u => u.Office)
                 .Include(u => u.Branch)
                 .Where(u => u.BranchId == branchId)
                 .ToListAsync();
         }
 
-        
+
     }
 }

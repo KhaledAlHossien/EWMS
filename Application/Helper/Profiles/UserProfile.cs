@@ -13,6 +13,8 @@ namespace Application.Helper.Profiles
                     opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : string.Empty))
                 .ForMember(dest => dest.DepartmentName,
                     opt => opt.MapFrom(src => src.Department != null ? src.Department.Name : string.Empty))
+                .ForMember(dest => dest.OfficeName,
+                    opt => opt.MapFrom(src => src.Office != null ? src.Office.Name : string.Empty))
                 .ForMember(dest => dest.BranchName,
                     opt => opt.MapFrom(src => src.Branch != null ? src.Branch.Name : string.Empty));
         }

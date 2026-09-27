@@ -15,9 +15,10 @@ namespace Application.Interfaces
         Task<bool> SaveChangesAsync();
 
         Task<User?> GetByEmailAsync(string email);
-        Task<User?> GetWithDetailsAsync(int id); // مع Role + Department + Branch
+        Task<User?> GetWithDetailsAsync(int id); // مع Role + Department + Office + Branch
         Task<bool> IsEmailUniqueAsync(string email, int? excludeId = null);
         Task<List<User>> GetByDepartmentAsync(int departmentId);
+        Task<List<User>> GetByOfficeAsync(int officeId);
         Task<List<User>> GetByBranchAsync(int branchId);
 
         // ===== المستخدم الحالي =====

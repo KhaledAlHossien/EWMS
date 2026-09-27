@@ -14,6 +14,7 @@ namespace Infrastructure.Persistence.Data
         // ==================== DbSets ====================
         public DbSet<Branch> Branches { get; set; }
         public DbSet<Department> Departments { get; set; }
+        public DbSet<Office> Offices { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<Permission> Permissions { get; set; }
@@ -47,6 +48,10 @@ namespace Infrastructure.Persistence.Data
                 .HasIndex(d => d.Name)
                 .IsUnique();
 
+            builder.Entity<Office>()
+                .HasIndex(o => o.Name)
+                .IsUnique();
+
             builder.Entity<RolePermission>()
                 .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
                 .IsUnique();
@@ -68,6 +73,14 @@ namespace Infrastructure.Persistence.Data
                 .HasForeignKey(u => u.BranchId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ---------- Office ----------
+            // 2.1 Office -> Department
+            builder.Entity<Office>()
+                .HasOne(o => o.Department)
+                .WithMany()
+                .HasForeignKey(o => o.DepartmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ---------- User ----------
             // 3. User -> Role
             builder.Entity<User>()
@@ -81,6 +94,13 @@ namespace Infrastructure.Persistence.Data
                 .HasOne(u => u.Department)
                 .WithMany()
                 .HasForeignKey(u => u.DepartmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 4.1 User -> Office
+            builder.Entity<User>()
+                .HasOne(u => u.Office)
+                .WithMany()
+                .HasForeignKey(u => u.OfficeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ---------- RolePermission ----------

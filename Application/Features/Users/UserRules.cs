@@ -8,9 +8,11 @@ namespace Application.Features.Users
         public static async Task EnsureUserReferencesAsync(
             IBranchService branchService,
             IDepartmentService departmentService,
+            IOfficeService officeService,
             IRoleService roleService,
             int branchId,
             int departmentId,
+            int officeId,
             int roleId)
         {
             if (!await branchService.ExistsAsync(branchId))
@@ -21,6 +23,12 @@ namespace Application.Features.Users
 
             if (department.BranchId != branchId)
                 throw new InvalidOperationException("القسم لا يتبع الفرع المحدد");
+
+            var office = await officeService.GetByIdAsync(officeId)
+                ?? throw new KeyNotFoundException("المكتب غير موجود");
+
+            if (office.DepartmentId != departmentId)
+                throw new InvalidOperationException("المكتب لا يتبع القسم المحدد");
 
             if (await roleService.GetByIdAsync(roleId) == null)
                 throw new KeyNotFoundException("الدور غير موجود");

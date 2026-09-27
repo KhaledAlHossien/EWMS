@@ -68,6 +68,11 @@ namespace Infrastructure.Persistence.Repositories
             return await _context.Users.AnyAsync(u => u.DepartmentId == departmentId);
         }
 
+        public async Task<bool> HasOfficesAsync(int departmentId)
+        {
+            return await _context.Offices.AnyAsync(o => o.DepartmentId == departmentId);
+        }
+
        
 
         public async Task<List<Department>> GetByBranchAsync(int branchId)

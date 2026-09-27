@@ -17,7 +17,8 @@ namespace Application.Interfaces
         Task<bool> ExistsAsync(int id);
         Task<bool> ExistsByNameAsync(string name, int? excludeId = null);
         Task<bool> HasUsersAsync(int departmentId);
-        
+        Task<bool> HasOfficesAsync(int departmentId);
+
 
         Task<List<Department>> GetByBranchAsync(int branchId);
     }

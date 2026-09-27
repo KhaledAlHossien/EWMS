@@ -72,6 +72,8 @@ namespace API.SystemBuild
                     policy.Requirements.Add(new PermissionRequirement("ManageBranches")));
                 options.AddPolicy("ManageDepartments", policy =>
                     policy.Requirements.Add(new PermissionRequirement("ManageDepartments")));
+                options.AddPolicy("ManageOffices", policy =>
+                    policy.Requirements.Add(new PermissionRequirement("ManageOffices")));
                 options.AddPolicy("ManageRoles", policy =>
                     policy.Requirements.Add(new PermissionRequirement("ManageRoles")));
 

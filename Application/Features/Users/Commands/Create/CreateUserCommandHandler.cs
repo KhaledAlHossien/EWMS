@@ -11,6 +11,7 @@ namespace Application.Features.Users.Commands.Create
         private readonly IUserService _userService;
         private readonly IBranchService _branchService;
         private readonly IDepartmentService _departmentService;
+        private readonly IOfficeService _officeService;
         private readonly IRoleService _roleService;
         private readonly IRolePermissionService _rolePermissionService;
         private readonly ICurrentUserService _currentUserService;
@@ -21,6 +22,7 @@ namespace Application.Features.Users.Commands.Create
             IUserService userService,
             IBranchService branchService,
             IDepartmentService departmentService,
+            IOfficeService officeService,
             IRoleService roleService,
             IRolePermissionService rolePermissionService,
             ICurrentUserService currentUserService,
@@ -30,6 +32,7 @@ namespace Application.Features.Users.Commands.Create
             _userService = userService;
             _branchService = branchService;
             _departmentService = departmentService;
+            _officeService = officeService;
             _roleService = roleService;
             _rolePermissionService = rolePermissionService;
             _currentUserService = currentUserService;
@@ -45,9 +48,11 @@ namespace Application.Features.Users.Commands.Create
             await UserRules.EnsureUserReferencesAsync(
                 _branchService,
                 _departmentService,
+                _officeService,
                 _roleService,
                 request.UserDto.BranchId,
                 request.UserDto.DepartmentId,
+                request.UserDto.OfficeId,
                 request.UserDto.RoleId);
 
             await UserRules.EnsureCanManageUserAsync(
@@ -64,6 +69,7 @@ namespace Application.Features.Users.Commands.Create
                 PasswordHash = _passwordHasher.Hash(request.UserDto.Password),
                 RoleId = request.UserDto.RoleId,
                 DepartmentId = request.UserDto.DepartmentId,
+                OfficeId = request.UserDto.OfficeId,
                 BranchId = request.UserDto.BranchId,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
