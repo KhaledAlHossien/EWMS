@@ -33,6 +33,10 @@ namespace Infrastructure
             services.AddScoped<IVacationService, VacationService>();
             services.AddScoped<IVacationTypeService, VacationTypeService>();
             services.AddScoped<INotificationService, NotificationService>();
+            services.AddScoped<IRegionService, RegionService>();
+            services.AddScoped<ISiteService, SiteService>();
+            services.AddScoped<IDeviceService, DeviceService>();
+            services.AddScoped<IDeviceSiteService, DeviceSiteService>();
 
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();

@@ -94,6 +94,10 @@ namespace API.SystemBuild
                 options.AddPolicy("ManageVacationTypes", policy =>
                     policy.Requirements.Add(new PermissionRequirement("ManageVacationTypes")));
 
+                options.AddPolicy("ViewDevices", policy =>
+                    policy.Requirements.Add(new PermissionRequirement("ViewDevices")));
+                options.AddPolicy("ManageDevices", policy =>
+                    policy.Requirements.Add(new PermissionRequirement("ManageDevices")));
 
             });
 

@@ -159,7 +159,10 @@ namespace Infrastructure.Persistence.Data
                 "CreateVacation",
                 "ApproveVacation",
                 "ManageVacations",
-                "ManageVacationTypes"
+                "ManageVacationTypes",
+                "ManageDevices",
+                "ViewDevices",
+
             };
 
             await EnsureRolePermissionsAsync(context, "Manager", managerPermissionNames);
