@@ -41,7 +41,10 @@ namespace Application.Features.Vacations.Queries.GetById
             var isDepartmentManager = roleName == "Manager" && currentUser.DepartmentId == vacation.DepartmentId;
             var isBranchManager = roleName == "BranchManager" && currentUser.BranchId == vacation.BranchId;
 
-            if (!isOwner && !isSuperAdmin && !isDepartmentManager && !isBranchManager)
+            var isOfficeManager = roleName == "OfficeManager" && currentUser.OfficeId != null
+                && vacation.User?.OfficeId == currentUser.OfficeId;
+
+            if (!isOwner && !isSuperAdmin && !isDepartmentManager && !isBranchManager && !isOfficeManager)
                 throw new UnauthorizedAccessException("لا تملك صلاحية عرض هذه الإجازة");
 
             return _mapper.Map<VacationResponseDto>(vacation);

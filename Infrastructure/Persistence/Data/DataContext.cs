@@ -27,6 +27,10 @@ namespace Infrastructure.Persistence.Data
         public DbSet<Site> Sites { get; set; }
         public DbSet<Device> Devices { get; set; }
         public DbSet<DeviceSite> DeviceSites { get; set; }
+        public DbSet<WorkTask> WorkTasks { get; set; }
+        public DbSet<UserWorkTask> UserWorkTasks { get; set; }
+        public DbSet<AssignedTask> AssignedTasks { get; set; }
+        public DbSet<AssignedTaskActivity> AssignedTaskActivities { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -183,6 +187,78 @@ namespace Infrastructure.Persistence.Data
 
                 entity.HasIndex(n => new { n.UserId, n.IsRead });
                 entity.HasIndex(n => new { n.UserId, n.CreatedAt });
+            });
+
+            // ==================== تكوين WorkTask (مهام العمل) ====================
+            builder.Entity<WorkTask>(entity =>
+            {
+                entity.Property(t => t.Name).HasMaxLength(100).IsRequired();
+                entity.Property(t => t.Description).HasMaxLength(500);
+                entity.Property(t => t.Icon).HasMaxLength(16);
+
+                // اسم المهمة فريد داخل الفرع (فروع مختلفة قد يكون لها مهام بنفس الاسم)
+                entity.HasIndex(t => new { t.BranchId, t.Name }).IsUnique();
+
+                // لا يُحذف فرع له مهام (DeleteBranchCommandHandler يتحقق برسالة واضحة)
+                entity.HasOne(t => t.Branch)
+                    .WithMany()
+                    .HasForeignKey(t => t.BranchId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<UserWorkTask>(entity =>
+            {
+                entity.HasKey(a => new { a.UserId, a.WorkTaskId });
+
+                // الإسناد جدول ربط: يُحذف مع المهمة أو مع الموظف
+                entity.HasOne(a => a.WorkTask)
+                    .WithMany(t => t.Assignments)
+                    .HasForeignKey(a => a.WorkTaskId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(a => a.User)
+                    .WithMany()
+                    .HasForeignKey(a => a.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ==================== تكوين AssignedTask (لوحة المهام) ====================
+            // كل العلاقات Restrict: سجل المهام يُحفظ، وحذف قسم/مكتب/موظف له مهام يُمنع برسالة واضحة
+            builder.Entity<AssignedTask>(entity =>
+            {
+                entity.Property(t => t.Title).HasMaxLength(200).IsRequired();
+                entity.Property(t => t.Description).HasMaxLength(4000);
+                entity.Property(t => t.Priority).HasConversion<int>();
+                entity.Property(t => t.Status).HasConversion<int>();
+                entity.Property(t => t.TargetType).HasConversion<int>();
+
+                entity.HasOne(t => t.Branch).WithMany().HasForeignKey(t => t.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(t => t.Department).WithMany().HasForeignKey(t => t.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(t => t.Office).WithMany().HasForeignKey(t => t.OfficeId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(t => t.AssigneeUser).WithMany().HasForeignKey(t => t.AssigneeUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(t => t.CreatedByUser).WithMany().HasForeignKey(t => t.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(t => t.ParentTask).WithMany(t => t.SubTasks).HasForeignKey(t => t.ParentTaskId).OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(t => new { t.DepartmentId, t.Status });
+                entity.HasIndex(t => new { t.OfficeId, t.Status });
+                entity.HasIndex(t => new { t.AssigneeUserId, t.Status });
+                entity.HasIndex(t => new { t.CreatedByUserId, t.Status });
+            });
+
+            builder.Entity<AssignedTaskActivity>(entity =>
+            {
+                entity.Property(a => a.Text).HasMaxLength(2000);
+                entity.Property(a => a.Type).HasConversion<int>();
+                entity.Property(a => a.FromStatus).HasConversion<int?>();
+                entity.Property(a => a.ToStatus).HasConversion<int?>();
+
+                // السجل جزء من المهمة: يُحذف معها
+                entity.HasOne(a => a.AssignedTask).WithMany(t => t.Activities)
+                    .HasForeignKey(a => a.AssignedTaskId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(a => a.User).WithMany()
+                    .HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(a => new { a.AssignedTaskId, a.CreatedAt });
             });
 
             // ==================== تكوين VacationType ====================

@@ -16,6 +16,7 @@ namespace Application.Interfaces
         // ==================== استعلامات النطاق (كل الحالات) ====================
         Task<List<Vacation>> GetByDepartmentIdAsync(int departmentId);
         Task<List<Vacation>> GetByBranchIdAsync(int branchId);
+        Task<List<Vacation>> GetByOfficeIdAsync(int officeId); // إجازات موظفي المكتب (الإجازة لا تخزّن المكتب — عبر User.OfficeId)
 
         // ==================== استعلامات سير العمل ====================
         Task<List<Vacation>> GetByStatusAsync(

@@ -44,6 +44,10 @@ Request flow: Controller → MediatR → ValidationBehavior → Handler → `IXx
 - Authorization = named policies (`[Authorize(Policy = "ManageUsers")]`) checked by `API/Authorization/PermissionAuthorizationHandler` against `RolePermissions` in the DB.
 - Seeded roles: `SuperAdmin`, `BranchManager`, `Manager`, `Emp`. Seeded admin user is in `DbSeeder.cs`.
 - Permissions: ManageUsers, ManageBranches, ManageDepartments, ManageOffices, ManageRoles, ViewVacations, CreateVacation, ApproveVacation, ManageVacations, ManageVacationTypes, ViewDevices, ManageDevices.
+- Seeded roles: `SuperAdmin`, `BranchManager`, `Manager`, `OfficeManager` (added 2026-09-28), `Emp`. Seeded admin user is in `DbSeeder.cs`.
+- Permissions: ManageUsers, ManageBranches, ManageDepartments, ManageOffices, ManageRoles, ViewVacations, CreateVacation, ApproveVacation, ManageVacations, ManageVacationTypes, ManageWorkTasks.
+- **All management (branches/departments/offices/users/roles/vacation types/work tasks) is SuperAdmin-only** (user decision 2026-09-28). Leaders keep only: BranchManager = ViewVacations + ApproveVacation; Manager = View + Create + Approve; OfficeManager = View + Create (view-only, NOT an approval stage); Emp = View + Create. A future "administrative employee" role is meant to be created by SuperAdmin from the Roles page with the management permissions it needs.
+  `DbSeeder.EnsureRolePermissionsAsync` only ever **adds** — revoking a permission from a seeded role needs a migration (see `Add_WorkTasks_Restrict_Management`, which DELETEs the old leader permissions).
 
 ## Vacation business rules (core domain) — reviewed & hardened 2026-09-27
 - Status flow: `PendingManager (1)` → `PendingBranchManager (3)` → `Approved (4)`; any stage can → `Rejected (5)` (stores RejectedByUserId, reason, date).
@@ -89,15 +93,6 @@ Request flow: Controller → MediatR → ValidationBehavior → Handler → `IXx
 - `ExceptionMiddleware`: `UnauthorizedAccessException` → **403 when the caller is authenticated**, 401 otherwise. The UI's JWT interceptor logs out on 401, so a business "not allowed" must never come back as 401.
 - `Branches/GetAll` still requires `ManageBranches` (loosening it was declined). The UI's `EwmsService.getBranchLookup()` derives the branch dropdown from `Department/GetAll` for users without that permission — keep that in mind before changing either endpoint.
 - UI: review page/nav gated on the `ApproveVacation` permission (not role names); notifications page + unread badge polling `UnreadCount` every 30s; profile page handles the split-create list response and cancel; Projects UI removed.
-
-## Device inventory: Region → Site → Device (added 2026-09-28)
-- Pure documentation/inventory feature for the technical branch's operations team (replaces scattered Excel sheets) — **deliberately independent of the Branch/Department/Office org hierarchy**: no FK to any of them, no per-branch/department scoping in handlers. Access is controlled purely by two flat permissions, `ViewDevices` (read) and `ManageDevices` (write), covering all four entities below. Only `SuperAdmin` gets them by default in `DbSeeder`; grant them to whichever role represents the technical/operations team via the existing `ManageRoles` UI.
-- Entities (`Domain/Entities`): `Region` (Name*, Description) 1→N `Site` (Name*, Description, Location — free-text, e.g. Google Maps coordinates, may be empty, RegionId*). `Device` (Name*, Model, SN, Description) is standalone; `DeviceSite` is the many-to-many join table between `Device` and `Site` (a device can be installed at multiple sites, a site can host multiple devices) and carries the per-installation connection info: `Ip*`, `SubnetMask*` (both validated as IPv4 in the command validators), `UserName*`, `Pass*`, `Note`. Unique index on `(DeviceId, SiteId)` — a device can only be linked once to the same site.
-- **`Pass` is stored as plain text** (decided with the user 2026-09-28) — these are live device credentials needed for actual reversible use, not hashed like user passwords. Flagged here as the same category of tech debt as the hard-coded JWT key (#4 below); revisit if this ever needs to be more defensible (e.g. ASP.NET Data Protection API).
-- `Region.Name` and `Site.Name` are globally unique (like `Office.Name`); `Device.Name`/`SN` are not — multiple devices can plausibly share a name/model, so no uniqueness is enforced there.
-- Delete guards (matching the Office/Department pattern): can't delete a `Region` with `Site`s (`HasSitesAsync`), can't delete a `Site` with `DeviceSite` links (`HasDeviceLinksAsync`), can't delete a `Device` with `DeviceSite` links (`HasSiteLinksAsync`) — all throw a friendly `InvalidOperationException` instead of a raw FK-restrict 500.
-- Endpoints, all under the two policies above (no per-entity permission split): `api/Regions`, `api/Sites` (`GetAll` takes optional `?regionId=`), `api/Devices`, `api/DeviceSites` (`GetAll` takes optional `?siteId=`/`?deviceId=`) — each with `Create`/`Update/{id}`/`Delete/{id}`/`Get/{id}`/`GetAll`, `[FromForm]` bodies, matching the Offices controller shape exactly.
-- Migration `Add_DeviceInventory` creates all four tables in one migration (no existing data to backfill, unlike `Add_User_OfficeId`).
 
 ## Known issues / tech debt (not fixed yet)
 1. (Angular client sync — resolved, see "Frontend ↔ backend wiring" above.)

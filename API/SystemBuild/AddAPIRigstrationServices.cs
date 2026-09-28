@@ -98,6 +98,9 @@ namespace API.SystemBuild
                     policy.Requirements.Add(new PermissionRequirement("ViewDevices")));
                 options.AddPolicy("ManageDevices", policy =>
                     policy.Requirements.Add(new PermissionRequirement("ManageDevices")));
+                options.AddPolicy("ManageWorkTasks", policy =>
+                    policy.Requirements.Add(new PermissionRequirement("ManageWorkTasks")));
+
 
             });
 

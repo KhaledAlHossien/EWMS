@@ -22,7 +22,7 @@ namespace Application.Features.Vacations.Commands.Create
         private readonly IMapper _mapper;
 
         // ==================== الإعدادات ====================
-        private const int MaxPaidVacationDaysPerMonth = 2;
+        private const int MaxPaidVacationDaysPerMonth = VacationRules.MaxPaidVacationDaysPerMonth;
 
         public CreateVacationCommandHandler(
             IVacationService vacationService,

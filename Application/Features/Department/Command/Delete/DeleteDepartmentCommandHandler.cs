@@ -7,13 +7,16 @@ namespace Application.Features.Department.Command.Delete
     {
         private readonly IDepartmentService _departmentService;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IAssignedTaskService _assignedTaskService;
 
         public DeleteDepartmentCommandHandler(
             IDepartmentService departmentService,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            IAssignedTaskService assignedTaskService)
         {
             _departmentService = departmentService;
             _currentUserService = currentUserService;
+            _assignedTaskService = assignedTaskService;
         }
 
         public async Task<bool> Handle(DeleteDepartmentCommand request, CancellationToken cancellationToken)
@@ -32,6 +35,10 @@ namespace Application.Features.Department.Command.Delete
             // منع الحذف لو فيه مكاتب
             if (await _departmentService.HasOfficesAsync(request.Id))
                 throw new InvalidOperationException("لا يمكن حذف قسم يحتوي على مكاتب");
+
+            // سجل المهام المُسندة للقسم محفوظ (Restrict)
+            if (await _assignedTaskService.ExistsForDepartmentAsync(request.Id))
+                throw new InvalidOperationException("لا يمكن حذف قسم له مهام على لوحة المهام");
 
             return await _departmentService.DeleteAsync(department);
         }
