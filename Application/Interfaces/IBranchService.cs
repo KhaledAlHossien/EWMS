@@ -18,5 +18,6 @@ namespace Application.Interfaces
         Task<bool> ExistsByNameAsync(string name, int? excludeId = null);
         Task<bool> HasDepartmentsAsync(int branchId);
         Task<bool> HasUsersAsync(int branchId);
+        Task<bool> HasWorkTasksAsync(int branchId);
     }
 }

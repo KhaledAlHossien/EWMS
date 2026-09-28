@@ -37,15 +37,8 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.IsPaid, o => o.MapFrom(s => s.IsPaid));
         }
 
-        private static string TranslateStatus(VacationStatus status) => status switch
-        {
-            VacationStatus.PendingManager => "بانتظار رئيس القسم",
-            VacationStatus.PendingBranchManager => "بانتظار رئيس الفرع",
-            VacationStatus.Approved => "معتمدة",
-            VacationStatus.Rejected => "مرفوضة",
-            VacationStatus.Cancelled => "ملغاة",
-            _ => "غير معروفة"
-        };
+        private static string TranslateStatus(VacationStatus status)
+            => Application.Features.Vacations.VacationRules.StatusAr(status);
 
         private static string GetCurrentStage(VacationStatus status) => status switch
         {

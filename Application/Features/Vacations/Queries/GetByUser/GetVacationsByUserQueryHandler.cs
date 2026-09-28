@@ -42,7 +42,10 @@ namespace Application.Features.Vacations.Queries.GetByUser
                 var isDepartmentManager = roleName == "Manager" && currentUser.DepartmentId == targetUser.DepartmentId;
                 var isBranchManager = roleName == "BranchManager" && currentUser.BranchId == targetUser.BranchId;
 
-                if (!isDepartmentManager && !isBranchManager)
+                var isOfficeManager = roleName == "OfficeManager" && currentUser.OfficeId != null
+                    && currentUser.OfficeId == targetUser.OfficeId;
+
+                if (!isDepartmentManager && !isBranchManager && !isOfficeManager)
                     throw new UnauthorizedAccessException("لا تملك صلاحية عرض إجازات هذا المستخدم");
             }
 

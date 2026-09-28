@@ -13,7 +13,7 @@ namespace Infrastructure.Persistence.Data
         public static async Task SeedAsync(DataContext context)
         {
             // ==================== 1. الأدوار ====================
-            var roleNames = new[] { "SuperAdmin", "BranchManager", "Manager", "Emp" };
+            var roleNames = new[] { "SuperAdmin", "BranchManager", "Manager", "OfficeManager", "Emp" };
             foreach (var roleName in roleNames)
             {
                 if (!await context.Roles.AnyAsync(r => r.Name == roleName))
@@ -114,6 +114,7 @@ namespace Infrastructure.Persistence.Data
 
                 new Permission { Name = "ViewDevices",   Description = "عرض المناطق والمواقع والأجهزة" },
                 new Permission { Name = "ManageDevices", Description = "إدارة المناطق والمواقع والأجهزة" },
+                new Permission { Name = "ManageWorkTasks",      Description = "إدارة مهام العمل وإسنادها" },
             };
 
             foreach (var permission in permissions)
@@ -149,24 +150,33 @@ namespace Infrastructure.Persistence.Data
 
             await EnsureRolePermissionsAsync(context, "SuperAdmin", allPermissions.Select(p => p.Name));
 
-            var managerPermissionNames = new[]
+            // الرؤساء لا يديرون الهيكل (فروع/أقسام/مكاتب/موظفين/أدوار/أنواع إجازات) — هذه للسوبر ادمن فقط،
+            // ولاحقاً لدور "موظف إداري" يُنشئه السوبر ادمن من صفحة الأدوار (قرار المستخدم 2026-09-28).
+            // الصلاحيات التي سُحبت من الرؤساء أزالتها migration: Restrict_Management_To_SuperAdmin
+
+            // رئيس الفرع: يعتمد الإجازات (المرحلة الثانية) ولا يقدّم إجازات
+            await EnsureRolePermissionsAsync(context, "BranchManager", new[]
             {
-                "ManageUsers",
-                "ManageDepartments",
-                "ManageOffices",
-                "ManageRoles",
+                "ViewVacations",
+                "ApproveVacation"
+            });
+
+            // رئيس القسم: يوافق على إجازات قسمه (المرحلة الأولى) ويقدّم إجازاته
+            await EnsureRolePermissionsAsync(context, "Manager", new[]
+            {
                 "ViewVacations",
                 "CreateVacation",
                 "ApproveVacation",
                 "ManageVacations",
-                "ManageVacationTypes",
-                "ManageDevices",
-                "ViewDevices",
-
+                "ManageVacationTypes"
             };
 
-            await EnsureRolePermissionsAsync(context, "Manager", managerPermissionNames);
-            await EnsureRolePermissionsAsync(context, "BranchManager", managerPermissionNames);
+            // رئيس المكتب: يطّلع على إجازات مكتبه فقط، لا يوافق عليها
+            await EnsureRolePermissionsAsync(context, "OfficeManager", new[]
+            {
+                "ViewVacations",
+                "CreateVacation"
+            });
 
             // الموظف العادي: يقدّم طلب إجازة ويرى إجازاته فقط (لا موافقة ولا إدارة)
             var empPermissionNames = new[]

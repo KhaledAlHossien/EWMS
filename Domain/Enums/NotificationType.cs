@@ -8,6 +8,10 @@
         VacationRejectedByManager = 4,        // رفض رئيس القسم
         VacationApprovedFinal = 5,            // اعتماد نهائي من رئيس الفرع
         VacationRejectedByBranchManager = 6,  // رفض نهائي من رئيس الفرع
-        VacationCancelled = 7                 // ألغى الموظف طلبه بنفسه
+        VacationCancelled = 7,                // ألغى الموظف طلبه بنفسه
+        WorkTaskAssigned = 8,                 // أُسندت للموظف مهمة عمل
+        TaskAssigned = 9,                     // مهمة جديدة على لوحة المهام (للجهة المُسندة إليها)
+        TaskStatusChanged = 10,               // تغيّرت حالة مهمة أسندتُها
+        TaskCommented = 11                    // تعليق جديد على مهمة
     }
 }

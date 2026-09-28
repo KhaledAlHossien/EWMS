@@ -87,6 +87,18 @@ namespace Infrastructure.Persistence.Repositories
                 .ToListAsync();
         }
 
+        public async Task<List<Vacation>> GetByOfficeIdAsync(int officeId)
+        {
+            return await _context.Vacation
+                .Include(v => v.VacationType)
+                .Include(v => v.User)
+                .Include(v => v.Department)
+                .Include(v => v.Branch)
+                .Where(v => v.User.OfficeId == officeId)
+                .OrderByDescending(v => v.CreatedAt)
+                .ToListAsync();
+        }
+
         // ==================== استعلامات سير العمل ====================
 
         public async Task<List<Vacation>> GetByStatusAsync(

@@ -42,6 +42,7 @@ namespace Application.Features.Vacations.Queries.GetAll
                 "SuperAdmin" => await _service.GetAllAsync(),
                 "BranchManager" => await _service.GetByBranchIdAsync(currentUser.BranchId ?? 0),
                 "Manager" => await _service.GetByDepartmentIdAsync(currentUser.DepartmentId ?? 0),
+                "OfficeManager" => await _service.GetByOfficeIdAsync(currentUser.OfficeId ?? 0),
                 _ => await _service.GetByUserIdAsync(currentUser.Id)
             };
 
