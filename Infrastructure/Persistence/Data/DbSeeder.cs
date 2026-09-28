@@ -111,6 +111,9 @@ namespace Infrastructure.Persistence.Data
                 new Permission { Name = "ApproveVacation",      Description = "الموافقة على الإجازات" },
                 new Permission { Name = "ManageVacations",      Description = "إدارة كل الإجازات" },
                 new Permission { Name = "ManageVacationTypes",  Description = "إدارة أنواع الإجازات" },
+
+                new Permission { Name = "ViewDevices",   Description = "عرض المناطق والمواقع والأجهزة" },
+                new Permission { Name = "ManageDevices", Description = "إدارة المناطق والمواقع والأجهزة" },
             };
 
             foreach (var permission in permissions)
