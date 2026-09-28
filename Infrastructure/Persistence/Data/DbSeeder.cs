@@ -169,7 +169,7 @@ namespace Infrastructure.Persistence.Data
                 "ApproveVacation",
                 "ManageVacations",
                 "ManageVacationTypes"
-            };
+            });
 
             // رئيس المكتب: يطّلع على إجازات مكتبه فقط، لا يوافق عليها
             await EnsureRolePermissionsAsync(context, "OfficeManager", new[]
