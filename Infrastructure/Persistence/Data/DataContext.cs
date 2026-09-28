@@ -23,6 +23,10 @@ namespace Infrastructure.Persistence.Data
         public DbSet<VacationType> VacationType { get; set; }
         public DbSet<UserToken> UserTokens { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<Region> Regions { get; set; }
+        public DbSet<Site> Sites { get; set; }
+        public DbSet<Device> Devices { get; set; }
+        public DbSet<DeviceSite> DeviceSites { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -55,6 +59,18 @@ namespace Infrastructure.Persistence.Data
 
             builder.Entity<RolePermission>()
                 .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
+                .IsUnique();
+
+            builder.Entity<Region>()
+                .HasIndex(r => r.Name)
+                .IsUnique();
+
+            builder.Entity<Site>()
+                .HasIndex(s => s.Name)
+                .IsUnique();
+
+            builder.Entity<DeviceSite>()
+                .HasIndex(ds => new { ds.DeviceId, ds.SiteId })
                 .IsUnique();
 
             // ==================== تكوين العلاقات ====================
@@ -125,6 +141,28 @@ namespace Infrastructure.Persistence.Data
                 .WithMany()
                 .HasForeignKey(ut => ut.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // ---------- Region / Site / Device ----------
+            // 7.1 Site -> Region
+            builder.Entity<Site>()
+                .HasOne(s => s.Region)
+                .WithMany()
+                .HasForeignKey(s => s.RegionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 7.2 DeviceSite -> Device
+            builder.Entity<DeviceSite>()
+                .HasOne(ds => ds.Device)
+                .WithMany()
+                .HasForeignKey(ds => ds.DeviceId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 7.3 DeviceSite -> Site
+            builder.Entity<DeviceSite>()
+                .HasOne(ds => ds.Site)
+                .WithMany()
+                .HasForeignKey(ds => ds.SiteId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // ==================== تكوين Notification ====================
             builder.Entity<Notification>(entity =>
