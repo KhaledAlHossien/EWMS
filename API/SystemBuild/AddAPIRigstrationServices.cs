@@ -56,6 +56,7 @@ namespace API.SystemBuild
             services.AddHttpContextAccessor();
 
             services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+            services.AddScoped<IAuthorizationHandler, DeviceAccessAuthorizationHandler>();
             services.AddAuthorization(options =>
             {
                 options.AddPolicy("ViewProjects", policy =>
@@ -94,10 +95,11 @@ namespace API.SystemBuild
                 options.AddPolicy("ManageVacationTypes", policy =>
                     policy.Requirements.Add(new PermissionRequirement("ManageVacationTypes")));
 
+                // توثيق الأجهزة: صلاحية الدور أو الانتماء لقسم العمليات (DeviceInventory:OwnerDepartmentId)
                 options.AddPolicy("ViewDevices", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("ViewDevices")));
+                    policy.Requirements.Add(new DeviceAccessRequirement(manage: false)));
                 options.AddPolicy("ManageDevices", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("ManageDevices")));
+                    policy.Requirements.Add(new DeviceAccessRequirement(manage: true)));
                 options.AddPolicy("ManageWorkTasks", policy =>
                     policy.Requirements.Add(new PermissionRequirement("ManageWorkTasks")));
 

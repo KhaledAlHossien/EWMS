@@ -5,6 +5,8 @@ using Application.Features.Devices.Commands.Delete;
 using Application.Features.Devices.Commands.Update;
 using Application.Features.Devices.Queries.GetAll;
 using Application.Features.Devices.Queries.GetById;
+using Application.Features.Devices.Queries.GetMyAccess;
+using Application.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -57,6 +59,13 @@ namespace API.Controllers
         public async Task<ActionResult<List<DeviceResponseDto>>> GetAll()
         {
             return Ok(await _mediator.Send(new GetAllDevicesQuery()));
+        }
+
+        // صلاحيتي على توثيق الأجهزة (بدون سياسة: يُرجع false/false لمن لا يملكها)
+        [HttpGet("MyAccess")]
+        public async Task<ActionResult<DeviceAccess>> MyAccess()
+        {
+            return Ok(await _mediator.Send(new GetMyDeviceAccessQuery()));
         }
     }
 }

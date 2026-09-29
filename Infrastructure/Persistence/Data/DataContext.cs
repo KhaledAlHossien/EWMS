@@ -73,9 +73,14 @@ namespace Infrastructure.Persistence.Data
                 .HasIndex(s => s.Name)
                 .IsUnique();
 
+            // لا فهرس فريد على (DeviceId, SiteId): نفس الجهاز قد يُركَّب أكثر من مرة في نفس الموقع
             builder.Entity<DeviceSite>()
-                .HasIndex(ds => new { ds.DeviceId, ds.SiteId })
-                .IsUnique();
+                .Property(ds => ds.InstallLocation)
+                .HasMaxLength(300);
+
+            builder.Entity<DeviceSite>()
+                .Property(ds => ds.SN)
+                .HasMaxLength(100);
 
             // ==================== تكوين العلاقات ====================
 

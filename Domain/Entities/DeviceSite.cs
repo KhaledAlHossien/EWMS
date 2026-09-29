@@ -16,5 +16,11 @@ namespace Domain.Entities
         public string UserName { get; set; } = string.Empty;
         public string Pass { get; set; } = string.Empty;
         public string Note { get; set; } = string.Empty;
+
+        // الرقم التسلسلي للقطعة المركّبة (الجهاز نوع قابل للتكرار، ولكل قطعة رقمها) — قرار المستخدم 2026-09-29
+        public string SN { get; set; } = string.Empty;
+
+        // وصف دقيق لمكان التركيب داخل الموقع (مثل: عند البوابة الرئيسية)
+        public string InstallLocation { get; set; } = string.Empty;
     }
 }

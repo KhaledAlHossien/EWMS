@@ -31,6 +31,12 @@ namespace Application.Features.DeviceSites.Commands.Create
                 .NotEmpty().WithMessage("كلمة السر مطلوبة")
                 .MaximumLength(200).WithMessage("كلمة السر لا تتجاوز 200 حرف");
 
+            RuleFor(x => x.DeviceSiteDto.SN)
+                .MaximumLength(100).WithMessage("الرقم التسلسلي لا يتجاوز 100 حرف");
+
+            RuleFor(x => x.DeviceSiteDto.InstallLocation)
+                .MaximumLength(300).WithMessage("مكان التركيب لا يتجاوز 300 حرف");
+
             RuleFor(x => x.DeviceSiteDto.Note)
                 .MaximumLength(1000).WithMessage("الملاحظات لا تتجاوز 1000 حرف");
         }
