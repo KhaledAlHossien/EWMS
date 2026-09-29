@@ -43,6 +43,14 @@ namespace Infrastructure
             services.AddScoped<IDeviceService, DeviceService>();
             services.AddScoped<IDeviceSiteService, DeviceSiteService>();
 
+            // الصيانة
+            services.AddScoped<IDeviceTypeService, DeviceTypeService>();
+            services.AddScoped<IDeviceCompanyService, DeviceCompanyService>();
+            services.AddScoped<IDamageTypeService, DamageTypeService>();
+            services.AddScoped<IMaintenanceRequestStatusService, MaintenanceRequestStatusService>();
+            services.AddScoped<IMaintenanceRequestService, MaintenanceRequestService>();
+            services.AddScoped<IMaintenanceTaskService, MaintenanceTaskService>();
+
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();
 

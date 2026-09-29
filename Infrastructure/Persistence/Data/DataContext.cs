@@ -1,4 +1,5 @@
 ﻿using Domain.Entities;
+using Domain.Entities.Maintenance;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -31,6 +32,12 @@ namespace Infrastructure.Persistence.Data
         public DbSet<UserWorkTask> UserWorkTasks { get; set; }
         public DbSet<AssignedTask> AssignedTasks { get; set; }
         public DbSet<AssignedTaskActivity> AssignedTaskActivities { get; set; }
+        public DbSet<DeviceType> DeviceTypes { get; set; }
+        public DbSet<DeviceCompany> DeviceCompanies { get; set; }
+        public DbSet<DamageType> DamageTypes { get; set; }
+        public DbSet<MaintenanceRequestStatus> MaintenanceRequestStatuses { get; set; }
+        public DbSet<MaintenanceRequest> MaintenanceRequests { get; set; }
+        public DbSet<MaintenanceTask> MaintenanceTasks { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -264,6 +271,80 @@ namespace Infrastructure.Persistence.Data
                     .HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(a => new { a.AssignedTaskId, a.CreatedAt });
+            });
+
+            // ==================== الصيانة: الجداول المساعدة ====================
+            builder.Entity<DeviceType>(entity =>
+            {
+                entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                entity.HasIndex(x => x.Name).IsUnique();
+            });
+
+            builder.Entity<DeviceCompany>(entity =>
+            {
+                entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.Description).HasMaxLength(500);
+                entity.HasIndex(x => x.Name).IsUnique();
+            });
+
+            builder.Entity<DamageType>(entity =>
+            {
+                entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.Description).HasMaxLength(500);
+                entity.HasIndex(x => x.Name).IsUnique();
+            });
+
+            builder.Entity<MaintenanceRequestStatus>(entity =>
+            {
+                entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.Color).HasMaxLength(7).IsRequired();
+                entity.HasIndex(x => x.Name).IsUnique();
+            });
+
+            // ==================== الصيانة: طلبات الصيانة ====================
+            // كل العلاقات Restrict: لا يُحذف نوع/شركة/عطل/حالة/موظف/قسم مستخدم في طلب (الحذف يُمنع برسالة واضحة)
+            builder.Entity<MaintenanceRequest>(entity =>
+            {
+                entity.Property(r => r.ClientName).HasMaxLength(200).IsRequired();
+                entity.Property(r => r.ClientPhone).HasMaxLength(30);
+                entity.Property(r => r.Model).HasMaxLength(100);
+                entity.Property(r => r.SerialNumber).HasMaxLength(100);
+                entity.Property(r => r.Accessories).HasMaxLength(500);
+                entity.Property(r => r.Description).HasMaxLength(2000);
+
+                entity.HasOne(r => r.User).WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.Department).WithMany().HasForeignKey(r => r.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.DeviceType).WithMany().HasForeignKey(r => r.DeviceTypeId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.DamageType).WithMany().HasForeignKey(r => r.DamageTypeId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.DeviceCompany).WithMany().HasForeignKey(r => r.DeviceCompanyId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.MaintenanceRequestStatus).WithMany().HasForeignKey(r => r.MaintenanceRequestStatusId).OnDelete(DeleteBehavior.Restrict);
+
+                // ----- فهارس البحث -----
+                // الرقم التسلسلي والموديل يُبحث عنهما بـ"يبدأ بـ" (LIKE 'x%') فيستفيدان من الفهرس (Index Seek)
+                entity.HasIndex(r => r.SerialNumber);
+                entity.HasIndex(r => r.Model);
+                entity.HasIndex(r => r.ClientName);
+
+                // الفني والشركة والقسم: فلترة بالمعرّف + ترتيب بالأحدث (تغني عن فهرس الـ FK المنفرد)
+                entity.HasIndex(r => new { r.UserId, r.CreatedAt });
+                entity.HasIndex(r => new { r.DeviceCompanyId, r.CreatedAt });
+                entity.HasIndex(r => new { r.DepartmentId, r.CreatedAt });
+                entity.HasIndex(r => new { r.MaintenanceRequestStatusId, r.CreatedAt });
+            });
+
+            // ==================== الصيانة: مهام العمل ====================
+            builder.Entity<MaintenanceTask>(entity =>
+            {
+                entity.Property(t => t.TaskLocation).HasMaxLength(200).IsRequired();
+                entity.Property(t => t.RequestingParty).HasMaxLength(200).IsRequired();
+                entity.Property(t => t.RequiredWork).HasMaxLength(2000).IsRequired();
+                entity.Property(t => t.CompletedWorks).HasMaxLength(2000);
+
+                entity.HasOne(t => t.User).WithMany().HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(t => t.Department).WithMany().HasForeignKey(t => t.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(t => new { t.UserId, t.CreatedAt });
+                entity.HasIndex(t => new { t.DepartmentId, t.CreatedAt });
             });
 
             // ==================== تكوين VacationType ====================
