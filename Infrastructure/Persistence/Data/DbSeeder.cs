@@ -162,13 +162,13 @@ namespace Infrastructure.Persistence.Data
             });
 
             // رئيس القسم: يوافق على إجازات قسمه (المرحلة الأولى) ويقدّم إجازاته
+            // ⚠ الـ seeder يضيف فقط مع كل تشغيل: أي صلاحية تبقى هنا تعود لقاعدة البيانات حتى لو حذفتها migration.
+            // ManageVacations / ManageVacationTypes للسوبر ادمن فقط (أُعيدتا خطأً عند حل تعارض دمج — أزالتهما Remove_Manager_Vacation_Management)
             await EnsureRolePermissionsAsync(context, "Manager", new[]
             {
                 "ViewVacations",
                 "CreateVacation",
-                "ApproveVacation",
-                "ManageVacations",
-                "ManageVacationTypes"
+                "ApproveVacation"
             });
 
             // رئيس المكتب: يطّلع على إجازات مكتبه فقط، لا يوافق عليها

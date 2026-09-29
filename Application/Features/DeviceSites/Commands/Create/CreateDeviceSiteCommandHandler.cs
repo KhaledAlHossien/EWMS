@@ -36,9 +36,8 @@ namespace Application.Features.DeviceSites.Commands.Create
             if (!await _siteService.ExistsAsync(request.DeviceSiteDto.SiteId))
                 throw new KeyNotFoundException("الموقع المحدد غير موجود");
 
-            if (await _deviceSiteService.ExistsLinkAsync(
-                    request.DeviceSiteDto.DeviceId, request.DeviceSiteDto.SiteId))
-                throw new InvalidOperationException("هذا الجهاز مرتبط مسبقاً بهذا الموقع");
+            // الجهاز نوع/موديل قابل للتكرار: يمكن تركيب نفس الجهاز أكثر من مرة في نفس الموقع
+            // (IP ومعلومات مختلفة لكل تركيب) — قرار المستخدم 2026-09-29
 
             var deviceSite = _mapper.Map<DeviceSiteEntity>(request.DeviceSiteDto);
             var created = await _deviceSiteService.AddAsync(deviceSite);

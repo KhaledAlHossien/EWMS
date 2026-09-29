@@ -1,3 +1,4 @@
+using Application.Common;
 using FluentValidation;
 
 namespace Application.Features.Sites.Commands.Update
@@ -13,8 +14,7 @@ namespace Application.Features.Sites.Commands.Update
             RuleFor(x => x.SiteDto.Description)
                 .MaximumLength(500).WithMessage("الوصف لا يتجاوز 500 حرف");
 
-            RuleFor(x => x.SiteDto.Location)
-                .MaximumLength(500).WithMessage("الموقع الجغرافي لا يتجاوز 500 حرف");
+            GeoRules.CoordinatesRules(this, x => x.SiteDto.Latitude, x => x.SiteDto.Longitude);
 
             RuleFor(x => x.SiteDto.RegionId)
                 .GreaterThan(0).WithMessage("يجب اختيار منطقة");
