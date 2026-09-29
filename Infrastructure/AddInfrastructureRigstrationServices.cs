@@ -29,6 +29,8 @@ namespace Infrastructure
             services.AddScoped<IWorkTaskService, WorkTaskService>();
             services.AddScoped<IDashboardService, DashboardService>();
             services.AddScoped<IAssignedTaskService, AssignedTaskService>();
+            services.AddScoped<IDeviceAccessService, DeviceAccessService>();
+            services.AddScoped<IMapService, MapService>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IPermissionService, PermissionService>();

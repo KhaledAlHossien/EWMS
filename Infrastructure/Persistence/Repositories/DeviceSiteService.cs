@@ -75,11 +75,5 @@ namespace Infrastructure.Persistence.Repositories
         {
             return await _context.DeviceSites.AnyAsync(ds => ds.Id == id);
         }
-
-        public async Task<bool> ExistsLinkAsync(int deviceId, int siteId, int? excludeId = null)
-        {
-            return await _context.DeviceSites.AnyAsync(ds =>
-                ds.DeviceId == deviceId && ds.SiteId == siteId && ds.Id != excludeId);
-        }
     }
 }

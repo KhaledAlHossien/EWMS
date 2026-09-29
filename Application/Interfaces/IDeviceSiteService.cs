@@ -13,6 +13,5 @@ namespace Application.Interfaces
         Task<bool> DeleteAsync(DeviceSite deviceSite);
 
         Task<bool> ExistsAsync(int id);
-        Task<bool> ExistsLinkAsync(int deviceId, int siteId, int? excludeId = null);
     }
 }

@@ -38,9 +38,6 @@ namespace Application.Features.DeviceSites.Commands.Update
             if (!await _siteService.ExistsAsync(request.DeviceSiteDto.SiteId))
                 throw new KeyNotFoundException("الموقع المحدد غير موجود");
 
-            if (await _deviceSiteService.ExistsLinkAsync(
-                    request.DeviceSiteDto.DeviceId, request.DeviceSiteDto.SiteId, request.Id))
-                throw new InvalidOperationException("هذا الجهاز مرتبط مسبقاً بهذا الموقع");
 
             _mapper.Map(request.DeviceSiteDto, deviceSite);
             await _deviceSiteService.UpdateAsync(deviceSite);

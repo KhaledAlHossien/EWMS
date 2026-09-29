@@ -7,7 +7,6 @@ namespace Application.DTOs.Response
         public int DeviceId { get; set; }
         public string DeviceName { get; set; } = string.Empty;
         public string DeviceModel { get; set; } = string.Empty;
-        public string DeviceSN { get; set; } = string.Empty;
 
         public int SiteId { get; set; }
         public string SiteName { get; set; } = string.Empty;
@@ -19,5 +18,7 @@ namespace Application.DTOs.Response
         public string UserName { get; set; } = string.Empty;
         public string Pass { get; set; } = string.Empty;
         public string Note { get; set; } = string.Empty;
+        public string SN { get; set; } = string.Empty;
+        public string InstallLocation { get; set; } = string.Empty;
     }
 }

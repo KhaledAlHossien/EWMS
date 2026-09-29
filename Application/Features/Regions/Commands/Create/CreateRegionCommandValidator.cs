@@ -1,3 +1,4 @@
+using Application.Common;
 using FluentValidation;
 
 namespace Application.Features.Regions.Commands.Create
@@ -12,6 +13,8 @@ namespace Application.Features.Regions.Commands.Create
 
             RuleFor(x => x.RegionDto.Description)
                 .MaximumLength(500).WithMessage("الوصف لا يتجاوز 500 حرف");
+
+            GeoRules.CoordinatesRules(this, x => x.RegionDto.Latitude, x => x.RegionDto.Longitude);
         }
     }
 }
