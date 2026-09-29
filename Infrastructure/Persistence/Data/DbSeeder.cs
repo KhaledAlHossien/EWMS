@@ -1,4 +1,5 @@
 ﻿using Domain.Entities;
+using Domain.Entities.Maintenance;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -97,6 +98,19 @@ namespace Infrastructure.Persistence.Data
                 await context.SaveChangesAsync();
             }
 
+            // ==================== 4.1 حالات طلب الصيانة (مرة واحدة فقط — بعدها تُدار من الواجهة) ====================
+            if (!await context.MaintenanceRequestStatuses.AnyAsync())
+            {
+                await context.MaintenanceRequestStatuses.AddRangeAsync(
+                    new MaintenanceRequestStatus { Name = "جديد", Color = "#3B82F6" },
+                    new MaintenanceRequestStatus { Name = "قيد الصيانة", Color = "#F59E0B" },
+                    new MaintenanceRequestStatus { Name = "تم الإصلاح", Color = "#10B981" },
+                    new MaintenanceRequestStatus { Name = "تم التسليم", Color = "#6B7280" },
+                    new MaintenanceRequestStatus { Name = "غير قابل للإصلاح", Color = "#EF4444" }
+                );
+                await context.SaveChangesAsync();
+            }
+
             // ==================== 5. الصلاحيات ====================
             var permissions = new[]
             {
@@ -115,6 +129,22 @@ namespace Infrastructure.Persistence.Data
                 new Permission { Name = "ViewDevices",   Description = "عرض المناطق والمواقع والأجهزة" },
                 new Permission { Name = "ManageDevices", Description = "إدارة المناطق والمواقع والأجهزة" },
                 new Permission { Name = "ManageWorkTasks",      Description = "إدارة مهام العمل وإسنادها" },
+
+                // الصيانة: صلاحية منفصلة لكل عملية — تُمنح من صفحة الأدوار (السوبر ادمن يملكها كلها تلقائياً)
+                // أي تعديل هنا يجب أن يطابق migration: Split_Maintenance_Permissions
+                new Permission { Name = "ViewMaintenanceTasks",   Description = "عرض مهام الصيانة" },
+                new Permission { Name = "CreateMaintenanceTask",  Description = "إضافة مهمة صيانة" },
+                new Permission { Name = "EditMaintenanceTask",    Description = "تعديل مهمة صيانة" },
+                new Permission { Name = "DeleteMaintenanceTask",  Description = "حذف مهمة صيانة" },
+
+                new Permission { Name = "ViewMaintenanceRequests",  Description = "عرض طلبات الصيانة والبحث فيها" },
+                new Permission { Name = "CreateMaintenanceRequest", Description = "تقديم طلب صيانة" },
+                new Permission { Name = "EditMaintenanceRequest",   Description = "تعديل طلب صيانة" },
+                new Permission { Name = "DeleteMaintenanceRequest", Description = "حذف طلب صيانة" },
+
+                new Permission { Name = "CreateMaintenanceLookup", Description = "إضافة أنواع الأجهزة والشركات والأعطال وحالات الطلب" },
+                new Permission { Name = "EditMaintenanceLookup",   Description = "تعديل أنواع الأجهزة والشركات والأعطال وحالات الطلب" },
+                new Permission { Name = "DeleteMaintenanceLookup", Description = "حذف أنواع الأجهزة والشركات والأعطال وحالات الطلب" },
             };
 
             foreach (var permission in permissions)

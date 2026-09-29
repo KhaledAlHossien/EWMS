@@ -103,6 +103,19 @@ namespace API.SystemBuild
                 options.AddPolicy("ManageWorkTasks", policy =>
                     policy.Requirements.Add(new PermissionRequirement("ManageWorkTasks")));
 
+                // الصيانة (النطاق: صاحب السجل / رئيس قسمه / السوبر ادمن — يُفحص في MaintenanceRules)
+                // صلاحية منفصلة لكل عملية (قرار المستخدم 2026-09-29)
+                foreach (var permission in new[]
+                {
+                    "ViewMaintenanceTasks", "CreateMaintenanceTask", "EditMaintenanceTask", "DeleteMaintenanceTask",
+                    "ViewMaintenanceRequests", "CreateMaintenanceRequest", "EditMaintenanceRequest", "DeleteMaintenanceRequest",
+                    "CreateMaintenanceLookup", "EditMaintenanceLookup", "DeleteMaintenanceLookup"
+                })
+                {
+                    options.AddPolicy(permission, policy =>
+                        policy.Requirements.Add(new PermissionRequirement(permission)));
+                }
+
 
             });
 
