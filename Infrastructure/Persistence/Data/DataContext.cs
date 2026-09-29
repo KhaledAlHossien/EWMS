@@ -374,8 +374,9 @@ namespace Infrastructure.Persistence.Data
 
                 
 
-                entity.Property(v => v.BranchManagerAccept)
-                    .HasDefaultValue(true);
+                // ⚠ لا HasDefaultValue على خصائص bool: EF يعتبر false "غير محددة" فيحذفها من INSERT
+                // فتكتب قاعدة البيانات الافتراضي بدلها (كانت الإجازة غير المدفوعة تُحفظ مدفوعة —
+                // أصلحته migration Fix_Vacation_Bool_Defaults). القيمة الافتراضية من مُهيّئ الـ Entity.
 
                 entity.Property(v => v.Status)
                     .HasConversion<int>()   // خزّنه كـ int
@@ -383,9 +384,6 @@ namespace Infrastructure.Persistence.Data
 
                 entity.Property(v => v.RejectionReason)
                     .HasMaxLength(500);
-
-                entity.Property(v => v.IsPaid)
-                    .HasDefaultValue(true);
 
 
                 // ----- العلاقات -----
