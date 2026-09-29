@@ -74,13 +74,16 @@ namespace API.Middlewares
 
                 context.Response.StatusCode = statusCode;
 
+                // أخطاء العمل (4xx) رسائلها موجّهة للمستخدم فتُعرض دائماً؛
+                // تفاصيل أخطاء الخادم (500) تُخفى خارج بيئة التطوير
+                var isServerError = statusCode == (int)HttpStatusCode.InternalServerError;
                 var response = new
                 {
                     statusCode,
-                    message = _env.IsDevelopment()
-                        ? ex.Message
-                        : "حدث خطأ في الخادم، يرجى المحاولة لاحقاً",
-                    detail = _env.IsDevelopment() ? ex.StackTrace : null
+                    message = isServerError && !_env.IsDevelopment()
+                        ? "حدث خطأ في الخادم، يرجى المحاولة لاحقاً"
+                        : ex.Message,
+                    detail = isServerError && _env.IsDevelopment() ? ex.StackTrace : null
                 };
 
                 await context.Response.WriteAsync(
