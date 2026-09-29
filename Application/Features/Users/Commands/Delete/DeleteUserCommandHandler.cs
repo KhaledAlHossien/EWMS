@@ -8,15 +8,21 @@ namespace Application.Features.Users.Commands.Delete
         private readonly IUserService _userService;
         private readonly ICurrentUserService _currentUserService;
         private readonly IAssignedTaskService _assignedTaskService;
+        private readonly IMaintenanceRequestService _maintenanceRequestService;
+        private readonly IMaintenanceTaskService _maintenanceTaskService;
 
         public DeleteUserCommandHandler(
             IUserService userService,
             ICurrentUserService currentUserService,
-            IAssignedTaskService assignedTaskService)
+            IAssignedTaskService assignedTaskService,
+            IMaintenanceRequestService maintenanceRequestService,
+            IMaintenanceTaskService maintenanceTaskService)
         {
             _userService = userService;
             _currentUserService = currentUserService;
             _assignedTaskService = assignedTaskService;
+            _maintenanceRequestService = maintenanceRequestService;
+            _maintenanceTaskService = maintenanceTaskService;
         }
 
         public async Task<bool> Handle(DeleteUserCommand request, CancellationToken cancellationToken)
@@ -33,7 +39,10 @@ namespace Application.Features.Users.Commands.Delete
             if (await _assignedTaskService.ExistsForUserAsync(user.Id))
                 throw new InvalidOperationException("لا يمكن حذف موظف مرتبط بمهام على لوحة المهام — عطّل حسابه بدلاً من ذلك");
 
-           
+            if (await _maintenanceRequestService.ExistsForUserAsync(user.Id)
+                || await _maintenanceTaskService.ExistsForUserAsync(user.Id))
+                throw new InvalidOperationException("لا يمكن حذف موظف له طلبات أو مهام صيانة مسجّلة — عطّل حسابه بدلاً من ذلك");
+
 
             return await _userService.DeleteAsync(user);
         }
