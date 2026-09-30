@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using AutoMapper;
@@ -82,7 +83,7 @@ namespace Application.Features.Roles.Commands.Update
                 var permission = await _permissionService.GetByIdAsync(permissionId)
                     ?? throw new KeyNotFoundException($"الصلاحية رقم {permissionId} غير موجودة");
 
-                if (permission.Name.Equals("ManageBranches", StringComparison.OrdinalIgnoreCase))
+                if (AppPermissions.IsBranchManagement(permission.Name))
                     throw new UnauthorizedAccessException("لا يمكن لرئيس الفرع منح صلاحية إدارة الفروع");
             }
         }

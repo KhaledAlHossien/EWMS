@@ -54,7 +54,7 @@ namespace API.Controllers
         }
 
         [HttpPost("register")]
-        [Authorize(Policy = "ManageUsers")]
+        [Authorize(Policy = "CreateUser")]
         
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {

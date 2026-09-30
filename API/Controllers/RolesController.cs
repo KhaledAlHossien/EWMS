@@ -25,21 +25,21 @@ namespace API.Controllers
         }
 
         [HttpPost("Create")]
-        [Authorize(Policy = "ManageRoles")]
+        [Authorize(Policy = "CreateRole")]
         public async Task<ActionResult<RoleResponseDto>> Create([FromForm] CreateRoleRequestDto dto)
         {
             return Ok(await _mediator.Send(new CreateRoleCommand(dto)));
         }
 
         [HttpPut("Update/{id}")]
-        [Authorize(Policy = "ManageRoles")]
+        [Authorize(Policy = "EditRole")]
         public async Task<ActionResult<RoleResponseDto>> Update(int id, [FromForm] UpdateRoleRequestDto dto)
         {
             return Ok(await _mediator.Send(new UpdateRoleCommand(id, dto)));
         }
 
         [HttpDelete("Delete/{id}")]
-        [Authorize(Policy = "ManageRoles")]
+        [Authorize(Policy = "DeleteRole")]
         public async Task<ActionResult> Delete(int id)
         {
             await _mediator.Send(new DeleteRoleCommand(id));
@@ -47,21 +47,21 @@ namespace API.Controllers
         }
 
         [HttpGet("Get/{id}")]
-        [Authorize(Policy = "ManageRoles")]
+        [Authorize(Policy = "ViewRoles")]
         public async Task<ActionResult<RoleResponseDto>> GetById(int id)
         {
             return Ok(await _mediator.Send(new GetRoleByIdQuery(id)));
         }
 
         [HttpGet("GetAll")]
-        [Authorize(Policy = "ManageRoles")]
+        [Authorize(Policy = "ViewRoles")]
         public async Task<ActionResult<List<RoleResponseDto>>> GetAll()
         {
             return Ok(await _mediator.Send(new GetAllRolesQuery()));
         }
 
         [HttpGet("Permissions")]
-        [Authorize(Policy = "ManageRoles")]
+        [Authorize(Policy = "ViewRoles")]
         public async Task<ActionResult<List<PermissionResponseDto>>> GetPermissions()
         {
             return Ok(await _mediator.Send(new GetAllPermissionsQuery()));

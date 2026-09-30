@@ -1,4 +1,5 @@
-﻿using Domain.Entities;
+﻿using Application.Common;
+using Domain.Entities;
 using Domain.Entities.Maintenance;
 using System;
 using System.Collections.Generic;
@@ -15,10 +16,14 @@ namespace Infrastructure.Persistence.Data
         {
             // ==================== 1. الأدوار ====================
             var roleNames = new[] { "SuperAdmin", "BranchManager", "Manager", "OfficeManager", "Emp" };
+            var newRoles = new HashSet<string>();
             foreach (var roleName in roleNames)
             {
                 if (!await context.Roles.AnyAsync(r => r.Name == roleName))
+                {
                     await context.Roles.AddAsync(new Role { Name = roleName });
+                    newRoles.Add(roleName);
+                }
             }
 
             await context.SaveChangesAsync();
@@ -112,40 +117,9 @@ namespace Infrastructure.Persistence.Data
             }
 
             // ==================== 5. الصلاحيات ====================
-            var permissions = new[]
-            {
-                new Permission { Name = "ManageUsers", Description = "إدارة المستخدمين" },
-                new Permission { Name = "ManageBranches", Description = "إدارة الفروع" },
-                new Permission { Name = "ManageDepartments", Description = "إدارة الأقسام" },
-                new Permission { Name = "ManageOffices", Description = "إدارة المكاتب" },
-                new Permission { Name = "ManageRoles", Description = "إدارة الأدوار والصلاحيات" },
-
-                new Permission { Name = "ViewVacations",        Description = "عرض الإجازات" },
-                new Permission { Name = "CreateVacation",       Description = "تقديم طلب إجازة" },
-                new Permission { Name = "ApproveVacation",      Description = "الموافقة على الإجازات" },
-                new Permission { Name = "ManageVacations",      Description = "إدارة كل الإجازات" },
-                new Permission { Name = "ManageVacationTypes",  Description = "إدارة أنواع الإجازات" },
-
-                new Permission { Name = "ViewDevices",   Description = "عرض المناطق والمواقع والأجهزة" },
-                new Permission { Name = "ManageDevices", Description = "إدارة المناطق والمواقع والأجهزة" },
-                new Permission { Name = "ManageWorkTasks",      Description = "إدارة مهام العمل وإسنادها" },
-
-                // الصيانة: صلاحية منفصلة لكل عملية — تُمنح من صفحة الأدوار (السوبر ادمن يملكها كلها تلقائياً)
-                // أي تعديل هنا يجب أن يطابق migration: Split_Maintenance_Permissions
-                new Permission { Name = "ViewMaintenanceTasks",   Description = "عرض مهام الصيانة" },
-                new Permission { Name = "CreateMaintenanceTask",  Description = "إضافة مهمة صيانة" },
-                new Permission { Name = "EditMaintenanceTask",    Description = "تعديل مهمة صيانة" },
-                new Permission { Name = "DeleteMaintenanceTask",  Description = "حذف مهمة صيانة" },
-
-                new Permission { Name = "ViewMaintenanceRequests",  Description = "عرض طلبات الصيانة والبحث فيها" },
-                new Permission { Name = "CreateMaintenanceRequest", Description = "تقديم طلب صيانة" },
-                new Permission { Name = "EditMaintenanceRequest",   Description = "تعديل طلب صيانة" },
-                new Permission { Name = "DeleteMaintenanceRequest", Description = "حذف طلب صيانة" },
-
-                new Permission { Name = "CreateMaintenanceLookup", Description = "إضافة أنواع الأجهزة والشركات والأعطال وحالات الطلب" },
-                new Permission { Name = "EditMaintenanceLookup",   Description = "تعديل أنواع الأجهزة والشركات والأعطال وحالات الطلب" },
-                new Permission { Name = "DeleteMaintenanceLookup", Description = "حذف أنواع الأجهزة والشركات والأعطال وحالات الطلب" },
-            };
+            // القائمة كلها في Application/Common/AppPermissions (المصدر الوحيد) — الـ seeder يضيف الناقص فقط
+            var permissions = AppPermissions.All
+                .Select(p => new Permission { Name = p.Name, Description = p.Description });
 
             foreach (var permission in permissions)
             {
@@ -176,46 +150,28 @@ namespace Infrastructure.Persistence.Data
             }
 
             // ==================== 7. ربط الصلاحيات بالأدوار ====================
-            var allPermissions = await context.Permissions.ToListAsync();
+            // السوبر ادمن يملك كل الصلاحيات دائماً (أي صلاحية جديدة في AppPermissions تصله تلقائياً)
+            await EnsureRolePermissionsAsync(context, "SuperAdmin", AppPermissions.All.Select(p => p.Name));
 
-            await EnsureRolePermissionsAsync(context, "SuperAdmin", allPermissions.Select(p => p.Name));
-
-            // الرؤساء لا يديرون الهيكل (فروع/أقسام/مكاتب/موظفين/أدوار/أنواع إجازات) — هذه للسوبر ادمن فقط،
-            // ولاحقاً لدور "موظف إداري" يُنشئه السوبر ادمن من صفحة الأدوار (قرار المستخدم 2026-09-28).
-            // الصلاحيات التي سُحبت من الرؤساء أزالتها migration: Restrict_Management_To_SuperAdmin
-
-            // رئيس الفرع: يعتمد الإجازات (المرحلة الثانية) ولا يقدّم إجازات
-            await EnsureRolePermissionsAsync(context, "BranchManager", new[]
+            // باقي الأدوار: صلاحيات افتراضية عند إنشاء الدور لأول مرة فقط (قاعدة بيانات جديدة).
+            // بعدها يعدّلها السوبر ادمن من صفحة الأدوار ولا يعيدها الـ seeder — قرار المستخدم 2026-09-30.
+            var defaultRolePermissions = new Dictionary<string, string[]>
             {
-                "ViewVacations",
-                "ApproveVacation"
-            });
-
-            // رئيس القسم: يوافق على إجازات قسمه (المرحلة الأولى) ويقدّم إجازاته
-            // ⚠ الـ seeder يضيف فقط مع كل تشغيل: أي صلاحية تبقى هنا تعود لقاعدة البيانات حتى لو حذفتها migration.
-            // ManageVacations / ManageVacationTypes للسوبر ادمن فقط (أُعيدتا خطأً عند حل تعارض دمج — أزالتهما Remove_Manager_Vacation_Management)
-            await EnsureRolePermissionsAsync(context, "Manager", new[]
-            {
-                "ViewVacations",
-                "CreateVacation",
-                "ApproveVacation"
-            });
-
-            // رئيس المكتب: يطّلع على إجازات مكتبه فقط، لا يوافق عليها
-            await EnsureRolePermissionsAsync(context, "OfficeManager", new[]
-            {
-                "ViewVacations",
-                "CreateVacation"
-            });
-
-            // الموظف العادي: يقدّم طلب إجازة ويرى إجازاته فقط (لا موافقة ولا إدارة)
-            var empPermissionNames = new[]
-            {
-                "ViewVacations",
-                "CreateVacation"
+                // رئيس الفرع: يعتمد الإجازات (المرحلة الثانية) ولا يقدّم إجازات
+                ["BranchManager"] = ["ViewDepartments", "ViewVacationTypes", "ViewVacations", "ApproveVacation"],
+                // رئيس القسم: يوافق على إجازات قسمه (المرحلة الأولى) ويقدّم إجازاته
+                ["Manager"] = ["ViewDepartments", "ViewVacationTypes", "ViewVacations", "CreateVacation", "CancelVacation", "ApproveVacation"],
+                // رئيس المكتب: يطّلع على إجازات مكتبه فقط، لا يوافق عليها
+                ["OfficeManager"] = ["ViewDepartments", "ViewVacationTypes", "ViewVacations", "CreateVacation", "CancelVacation"],
+                // الموظف العادي: يقدّم طلب إجازة ويرى إجازاته فقط
+                ["Emp"] = ["ViewDepartments", "ViewVacationTypes", "ViewVacations", "CreateVacation", "CancelVacation"],
             };
 
-            await EnsureRolePermissionsAsync(context, "Emp", empPermissionNames);
+            foreach (var (roleName, permissionNames) in defaultRolePermissions)
+            {
+                if (newRoles.Contains(roleName))
+                    await EnsureRolePermissionsAsync(context, roleName, permissionNames);
+            }
 
             await context.SaveChangesAsync();
         }

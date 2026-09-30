@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.Interfaces;
 using Domain.Entities;
 
@@ -72,7 +73,7 @@ namespace Application.Features.Users
                 throw new UnauthorizedAccessException("لا يمكن لرئيس الفرع منح دور SuperAdmin");
 
             var rolePermissions = await rolePermissionService.GetByRoleAsync(roleId);
-            if (rolePermissions.Any(rp => rp.Permission.Name.Equals("ManageBranches", StringComparison.OrdinalIgnoreCase)))
+            if (rolePermissions.Any(rp => AppPermissions.IsBranchManagement(rp.Permission.Name)))
                 throw new UnauthorizedAccessException("لا يمكن لرئيس الفرع منح صلاحية إدارة الفروع");
 
             if (currentUserService.BranchId != branchId)

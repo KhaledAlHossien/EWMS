@@ -4,17 +4,17 @@ using Microsoft.AspNetCore.Authorization;
 namespace API.Authorization
 {
     /// <summary>
-    /// سياستا ViewDevices / ManageDevices: الصلاحية من الدور أو الانتماء لقسم العمليات
+    /// سياسات ViewDevices / CreateDevice / EditDevice / DeleteDevice: الصلاحية من الدور أو الانتماء لقسم العمليات
     /// (المنطق كاملاً في IDeviceAccessService حتى تتطابق الواجهة (Devices/MyAccess) مع الحماية).
     /// </summary>
     public class DeviceAccessRequirement : IAuthorizationRequirement
     {
-        public DeviceAccessRequirement(bool manage)
+        public DeviceAccessRequirement(DeviceOperation operation)
         {
-            Manage = manage;
+            Operation = operation;
         }
 
-        public bool Manage { get; }
+        public DeviceOperation Operation { get; }
     }
 
     public class DeviceAccessAuthorizationHandler : AuthorizationHandler<DeviceAccessRequirement>
@@ -31,7 +31,7 @@ namespace API.Authorization
             DeviceAccessRequirement requirement)
         {
             var access = await _access.GetCurrentAsync();
-            if (requirement.Manage ? access.CanManage : access.CanView)
+            if (access.Can(requirement.Operation))
                 context.Succeed(requirement);
         }
     }

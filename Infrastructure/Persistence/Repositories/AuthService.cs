@@ -105,7 +105,7 @@ namespace Infrastructure.Persistence.Repositories
                 var roleHasBranchManagement = await _context.RolePermissions
                     .Include(rp => rp.Permission)
                     .AnyAsync(rp => rp.RoleId == request.RoleId
-                                 && rp.Permission.Name == "ManageBranches");
+                                 && (rp.Permission.Name == "CreateBranch" || rp.Permission.Name == "EditBranch" || rp.Permission.Name == "DeleteBranch"));
 
                 if (roleHasBranchManagement)
                     return false;
