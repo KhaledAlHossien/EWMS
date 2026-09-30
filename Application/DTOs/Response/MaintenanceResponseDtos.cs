@@ -31,6 +31,13 @@ namespace Application.DTOs.Response
     {
         public int Id { get; set; }
 
+        /// <summary>الرقم المعروض: MR-2026-00125</summary>
+        public string Number { get; set; } = string.Empty;
+
+        // ما يستطيعه المستخدم الحالي على هذا السجل (النطاق فقط — الصلاحية تُفحص بالـ Policy)
+        public bool CanEdit { get; set; }
+        public bool CanAssign { get; set; }
+
         public int UserId { get; set; }
         public string TechnicianName { get; set; } = string.Empty;
         public int? DepartmentId { get; set; }
@@ -65,6 +72,9 @@ namespace Application.DTOs.Response
     {
         public int Id { get; set; }
 
+        public bool CanEdit { get; set; }
+        public bool CanAssign { get; set; }
+
         public int UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
         public int? DepartmentId { get; set; }
@@ -79,6 +89,61 @@ namespace Application.DTOs.Response
         public DateTime UpdatedAt { get; set; }
         public DateTime? StartedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
+    }
+
+    public class MaintenanceActivityDto
+    {
+        public int Id { get; set; }
+        public int Type { get; set; }
+        public string Text { get; set; } = string.Empty;
+        public int UserId { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+    }
+
+    /// <summary>بيانات الطباعة: إيصال الاستلام وورقة التسليم (توقيع رئيس القسم يُطبع على ورقة التسليم)</summary>
+    public class MaintenancePrintDto
+    {
+        public MaintenanceRequestResponseDto Request { get; set; } = new();
+        public string ManagerName { get; set; } = string.Empty;
+        public string? ManagerSignature { get; set; }
+    }
+
+    // ==================== الإحصائيات ====================
+    public class MaintenanceCountDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Color { get; set; }
+        public int Count { get; set; }
+    }
+
+    public class MaintenanceMonthDto
+    {
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public int Count { get; set; }
+    }
+
+    public class MaintenanceStatsDto
+    {
+        public int TotalRequests { get; set; }
+        public int RequestsThisMonth { get; set; }
+        public int TotalTasks { get; set; }
+        public int TasksThisMonth { get; set; }
+
+        /// <summary>متوسط المدة بين تاريخ البدء وتاريخ الإنجاز بالساعات (للطلبات التي لها التاريخان)</summary>
+        public double? AverageRepairHours { get; set; }
+
+        public List<MaintenanceCountDto> ByStatus { get; set; } = [];
+        public List<MaintenanceCountDto> ByTechnician { get; set; } = [];
+        public List<MaintenanceCountDto> ByDamageType { get; set; } = [];
+        public List<MaintenanceCountDto> ByDeviceType { get; set; } = [];
+        public List<MaintenanceCountDto> ByCompany { get; set; } = [];
+        public List<MaintenanceCountDto> TasksByUser { get; set; } = [];
+
+        /// <summary>آخر 6 أشهر (الأقدم أولاً)</summary>
+        public List<MaintenanceMonthDto> Monthly { get; set; } = [];
     }
 
     /// <summary>خيار في قائمة الفنيين (لفلتر البحث بالفني)</summary>

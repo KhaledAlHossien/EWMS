@@ -50,6 +50,7 @@ namespace Infrastructure
             services.AddScoped<IMaintenanceRequestStatusService, MaintenanceRequestStatusService>();
             services.AddScoped<IMaintenanceRequestService, MaintenanceRequestService>();
             services.AddScoped<IMaintenanceTaskService, MaintenanceTaskService>();
+            services.AddScoped<IUserSignatureService, UserSignatureService>();
 
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();

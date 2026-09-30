@@ -2,13 +2,14 @@ using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using AutoMapper;
+using Domain.Entities;
 using Domain.Entities.Maintenance;
 using FluentValidation;
 using MediatR;
 
 namespace Application.Features.Maintenance.Tasks
 {
-    /// <summary>مهامي، أو مهام قسمي لرئيس القسم، أو الكل للسوبر ادمن — UserId اختياري لفلترة موظف معيّن</summary>
+    /// <summary>مهامي، أو مهام قسمي لرئيس القسم، أو فرعي لرئيس الفرع (اطلاع)، أو الكل للسوبر ادمن — UserId اختياري لفلترة موظف معيّن</summary>
     public record GetMaintenanceTasksQuery(int? UserId, int Page, int PageSize)
         : IRequest<PagedResultDto<MaintenanceTaskResponseDto>>;
 
@@ -16,6 +17,9 @@ namespace Application.Features.Maintenance.Tasks
     public record CreateMaintenanceTaskCommand(SaveMaintenanceTaskDto Dto) : IRequest<MaintenanceTaskResponseDto>;
     public record UpdateMaintenanceTaskCommand(int Id, SaveMaintenanceTaskDto Dto) : IRequest<MaintenanceTaskResponseDto>;
     public record DeleteMaintenanceTaskCommand(int Id) : IRequest<Unit>;
+
+    /// <summary>نقل المهمة إلى موظف آخر — رئيس القسم (داخل قسمه) أو السوبر ادمن</summary>
+    public record AssignMaintenanceTaskCommand(int Id, int UserId) : IRequest<MaintenanceTaskResponseDto>;
 
     // ════════════════════ التحقق من المدخلات ════════════════════
 
@@ -57,6 +61,12 @@ namespace Application.Features.Maintenance.Tasks
             RuleFor(x => x.Dto).SetValidator(new SaveMaintenanceTaskDtoValidator());
     }
 
+    public class AssignMaintenanceTaskCommandValidator : AbstractValidator<AssignMaintenanceTaskCommand>
+    {
+        public AssignMaintenanceTaskCommandValidator() =>
+            RuleFor(x => x.UserId).GreaterThan(0).WithMessage("يجب اختيار الموظف");
+    }
+
     // ════════════════════ المعالج ════════════════════
 
     public class MaintenanceTaskHandler :
@@ -64,17 +74,33 @@ namespace Application.Features.Maintenance.Tasks
         IRequestHandler<GetMaintenanceTaskByIdQuery, MaintenanceTaskResponseDto>,
         IRequestHandler<CreateMaintenanceTaskCommand, MaintenanceTaskResponseDto>,
         IRequestHandler<UpdateMaintenanceTaskCommand, MaintenanceTaskResponseDto>,
-        IRequestHandler<DeleteMaintenanceTaskCommand, Unit>
+        IRequestHandler<DeleteMaintenanceTaskCommand, Unit>,
+        IRequestHandler<AssignMaintenanceTaskCommand, MaintenanceTaskResponseDto>
     {
         private readonly IMaintenanceTaskService _taskService;
         private readonly IUserService _userService;
+        private readonly INotificationService _notifications;
         private readonly IMapper _mapper;
 
-        public MaintenanceTaskHandler(IMaintenanceTaskService taskService, IUserService userService, IMapper mapper)
+        public MaintenanceTaskHandler(
+            IMaintenanceTaskService taskService,
+            IUserService userService,
+            INotificationService notifications,
+            IMapper mapper)
         {
             _taskService = taskService;
             _userService = userService;
+            _notifications = notifications;
             _mapper = mapper;
+        }
+
+        // التحويل إلى DTO مع ما يستطيعه المستخدم الحالي على المهمة
+        private MaintenanceTaskResponseDto ToDto(MaintenanceTask entity, User viewer)
+        {
+            var dto = _mapper.Map<MaintenanceTaskResponseDto>(entity);
+            dto.CanEdit = MaintenanceRules.CanAccess(viewer, entity.UserId, entity.DepartmentId);
+            dto.CanAssign = MaintenanceRules.CanAssign(viewer, entity.DepartmentId);
+            return dto;
         }
 
         private async Task<MaintenanceTask> LoadAsync(int id) =>
@@ -98,7 +124,7 @@ namespace Application.Features.Maintenance.Tasks
 
             return new PagedResultDto<MaintenanceTaskResponseDto>
             {
-                Items = _mapper.Map<List<MaintenanceTaskResponseDto>>(items),
+                Items = items.Select(t => ToDto(t, user)).ToList(),
                 TotalCount = total,
                 Page = page,
                 PageSize = pageSize
@@ -110,10 +136,10 @@ namespace Application.Features.Maintenance.Tasks
             var user = await MaintenanceRules.CurrentUserAsync(_userService);
             var entity = await LoadAsync(request.Id);
 
-            MaintenanceRules.EnsureCanAccess(user, entity.UserId, entity.DepartmentId,
+            MaintenanceRules.EnsureCanView(user, entity.UserId, entity.Department,
                 "لا يمكنك عرض مهمة خارج نطاقك");
 
-            return _mapper.Map<MaintenanceTaskResponseDto>(entity);
+            return ToDto(entity, user);
         }
 
         public async Task<MaintenanceTaskResponseDto> Handle(CreateMaintenanceTaskCommand request, CancellationToken ct)
@@ -123,13 +149,23 @@ namespace Application.Features.Maintenance.Tasks
             var entity = _mapper.Map<MaintenanceTask>(request.Dto);
             Trim(entity);
 
-            // صاحب المهمة = من سجّلها، والقسم يُحفظ لحظة التسجيل ليراها رئيس القسم
-            entity.UserId = user.Id;
-            entity.DepartmentId = user.DepartmentId;
+            // صاحب المهمة = الموظف الذي وجّهها إليه رئيس القسم، وإلا من سجّلها.
+            // القسم يُحفظ لحظة التسجيل ليراها رئيس القسم
+            var owner = request.Dto.AssigneeId is int assigneeId && assigneeId != user.Id
+                ? await MaintenanceRules.ResolveAssigneeAsync(_userService, user, user.DepartmentId, assigneeId)
+                : user;
+
+            entity.UserId = owner.Id;
+            entity.DepartmentId = owner.DepartmentId;
             entity.CreatedAt = entity.UpdatedAt = DateTime.UtcNow;
 
             var created = await _taskService.AddAsync(entity);
-            return _mapper.Map<MaintenanceTaskResponseDto>(await LoadAsync(created.Id));
+            var loaded = await LoadAsync(created.Id);
+
+            if (owner.Id != user.Id)
+                await MaintenanceNotifier.TaskAssignedAsync(_notifications, loaded, user);
+
+            return ToDto(loaded, user);
         }
 
         public async Task<MaintenanceTaskResponseDto> Handle(UpdateMaintenanceTaskCommand request, CancellationToken ct)
@@ -145,7 +181,30 @@ namespace Application.Features.Maintenance.Tasks
             entity.UpdatedAt = DateTime.UtcNow;
 
             await _taskService.UpdateAsync(entity);
-            return _mapper.Map<MaintenanceTaskResponseDto>(entity);
+            return ToDto(entity, user);
+        }
+
+        public async Task<MaintenanceTaskResponseDto> Handle(AssignMaintenanceTaskCommand request, CancellationToken ct)
+        {
+            var user = await MaintenanceRules.CurrentUserAsync(_userService);
+            var entity = await LoadAsync(request.Id);
+
+            var target = await MaintenanceRules.ResolveAssigneeAsync(_userService, user, entity.DepartmentId, request.UserId);
+
+            if (target.Id == entity.UserId)
+                return ToDto(entity, user);
+
+            var previousUserId = entity.UserId;
+
+            entity.UserId = target.Id;
+            entity.DepartmentId = target.DepartmentId;
+            entity.UpdatedAt = DateTime.UtcNow;
+            await _taskService.UpdateAsync(entity);
+
+            var updated = await LoadAsync(entity.Id);
+            await MaintenanceNotifier.TaskReassignedAsync(_notifications, updated, user, previousUserId, target);
+
+            return ToDto(updated, user);
         }
 
         public async Task<Unit> Handle(DeleteMaintenanceTaskCommand request, CancellationToken ct)

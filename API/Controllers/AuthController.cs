@@ -1,6 +1,7 @@
 ﻿using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Features.Users.Queries.GetMe;
+using Application.Features.Users.Signature;
 using Application.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -26,6 +27,20 @@ namespace API.Controllers
         [Authorize]
         public async Task<ActionResult<UserResponseDto>> Me()
             => Ok(await _mediator.Send(new GetMeQuery()));
+
+        // ========== توقيعي (يُطبع على ورقة تسليم طلب الصيانة) ==========
+        [HttpGet("Signature")]
+        [Authorize]
+        public async Task<IActionResult> GetSignature()
+            => Ok(new { image = await _mediator.Send(new GetMySignatureQuery()) });
+
+        [HttpPut("Signature")]
+        [Authorize]
+        public async Task<IActionResult> SetSignature([FromBody] SignatureRequestDto dto)
+        {
+            await _mediator.Send(new SetMySignatureCommand(dto.Image));
+            return Ok(new { message = string.IsNullOrWhiteSpace(dto.Image) ? "تم حذف التوقيع" : "تم حفظ التوقيع" });
+        }
 
         [HttpPost("login")]
         [AllowAnonymous]

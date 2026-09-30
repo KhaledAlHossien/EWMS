@@ -45,6 +45,11 @@ namespace API.Controllers
         public async Task<ActionResult<MaintenanceTaskResponseDto>> Update(int id, [FromBody] SaveMaintenanceTaskDto dto)
             => Ok(await _mediator.Send(new UpdateMaintenanceTaskCommand(id, dto)));
 
+        [HttpPut("Assign/{id}")]
+        [Authorize(Policy = "EditMaintenanceTask")]
+        public async Task<ActionResult<MaintenanceTaskResponseDto>> Assign(int id, [FromBody] AssignMaintenanceDto dto)
+            => Ok(await _mediator.Send(new AssignMaintenanceTaskCommand(id, dto.UserId)));
+
         [HttpDelete("Delete/{id}")]
         [Authorize(Policy = "DeleteMaintenanceTask")]
         public async Task<ActionResult> Delete(int id)

@@ -24,6 +24,9 @@ namespace Application.Helper.Profiles
 
             // ----- طلب الصيانة -----
             CreateMap<MaintenanceRequest, MaintenanceRequestResponseDto>()
+                .ForMember(d => d.Number, o => o.MapFrom(s => Application.Features.Maintenance.MaintenanceRules.RequestNumber(s.Id, s.CreatedAt)))
+                .ForMember(d => d.CanEdit, o => o.Ignore())
+                .ForMember(d => d.CanAssign, o => o.Ignore())
                 .ForMember(d => d.TechnicianName, o => o.MapFrom(s => s.User != null ? s.User.FullName : string.Empty))
                 .ForMember(d => d.DepartmentName, o => o.MapFrom(s => s.Department != null ? s.Department.Name : string.Empty))
                 .ForMember(d => d.DeviceTypeName, o => o.MapFrom(s => s.DeviceType != null ? s.DeviceType.Name : string.Empty))
@@ -36,10 +39,16 @@ namespace Application.Helper.Profiles
 
             // ----- مهمة الصيانة -----
             CreateMap<MaintenanceTask, MaintenanceTaskResponseDto>()
+                .ForMember(d => d.CanEdit, o => o.Ignore())
+                .ForMember(d => d.CanAssign, o => o.Ignore())
                 .ForMember(d => d.UserName, o => o.MapFrom(s => s.User != null ? s.User.FullName : string.Empty))
                 .ForMember(d => d.DepartmentName, o => o.MapFrom(s => s.Department != null ? s.Department.Name : string.Empty));
 
             CreateMap<SaveMaintenanceTaskDto, MaintenanceTask>();
+
+            CreateMap<MaintenanceRequestActivity, MaintenanceActivityDto>()
+                .ForMember(d => d.Type, o => o.MapFrom(s => (int)s.Type))
+                .ForMember(d => d.UserName, o => o.MapFrom(s => s.User != null ? s.User.FullName : string.Empty));
         }
     }
 }

@@ -38,6 +38,8 @@ namespace Infrastructure.Persistence.Data
         public DbSet<MaintenanceRequestStatus> MaintenanceRequestStatuses { get; set; }
         public DbSet<MaintenanceRequest> MaintenanceRequests { get; set; }
         public DbSet<MaintenanceTask> MaintenanceTasks { get; set; }
+        public DbSet<MaintenanceRequestActivity> MaintenanceRequestActivities { get; set; }
+        public DbSet<UserSignature> UserSignatures { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -345,6 +347,29 @@ namespace Infrastructure.Persistence.Data
 
                 entity.HasIndex(t => new { t.UserId, t.CreatedAt });
                 entity.HasIndex(t => new { t.DepartmentId, t.CreatedAt });
+            });
+
+            // ==================== الصيانة: سجل الطلب ====================
+            builder.Entity<MaintenanceRequestActivity>(entity =>
+            {
+                entity.Property(a => a.Text).HasMaxLength(500);
+                entity.Property(a => a.Type).HasConversion<int>();
+
+                // السجل جزء من الطلب: يُحذف معه
+                entity.HasOne(a => a.MaintenanceRequest).WithMany()
+                    .HasForeignKey(a => a.MaintenanceRequestId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(a => a.User).WithMany()
+                    .HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(a => new { a.MaintenanceRequestId, a.CreatedAt });
+            });
+
+            // ==================== توقيع المستخدم ====================
+            builder.Entity<UserSignature>(entity =>
+            {
+                entity.HasKey(s => s.UserId);
+                entity.HasOne(s => s.User).WithOne()
+                    .HasForeignKey<UserSignature>(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
             });
 
             // ==================== تكوين VacationType ====================
