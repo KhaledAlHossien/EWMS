@@ -25,31 +25,33 @@ namespace API.Controllers
 
         // ========== عرض الكل ==========
         [HttpGet("GetAll")]
+        [Authorize(Policy = "ViewVacationTypes")]
         public async Task<ActionResult<List<VacationTypeResponseDto>>> GetAll()
             => Ok(await _mediator.Send(new GetAllVacationTypesQuery()));
 
         // ========== عرض نوع واحد ==========
         [HttpGet("Get/{id}")]
+        [Authorize(Policy = "ViewVacationTypes")]
         public async Task<ActionResult<VacationTypeResponseDto>> GetById(int id)
             => Ok(await _mediator.Send(new GetVacationTypeByIdQuery(id)));
 
         // ========== إنشاء ==========
         [HttpPost("Create")]
-        [Authorize(Policy = "ManageVacationTypes")]
+        [Authorize(Policy = "CreateVacationType")]
         public async Task<ActionResult<VacationTypeResponseDto>> Create(
             [FromBody] CreateVacationTypeRequestDto dto)
             => Ok(await _mediator.Send(new CreateVacationTypeCommand(dto)));
 
         // ========== تعديل ==========
         [HttpPut("Update/{id}")]
-        [Authorize(Policy = "ManageVacationTypes")]
+        [Authorize(Policy = "EditVacationType")]
         public async Task<ActionResult<VacationTypeResponseDto>> Update(
             int id, [FromBody] UpdateVacationTypeRequestDto dto)
             => Ok(await _mediator.Send(new UpdateVacationTypeCommand(id, dto)));
 
         // ========== حذف ==========
         [HttpDelete("Delete/{id}")]
-        [Authorize(Policy = "ManageVacationTypes")]
+        [Authorize(Policy = "DeleteVacationType")]
         public async Task<ActionResult> Delete(int id)
         {
             await _mediator.Send(new DeleteVacationTypeCommand(id));

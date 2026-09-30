@@ -24,7 +24,7 @@ namespace API.Controllers
         }
 
         [HttpPost("Create")]
-        [Authorize(Policy = "ManageDepartments")]
+        [Authorize(Policy = "CreateDepartment")]
         public async Task<ActionResult<DepartmentResponseDto>> Create([FromForm] CreateDepartmentRequestDto dto)
         {
             var result = await _mediator.Send(new CreateDepartmentCommand(dto));
@@ -32,7 +32,7 @@ namespace API.Controllers
         }
 
         [HttpPut("Update/{id}")]
-        [Authorize(Policy = "ManageDepartments")]
+        [Authorize(Policy = "EditDepartment")]
         public async Task<ActionResult<DepartmentResponseDto>> Update(int id, [FromForm] UpdateDepartmentRequestDto dto)
         {
             var result = await _mediator.Send(new UpdateDepartmentCommand(id, dto));
@@ -40,7 +40,7 @@ namespace API.Controllers
         }
 
         [HttpDelete("Delete/{id}")]
-        [Authorize(Policy = "ManageDepartments")]
+        [Authorize(Policy = "DeleteDepartment")]
         public async Task<ActionResult> Delete(int id)
         {
             await _mediator.Send(new DeleteDepartmentCommand(id));
@@ -48,6 +48,7 @@ namespace API.Controllers
         }
 
         [HttpGet("Get/{id}")]
+        [Authorize(Policy = "ViewDepartments")]
         public async Task<ActionResult<DepartmentResponseDto>> GetById(int id)
         {
             var result = await _mediator.Send(new GetDepartmentByIdQuery(id));
@@ -55,6 +56,7 @@ namespace API.Controllers
         }
 
         [HttpGet("GetAll")]
+        [Authorize(Policy = "ViewDepartments")]
         public async Task<ActionResult<List<DepartmentResponseDto>>> GetAll()
         {
             var result = await _mediator.Send(new GetAllDepartmentsQuery());

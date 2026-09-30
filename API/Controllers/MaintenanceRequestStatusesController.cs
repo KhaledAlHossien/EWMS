@@ -20,12 +20,13 @@ namespace API.Controllers
             _mediator = mediator;
         }
 
-        // القراءة لأي مستخدم مسجّل (قوائم منسدلة في نموذج الطلب والبحث)
         [HttpGet("GetAll")]
+        [Authorize(Policy = "ViewMaintenanceLookups")]
         public async Task<ActionResult<List<MaintenanceRequestStatusResponseDto>>> GetAll()
             => Ok(await _mediator.Send(new GetAllMaintenanceRequestStatusesQuery()));
 
         [HttpGet("Get/{id}")]
+        [Authorize(Policy = "ViewMaintenanceLookups")]
         public async Task<ActionResult<MaintenanceRequestStatusResponseDto>> GetById(int id)
             => Ok(await _mediator.Send(new GetMaintenanceRequestStatusByIdQuery(id)));
 

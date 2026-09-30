@@ -25,21 +25,21 @@ namespace API.Controllers
         }
 
         [HttpPost("Create")]
-        [Authorize(Policy = "ManageDevices")]
+        [Authorize(Policy = "CreateDevice")]
         public async Task<ActionResult<RegionResponseDto>> Create([FromForm] CreateRegionRequestDto dto)
         {
             return Ok(await _mediator.Send(new CreateRegionCommand(dto)));
         }
 
         [HttpPut("Update/{id}")]
-        [Authorize(Policy = "ManageDevices")]
+        [Authorize(Policy = "EditDevice")]
         public async Task<ActionResult<RegionResponseDto>> Update(int id, [FromForm] UpdateRegionRequestDto dto)
         {
             return Ok(await _mediator.Send(new UpdateRegionCommand(id, dto)));
         }
 
         [HttpDelete("Delete/{id}")]
-        [Authorize(Policy = "ManageDevices")]
+        [Authorize(Policy = "DeleteDevice")]
         public async Task<ActionResult> Delete(int id)
         {
             await _mediator.Send(new DeleteRegionCommand(id));

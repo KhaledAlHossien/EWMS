@@ -28,27 +28,27 @@ namespace API.Controllers
 
         // ========== إدارة (SuperAdmin / من يملك ManageWorkTasks) ==========
         [HttpGet("GetAll")]
-        [Authorize(Policy = "ManageWorkTasks")]
+        [Authorize(Policy = "ViewWorkTasks")]
         public async Task<ActionResult<List<WorkTaskResponseDto>>> GetAll([FromQuery] int? branchId)
             => Ok(await _mediator.Send(new GetAllWorkTasksQuery(branchId)));
 
         [HttpGet("Get/{id}")]
-        [Authorize(Policy = "ManageWorkTasks")]
+        [Authorize(Policy = "ViewWorkTasks")]
         public async Task<ActionResult<WorkTaskResponseDto>> GetById(int id)
             => Ok(await _mediator.Send(new GetWorkTaskByIdQuery(id)));
 
         [HttpPost("Create")]
-        [Authorize(Policy = "ManageWorkTasks")]
+        [Authorize(Policy = "CreateWorkTask")]
         public async Task<ActionResult<WorkTaskResponseDto>> Create([FromBody] CreateWorkTaskRequestDto dto)
             => Ok(await _mediator.Send(new CreateWorkTaskCommand(dto)));
 
         [HttpPut("Update/{id}")]
-        [Authorize(Policy = "ManageWorkTasks")]
+        [Authorize(Policy = "EditWorkTask")]
         public async Task<ActionResult<WorkTaskResponseDto>> Update(int id, [FromBody] UpdateWorkTaskRequestDto dto)
             => Ok(await _mediator.Send(new UpdateWorkTaskCommand(id, dto)));
 
         [HttpDelete("Delete/{id}")]
-        [Authorize(Policy = "ManageWorkTasks")]
+        [Authorize(Policy = "DeleteWorkTask")]
         public async Task<ActionResult> Delete(int id)
         {
             await _mediator.Send(new DeleteWorkTaskCommand(id));

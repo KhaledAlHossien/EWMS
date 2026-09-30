@@ -16,7 +16,7 @@ namespace API.Controllers
 {
     [ApiController]
     [Route("api/Users")]
-    [Authorize(Policy = "ManageUsers")]
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -27,18 +27,21 @@ namespace API.Controllers
         }
 
         [HttpPost("Create")]
+        [Authorize(Policy = "CreateUser")]
         public async Task<ActionResult<UserResponseDto>> Create([FromForm] CreateUserRequestDto dto)
         {
             return Ok(await _mediator.Send(new CreateUserCommand(dto)));
         }
 
         [HttpPut("Update/{id}")]
+        [Authorize(Policy = "EditUser")]
         public async Task<ActionResult<UserResponseDto>> Update(int id, [FromForm] UpdateUserRequestDto dto)
         {
             return Ok(await _mediator.Send(new UpdateUserCommand(id, dto)));
         }
 
         [HttpDelete("Delete/{id}")]
+        [Authorize(Policy = "DeleteUser")]
         public async Task<ActionResult> Delete(int id)
         {
             await _mediator.Send(new DeleteUserCommand(id));
@@ -46,30 +49,35 @@ namespace API.Controllers
         }
 
         [HttpGet("Get/{id}")]
+        [Authorize(Policy = "ViewUsers")]
         public async Task<ActionResult<UserResponseDto>> GetById(int id)
         {
             return Ok(await _mediator.Send(new GetUserByIdQuery(id)));
         }
 
         [HttpGet("GetAll")]
+        [Authorize(Policy = "ViewUsers")]
         public async Task<ActionResult<List<UserResponseDto>>> GetAll()
         {
             return Ok(await _mediator.Send(new GetAllUsersQuery()));
         }
 
         [HttpGet("Branch/{branchId}")]
+        [Authorize(Policy = "ViewUsers")]
         public async Task<ActionResult<List<UserResponseDto>>> GetByBranch(int branchId)
         {
             return Ok(await _mediator.Send(new GetUsersByBranchQuery(branchId)));
         }
 
         [HttpGet("Department/{departmentId}")]
+        [Authorize(Policy = "ViewUsers")]
         public async Task<ActionResult<List<UserResponseDto>>> GetByDepartment(int departmentId)
         {
             return Ok(await _mediator.Send(new GetUsersByDepartmentQuery(departmentId)));
         }
 
         [HttpGet("Office/{officeId}")]
+        [Authorize(Policy = "ViewUsers")]
         public async Task<ActionResult<List<UserResponseDto>>> GetByOffice(int officeId)
         {
             return Ok(await _mediator.Send(new GetUsersByOfficeQuery(officeId)));

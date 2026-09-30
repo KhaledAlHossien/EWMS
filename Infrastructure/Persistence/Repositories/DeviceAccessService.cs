@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.Interfaces;
 using Infrastructure.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
@@ -21,22 +22,29 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<DeviceAccess> GetCurrentAsync()
         {
             var role = _currentUser.Role;
-            if (string.IsNullOrWhiteSpace(role)) return new DeviceAccess(false, false, false);
+            if (string.IsNullOrWhiteSpace(role)) return new DeviceAccess(false, false, false, false, false);
 
             // صلاحيات الدور (تُمنح من صفحة الأدوار) — SuperAdmin يملكها افتراضياً
+            var deviceNames = AppPermissions.DeviceInventory.ToArray();
             var permissions = await _context.RolePermissions
-                .Where(rp => rp.Role.Name == role
-                          && (rp.Permission.Name == "ViewDevices" || rp.Permission.Name == "ManageDevices"))
+                .Where(rp => rp.Role.Name == role && deviceNames.Contains(rp.Permission.Name))
                 .Select(rp => rp.Permission.Name)
                 .ToListAsync();
 
             // القسم من التوكن (يُحدَّث عند إعادة تسجيل الدخول)
             var inOwnerDepartment = _ownerDepartmentId > 0 && _currentUser.DepartmentId == _ownerDepartmentId;
 
-            var canManage = permissions.Contains("ManageDevices") || (inOwnerDepartment && role == "Manager");
-            var canView = canManage || permissions.Contains("ViewDevices") || inOwnerDepartment;
+            // رئيس القسم المالك يملك كل العمليات بحكم منصبه
+            var isOwnerHead = inOwnerDepartment && role == "Manager";
 
-            return new DeviceAccess(canView, canManage, inOwnerDepartment);
+            var canCreate = isOwnerHead || permissions.Contains("CreateDevice");
+            var canEdit = isOwnerHead || permissions.Contains("EditDevice");
+            var canDelete = isOwnerHead || permissions.Contains("DeleteDevice");
+
+            // من يستطيع التعديل يجب أن يرى ما يعدّله
+            var canView = inOwnerDepartment || permissions.Contains("ViewDevices") || canCreate || canEdit || canDelete;
+
+            return new DeviceAccess(canView, canCreate, canEdit, canDelete, inOwnerDepartment);
         }
     }
 }
