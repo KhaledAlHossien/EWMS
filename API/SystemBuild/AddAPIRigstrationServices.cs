@@ -1,6 +1,7 @@
 using API.Authorization;
 using API.Hubs;
 using Application;
+using Application.Common;
 using Application.Interfaces;
 using Infrastructure;
 using Microsoft.AspNetCore.Authorization;
@@ -59,64 +60,25 @@ namespace API.SystemBuild
             services.AddScoped<IAuthorizationHandler, DeviceAccessAuthorizationHandler>();
             services.AddAuthorization(options =>
             {
-                options.AddPolicy("ViewProjects", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("ViewProjects")));
-                options.AddPolicy("CreateProject", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("CreateProject")));
-                options.AddPolicy("EditProject", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("EditProject")));
-                options.AddPolicy("DeleteProject", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("DeleteProject")));
-                options.AddPolicy("AssignUser", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("AssignUser")));
-                options.AddPolicy("TransferProject", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("TransferProject")));
-                options.AddPolicy("UploadProjectFile", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("UploadProjectFile")));
-                options.AddPolicy("ManageUsers", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("ManageUsers")));
-                options.AddPolicy("ManageBranches", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("ManageBranches")));
-                options.AddPolicy("ManageDepartments", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("ManageDepartments")));
-                options.AddPolicy("ManageOffices", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("ManageOffices")));
-                options.AddPolicy("ManageRoles", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("ManageRoles")));
-
-                options.AddPolicy("ViewVacations", policy =>
-    policy.Requirements.Add(new PermissionRequirement("ViewVacations")));
-                options.AddPolicy("CreateVacation", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("CreateVacation")));
-                options.AddPolicy("ApproveVacation", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("ApproveVacation")));
-                options.AddPolicy("ManageVacations", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("ManageVacations")));
-                options.AddPolicy("ManageVacationTypes", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("ManageVacationTypes")));
-
-                // توثيق الأجهزة: صلاحية الدور أو الانتماء لقسم العمليات (DeviceInventory:OwnerDepartmentId)
-                options.AddPolicy("ViewDevices", policy =>
-                    policy.Requirements.Add(new DeviceAccessRequirement(manage: false)));
-                options.AddPolicy("ManageDevices", policy =>
-                    policy.Requirements.Add(new DeviceAccessRequirement(manage: true)));
-                options.AddPolicy("ManageWorkTasks", policy =>
-                    policy.Requirements.Add(new PermissionRequirement("ManageWorkTasks")));
-
-                // الصيانة (النطاق: صاحب السجل / رئيس قسمه / السوبر ادمن — يُفحص في MaintenanceRules)
-                // صلاحية منفصلة لكل عملية (قرار المستخدم 2026-09-29)
-                foreach (var permission in new[]
+                // سياسة بنفس الاسم لكل صلاحية في AppPermissions (المصدر الوحيد للصلاحيات)
+                foreach (var permission in AppPermissions.All.Select(p => p.Name))
                 {
-                    "ViewMaintenanceTasks", "CreateMaintenanceTask", "EditMaintenanceTask", "DeleteMaintenanceTask",
-                    "ViewMaintenanceRequests", "CreateMaintenanceRequest", "EditMaintenanceRequest", "DeleteMaintenanceRequest",
-                    "CreateMaintenanceLookup", "EditMaintenanceLookup", "DeleteMaintenanceLookup"
-                })
-                {
+                    if (AppPermissions.DeviceInventory.Contains(permission))
+                        continue;
+
                     options.AddPolicy(permission, policy =>
                         policy.Requirements.Add(new PermissionRequirement(permission)));
                 }
 
-
+                // توثيق الأجهزة: صلاحية الدور أو الانتماء لقسم العمليات (DeviceInventory:OwnerDepartmentId)
+                options.AddPolicy("ViewDevices", policy =>
+                    policy.Requirements.Add(new DeviceAccessRequirement(DeviceOperation.View)));
+                options.AddPolicy("CreateDevice", policy =>
+                    policy.Requirements.Add(new DeviceAccessRequirement(DeviceOperation.Create)));
+                options.AddPolicy("EditDevice", policy =>
+                    policy.Requirements.Add(new DeviceAccessRequirement(DeviceOperation.Edit)));
+                options.AddPolicy("DeleteDevice", policy =>
+                    policy.Requirements.Add(new DeviceAccessRequirement(DeviceOperation.Delete)));
             });
 
             return services;

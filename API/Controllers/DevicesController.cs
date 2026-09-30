@@ -26,21 +26,21 @@ namespace API.Controllers
         }
 
         [HttpPost("Create")]
-        [Authorize(Policy = "ManageDevices")]
+        [Authorize(Policy = "CreateDevice")]
         public async Task<ActionResult<DeviceResponseDto>> Create([FromForm] CreateDeviceRequestDto dto)
         {
             return Ok(await _mediator.Send(new CreateDeviceCommand(dto)));
         }
 
         [HttpPut("Update/{id}")]
-        [Authorize(Policy = "ManageDevices")]
+        [Authorize(Policy = "EditDevice")]
         public async Task<ActionResult<DeviceResponseDto>> Update(int id, [FromForm] UpdateDeviceRequestDto dto)
         {
             return Ok(await _mediator.Send(new UpdateDeviceCommand(id, dto)));
         }
 
         [HttpDelete("Delete/{id}")]
-        [Authorize(Policy = "ManageDevices")]
+        [Authorize(Policy = "DeleteDevice")]
         public async Task<ActionResult> Delete(int id)
         {
             await _mediator.Send(new DeleteDeviceCommand(id));

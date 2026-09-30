@@ -41,7 +41,7 @@ namespace API.Controllers
 
         // ========== إلغاء إجازة (من صاحبها، قبل اعتماد رئيس الفرع نهائياً) ==========
         [HttpPut("Cancel/{id}")]
-        [Authorize(Policy = "CreateVacation")]
+        [Authorize(Policy = "CancelVacation")]
         public async Task<ActionResult> Cancel(int id)
         {
             await _mediator.Send(new CancelVacationCommand(id));
