@@ -1,3 +1,4 @@
+using Domain.Entities;
 using Domain.Enums;
 
 namespace Application.Features.Vacations
@@ -17,5 +18,23 @@ namespace Application.Features.Vacations
             VacationStatus.Cancelled => "ملغاة",
             _ => "غير معروفة"
         };
+
+        /// <summary>رقم الطلب للعرض والطباعة</summary>
+        public static string RequestNumber(int id, DateTime createdAt) => $"VAC-{createdAt.Year}-{id:D5}";
+
+        /// <summary>
+        /// حالة الدفع بالعربي: تُحدَّد عند الاعتماد النهائي فقط (قرار المستخدم 2026-10-04).
+        /// </summary>
+        public static string PaymentAr(VacationStatus status, int paidDays, int unpaidDays) => status switch
+        {
+            VacationStatus.PendingManager or VacationStatus.PendingBranchManager => "يُحدَّد الدفع عند الاعتماد",
+            VacationStatus.Approved when unpaidDays == 0 && paidDays == 0 => "لا أيام عمل",
+            VacationStatus.Approved when unpaidDays == 0 => "مدفوعة",
+            VacationStatus.Approved when paidDays == 0 => "غير مدفوعة",
+            VacationStatus.Approved => $"{paidDays} مدفوع و{unpaidDays} غير مدفوع",
+            _ => "—"
+        };
+
+        public static string PaymentAr(Vacation v) => PaymentAr(v.Status, v.PaidDays, v.UnpaidDays);
     }
 }

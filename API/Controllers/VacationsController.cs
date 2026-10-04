@@ -3,6 +3,7 @@ using Application.DTOs.Response;
 using Application.Features.Vacations.Commands.Approve;
 using Application.Features.Vacations.Commands.Cancel;
 using Application.Features.Vacations.Commands.Create;
+using Application.Features.Vacations.Holidays;
 using Application.Features.Vacations.Queries.GetByUser;
 using Application.Features.Vacations.Query.GetAll;
 using Application.Features.Vacations.Query.GetById;
@@ -28,8 +29,15 @@ namespace API.Controllers
             _userService = userService;
         }
 
+        // ========== معاينة المدة في نموذج الطلب ==========
+        // أيام العمل بعد استثناء الجمعة والعطل الرسمية (لا يحتاج ViewHolidays — يخدم من يقدّم إجازة)
+        [HttpGet("PreviewDays")]
+        [Authorize(Policy = "CreateVacation")]
+        public async Task<ActionResult<VacationDaysPreviewDto>> PreviewDays([FromQuery] DateTime start, [FromQuery] DateTime end)
+            => Ok(await _mediator.Send(new PreviewVacationDaysQuery(start, end)));
+
         // ========== تقديم إجازة ==========
-        // قد ترجع أكثر من إجازة (مثلاً: أيام مدفوعة + أيام غير مدفوعة عند تجاوز الحد الشهري)
+        // ترجع قائمة بعنصر واحد (بقي الشكل كما هو للتوافق مع الواجهة — كان الطلب يُقسَّم سابقاً عند التقديم)
         [HttpPost("Create")]
         [Authorize(Policy = "CreateVacation")]
         public async Task<ActionResult<List<VacationResponseDto>>> Create(

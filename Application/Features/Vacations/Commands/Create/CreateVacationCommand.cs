@@ -7,8 +7,7 @@ using System.Text;
 
 namespace Application.Features.Vacations.Commands.Create
 {
-    // قد ينتج عن الطلب الواحد أكثر من إجازة (مثلاً: أيام مدفوعة + أيام غير مدفوعة
-    // عند تجاوز الحد الشهري)، لذلك النتيجة قائمة وليست عنصراً واحداً
+    // النتيجة قائمة بعنصر واحد: بقي شكلها كما كان (كان الطلب يُقسَّم مدفوع/غير مدفوع عند التقديم قبل 2026-10-04)
     public class CreateVacationCommand : IRequest<List<VacationResponseDto>>
     {
         public CreateVacationRequestDto VacationDto { get; set; }

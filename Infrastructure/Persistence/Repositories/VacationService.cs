@@ -34,6 +34,9 @@ namespace Infrastructure.Persistence.Repositories
                 .Include(v => v.Department)
                 .Include(v => v.Branch)
                 .Include(v => v.RejectedByUser)
+                .Include(v => v.FirstApprovedByUser)
+                .Include(v => v.FinalApprovedByUser)
+                .Include(v => v.Segments.OrderBy(s => s.StartDate))
                 .FirstOrDefaultAsync(v => v.Id == id);
         }
 
@@ -123,7 +126,7 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<bool> ExistsForUserAsync(int userId)
         {
             return await _context.Vacation.AnyAsync(v =>
-                v.UserId == userId || v.RejectedByUserId == userId || v.FirstApprovedByUserId == userId);
+                v.UserId == userId || v.RejectedByUserId == userId || v.FirstApprovedByUserId == userId || v.FinalApprovedByUserId == userId);
         }
 
         // إجازات فرع بانتظار مرحلة معيّنة (الموافقة الأولى أو الاعتماد النهائي)
@@ -164,7 +167,30 @@ namespace Infrastructure.Persistence.Repositories
         public async Task UpdateAsync(Vacation vacation)
         {
             _context.Vacation.Update(vacation);
-            await SaveChangesAsync();
+            try
+            {
+                await SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // قرار آخر سُجّل على نفس الطلب بين التحميل والحفظ (RowVersion)
+                throw new InvalidOperationException("تم تعديل هذا الطلب من مستخدم آخر للتو، حدّث الصفحة وحاول مجدداً");
+            }
+        }
+
+        public async Task<T> RunExclusiveForUserAsync<T>(int userId, Func<Task<T>> action)
+        {
+            // قفل تطبيقي على مستوى الموظف داخل معاملة: اعتمادان متزامنان لإجازتين لنفس الموظف
+            // لا يحسبان الحد الشهري من نفس الرصيد. يُحرَّر القفل مع نهاية المعاملة.
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            await _context.Database.ExecuteSqlRawAsync(@"
+DECLARE @r int;
+EXEC @r = sp_getapplock @Resource = {0}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 15000;
+IF @r < 0 THROW 50001, N'vacation lock timeout', 1;", $"vacation-user-{userId}");
+
+            var result = await action();
+            await transaction.CommitAsync();
+            return result;
         }
 
         public async Task<bool> DeleteAsync(Vacation vacation)
@@ -200,115 +226,40 @@ namespace Infrastructure.Persistence.Repositories
                      v.Status == VacationStatus.PendingBranchManager));  // ⬅️
         }
 
-        // ==================== حساب الأيام ====================
+        // ==================== حساب الأيام المدفوعة ====================
+        // من أجزاء الإجازات المعتمدة فقط (قرار المستخدم 2026-10-04) — الجزء لا يتجاوز شهراً واحداً،
+        // فيُنسب كله لشهر تاريخ بدايته
 
-        public async Task<int> GetVacationDaysInMonthAsync(
-            int userId, int year, int month)
+        public async Task<int> GetPaidVacationDaysInMonthAsync(int userId, int year, int month)
         {
             var monthStart = new DateTime(year, month, 1);
-            var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+            var nextMonth = monthStart.AddMonths(1);
 
-            var vacations = await _context.Vacation
-                .Where(v =>
-                    v.UserId == userId &&
-                    v.StartVac <= monthEnd &&
-                    v.EndVac >= monthStart &&
-                    (v.Status == VacationStatus.Approved ||
-                     v.Status == VacationStatus.PendingManager ||
-                     v.Status == VacationStatus.PendingBranchManager))  // ⬅️
-                .Select(v => new { v.StartVac, v.EndVac })
-                .ToListAsync();
-
-            return CalculateOverlapDays(vacations, monthStart, monthEnd);
+            return await _context.VacationSegments
+                .Where(s => s.IsPaid
+                         && s.Vacation.UserId == userId
+                         && s.Vacation.Status == VacationStatus.Approved
+                         && s.StartDate >= monthStart && s.StartDate < nextMonth)
+                .SumAsync(s => s.Days);
         }
 
-        public async Task<int> GetPaidVacationDaysInMonthAsync(
-            int userId, int year, int month)
+        public async Task<Dictionary<(int Year, int Month), int>> GetApprovedPaidDaysByMonthAsync(
+            int userId, DateTime start, DateTime end, int? excludeVacationId = null)
         {
-            var monthStart = new DateTime(year, month, 1);
-            var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+            var from = new DateTime(start.Year, start.Month, 1);
+            var to = new DateTime(end.Year, end.Month, 1).AddMonths(1);
 
-            var vacations = await _context.Vacation
-                .Where(v =>
-                    v.UserId == userId &&
-                    v.IsPaid == true &&
-                    v.StartVac <= monthEnd &&
-                    v.EndVac >= monthStart &&
-                    (v.Status == VacationStatus.Approved ||
-                     v.Status == VacationStatus.PendingManager ||
-                     v.Status == VacationStatus.PendingBranchManager))  // ⬅️
-                .Select(v => new { v.StartVac, v.EndVac })
+            var rows = await _context.VacationSegments
+                .Where(s => s.IsPaid
+                         && s.Vacation.UserId == userId
+                         && s.Vacation.Status == VacationStatus.Approved
+                         && s.VacationId != excludeVacationId
+                         && s.StartDate >= from && s.StartDate < to)
+                .GroupBy(s => new { s.StartDate.Year, s.StartDate.Month })
+                .Select(g => new { g.Key.Year, g.Key.Month, Days = g.Sum(s => s.Days) })
                 .ToListAsync();
 
-            return CalculateOverlapDays(vacations, monthStart, monthEnd);
-        }
-
-        public async Task<int> GetTotalPaidDaysInYearAsync(int userId, int year)
-        {
-            var yearStart = new DateTime(year, 1, 1);
-            var yearEnd = new DateTime(year, 12, 31);
-
-            var vacations = await _context.Vacation
-                .Where(v =>
-                    v.UserId == userId &&
-                    v.IsPaid == true &&
-                    v.StartVac <= yearEnd &&
-                    v.EndVac >= yearStart &&
-                    (v.Status == VacationStatus.Approved ||
-                     v.Status == VacationStatus.PendingManager ||
-                     v.Status == VacationStatus.PendingBranchManager))  // ⬅️
-                .Select(v => new { v.StartVac, v.EndVac })
-                .ToListAsync();
-
-            return CalculateOverlapDays(vacations, yearStart, yearEnd);
-        }
-
-        public async Task<int> GetTotalUnpaidDaysInYearAsync(int userId, int year)
-        {
-            var yearStart = new DateTime(year, 1, 1);
-            var yearEnd = new DateTime(year, 12, 31);
-
-            var vacations = await _context.Vacation
-                .Where(v =>
-                    v.UserId == userId &&
-                    v.IsPaid == false &&
-                    v.StartVac <= yearEnd &&
-                    v.EndVac >= yearStart &&
-                    (v.Status == VacationStatus.Approved ||
-                     v.Status == VacationStatus.PendingManager ||
-                     v.Status == VacationStatus.PendingBranchManager))  // ⬅️
-                .Select(v => new { v.StartVac, v.EndVac })
-                .ToListAsync();
-
-            return CalculateOverlapDays(vacations, yearStart, yearEnd);
-        }
-
-        // ==================== دالة مساعدة ====================
-        private static int CalculateOverlapDays<T>(
-            List<T> vacations, DateTime rangeStart, DateTime rangeEnd)
-            where T : class
-        {
-            int totalDays = 0;
-
-            foreach (var v in vacations)
-            {
-                var startProp = v.GetType().GetProperty("StartVac")?.GetValue(v);
-                var endProp = v.GetType().GetProperty("EndVac")?.GetValue(v);
-
-                if (startProp == null || endProp == null) continue;
-
-                var start = (DateTime)startProp;
-                var end = (DateTime)endProp;
-
-                var overlapStart = start > rangeStart ? start : rangeStart;
-                var overlapEnd = end < rangeEnd ? end : rangeEnd;
-
-                if (overlapStart > overlapEnd) continue;
-
-                totalDays += (overlapEnd - overlapStart).Days + 1;
-            }
-
-            return totalDays;
+            return rows.ToDictionary(r => (r.Year, r.Month), r => r.Days);
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Application.Common;
 using Domain.Entities;
 using Domain.Entities.Maintenance;
+using Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -169,6 +170,41 @@ namespace Infrastructure.Persistence.Data
 
             foreach (var site in sites)
                 site.GovernorateCode = Governorates.Locate(site.Latitude!.Value, site.Longitude!.Value)?.Code ?? string.Empty;
+
+            await context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// إجازات معتمدة قبل 2026-10-04 (قبل الأجزاء): يُنشأ لكل منها جزء لكل شهر بحالة دفعها القديمة
+        /// وأيامها التقويمية كما حُسبت وقتها، كي يبقى الحد الشهري صحيحاً. مرة واحدة (من لا أجزاء له فقط).
+        /// </summary>
+        public static async Task BackfillVacationSegmentsAsync(DataContext context)
+        {
+            var legacy = await context.Vacation
+                .Where(v => v.Status == VacationStatus.Approved && v.FinalApprovedAt == null && !v.Segments.Any())
+                .ToListAsync();
+            if (legacy.Count == 0) return;
+
+            foreach (var v in legacy)
+            {
+                for (var from = v.StartVac.Date; from <= v.EndVac.Date; )
+                {
+                    var monthEnd = new DateTime(from.Year, from.Month, 1).AddMonths(1).AddDays(-1);
+                    var to = monthEnd < v.EndVac.Date ? monthEnd : v.EndVac.Date;
+                    v.Segments.Add(new VacationSegment
+                    {
+                        StartDate = from,
+                        EndDate = to,
+                        IsPaid = v.IsPaid,
+                        Days = (to - from).Days + 1
+                    });
+                    from = to.AddDays(1);
+                }
+
+                var days = v.Segments.Sum(x => x.Days);
+                v.PaidDays = v.IsPaid ? days : 0;
+                v.UnpaidDays = v.IsPaid ? 0 : days;
+            }
 
             await context.SaveChangesAsync();
         }
