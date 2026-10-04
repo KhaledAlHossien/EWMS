@@ -5,6 +5,7 @@ using Application.Features.Vacations.Commands.Cancel;
 using Application.Features.Vacations.Commands.Create;
 using Application.Features.Vacations.Holidays;
 using Application.Features.Vacations.Queries.Print;
+using Application.Features.Vacations.Queries.ApprovalContext;
 using Application.Features.Vacations.Queries.GetByUser;
 using Application.Features.Vacations.Query.GetAll;
 using Application.Features.Vacations.Query.GetById;
@@ -74,6 +75,12 @@ namespace API.Controllers
         // المرحلة (الأولى أو النهائية) وحدّ الفرع يفحصهما الـ handler
         public async Task<ActionResult<List<VacationResponseDto>>> GetPendingForMe()
             => Ok(await _mediator.Send(new GetPendingVacationsForMeQuery()));
+
+        // ========== «سجل الموظف» قبل القرار — لمن يستطيع اتخاذ القرار على هذا الطلب ==========
+        [HttpGet("ApprovalContext/{id}")]
+        [Authorize(Policy = "AnyVacationApprove")]
+        public async Task<ActionResult<VacationApprovalContextDto>> ApprovalContext(int id)
+            => Ok(await _mediator.Send(new GetVacationApprovalContextQuery(id)));
 
         // ========== نموذج الطباعة (طلب الإجازة الورقي) — حدّه ما يستطيع عرضه ==========
         [HttpGet("Print/{id}")]
