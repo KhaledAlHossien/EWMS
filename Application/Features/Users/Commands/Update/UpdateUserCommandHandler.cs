@@ -50,6 +50,10 @@ namespace Application.Features.Users.Commands.Update
 
             UserRules.EnsureCanChangeExistingUser(_currentUserService, user);
 
+            var personalId = UserRules.NormalizePersonalIdNumber(request.UserDto.PersonalIdNumber);
+            if (personalId != null && !await _userService.IsPersonalIdNumberUniqueAsync(personalId, request.Id))
+                throw new InvalidOperationException("الرقم الذاتي مسجّل لموظف آخر");
+
             if (!await _userService.IsEmailUniqueAsync(request.UserDto.Email, request.Id))
                 throw new InvalidOperationException("البريد الإلكتروني مستخدم مسبقاً");
 
@@ -72,6 +76,8 @@ namespace Application.Features.Users.Commands.Update
 
             user.FullName = request.UserDto.FullName;
             user.Email = request.UserDto.Email;
+            user.PersonalIdNumber = personalId;
+            user.PhoneNumber = Application.Common.PhoneRules.ToStored(request.UserDto.PhoneNumber);
             user.RoleId = request.UserDto.RoleId;
             user.DepartmentId = placement.DepartmentId;
             user.OfficeId = placement.OfficeId;

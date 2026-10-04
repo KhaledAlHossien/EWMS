@@ -51,6 +51,18 @@ namespace Infrastructure.Persistence.Data
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
+            // الرقم الذاتي: فريد لمن سُجّل له، والحسابات بلا رقم (NULL) لا تتعارض فيما بينها
+            builder.Entity<User>()
+                .Property(u => u.PersonalIdNumber)
+                .HasMaxLength(20);
+            builder.Entity<User>()
+                .Property(u => u.PhoneNumber)
+                .HasMaxLength(20);
+            builder.Entity<User>()
+                .HasIndex(u => u.PersonalIdNumber)
+                .IsUnique()
+                .HasFilter("[PersonalIdNumber] IS NOT NULL");
+
             builder.Entity<Role>()
                 .HasIndex(r => r.Name)
                 .IsUnique();
