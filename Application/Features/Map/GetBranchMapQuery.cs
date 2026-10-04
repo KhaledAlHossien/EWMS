@@ -31,7 +31,7 @@ namespace Application.Features.Map
             var viewer = await Viewer.CurrentAsync(_userService, _permissions);
             var options = await _mapService.GetBranchOptionsAsync();
 
-            if (viewer.IsSuperAdmin) return options;
+            if (viewer.IsOrganizationWide) return options;
 
             if (!viewer.Has(AppPermissions.ViewBranchMap) || viewer.User.BranchId is not int branchId)
                 throw new UnauthorizedAccessException("لا تملك صلاحية عرض الخريطة");
@@ -57,7 +57,7 @@ namespace Application.Features.Map
         {
             var viewer = await Viewer.CurrentAsync(_userService, _permissions);
 
-            var allowed = viewer.IsSuperAdmin
+            var allowed = viewer.IsOrganizationWide
                 || (viewer.Has(AppPermissions.ViewBranchMap) && viewer.User.BranchId == request.BranchId);
             if (!allowed)
                 throw new UnauthorizedAccessException("لا تملك صلاحية عرض خريطة هذا الفرع");

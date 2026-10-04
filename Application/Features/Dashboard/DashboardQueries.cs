@@ -60,7 +60,7 @@ namespace Application.Features.Dashboard
         public async Task<OverviewDashboardDto> Handle(GetOverviewDashboardQuery request, CancellationToken ct)
         {
             var viewer = await CurrentAsync();
-            if (!viewer.IsSuperAdmin && !viewer.Has(AppPermissions.ViewOrganizationDashboard)) throw new UnauthorizedAccessException(Denied);
+            if (!viewer.IsOrganizationWide) throw new UnauthorizedAccessException(Denied);
             return await _dashboardService.GetOverviewAsync();
         }
 
@@ -68,7 +68,7 @@ namespace Application.Features.Dashboard
         {
             var viewer = await CurrentAsync();
             var user = viewer.User;
-            var branchId = viewer.IsSuperAdmin ? request.BranchId ?? throw new ArgumentException("حدد الفرع")
+            var branchId = viewer.IsOrganizationWide ? request.BranchId ?? throw new ArgumentException("حدد الفرع")
                 : viewer.Has(AppPermissions.ViewBranchDashboard) && (request.BranchId == null || request.BranchId == user.BranchId)
                     ? user.BranchId ?? throw new InvalidOperationException("حسابك غير مرتبط بفرع")
                     : throw new UnauthorizedAccessException(Denied);
@@ -89,7 +89,7 @@ namespace Application.Features.Dashboard
             var department = await _departmentService.GetByIdAsync(departmentId)
                 ?? throw new KeyNotFoundException("القسم غير موجود");
 
-            var allowed = viewer.IsSuperAdmin
+            var allowed = viewer.IsOrganizationWide
                 || (viewer.Has(AppPermissions.ViewBranchDashboard) && department.BranchId == user.BranchId)
                 || (viewer.Has(AppPermissions.ViewDepartmentDashboard) && department.Id == user.DepartmentId);
             if (!allowed) throw new UnauthorizedAccessException(Denied);
@@ -110,7 +110,7 @@ namespace Application.Features.Dashboard
             var office = await _officeService.GetByIdAsync(officeId)
                 ?? throw new KeyNotFoundException("المكتب غير موجود");
 
-            var allowed = viewer.IsSuperAdmin
+            var allowed = viewer.IsOrganizationWide
                 || (viewer.Has(AppPermissions.ViewBranchDashboard) && office.Department?.BranchId == user.BranchId)
                 || (viewer.Has(AppPermissions.ViewDepartmentDashboard) && office.DepartmentId == user.DepartmentId)
                 || (viewer.Has(AppPermissions.ViewOfficeDashboard) && office.Id == user.OfficeId);
@@ -133,7 +133,7 @@ namespace Application.Features.Dashboard
             const string noPlacement = "حسابك غير مرتبط بالنطاق المطلوب";
 
             // ViewBranchVacations → إحصائيات فرعي، ViewDepartmentVacations → قسمي (الأوسع إن اجتمعتا)
-            var (scope, id) = viewer.IsSuperAdmin ? (request.BranchId is int b ? DashboardScope.Branch : DashboardScope.All, request.BranchId)
+            var (scope, id) = viewer.IsOrganizationWide ? (request.BranchId is int b ? DashboardScope.Branch : DashboardScope.All, request.BranchId)
                 : viewer.Has(AppPermissions.ViewBranchVacations) ? (DashboardScope.Branch, user.BranchId ?? throw new InvalidOperationException(noPlacement))
                 : viewer.Has(AppPermissions.ViewDepartmentVacations) ? (DashboardScope.Department, user.DepartmentId ?? throw new InvalidOperationException(noPlacement))
                 : throw new UnauthorizedAccessException("لا تملك صلاحية الاطلاع على إحصائيات الإجازات");

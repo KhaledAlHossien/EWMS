@@ -11,6 +11,12 @@ public sealed record Viewer(User User, IReadOnlySet<string> Permissions)
 {
     public int Id => User.Id;
     public bool IsSuperAdmin => OrganizationRole.IsSystemAdmin(User);
+
+    /// <summary>
+    /// من يتصفح كل الفروع (لوحات وخرائط وإحصائيات إجازات أي فرع): يملك ViewOrganizationDashboard.
+    /// الصلاحية هي المتحكم لا اسم الدور؛ مدير النظام يملكها دائماً (الـ seeder).
+    /// </summary>
+    public bool IsOrganizationWide => IsSuperAdmin || Permissions.Contains(AppPermissions.ViewOrganizationDashboard);
     public bool Has(string permission) => Permissions.Contains(permission);
 
     public static async Task<Viewer> CurrentAsync(IUserService users, IUserPermissionService permissions)
