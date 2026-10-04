@@ -19,6 +19,15 @@ namespace Application.Features.Users.Commands.Update
                 .When(x => !string.IsNullOrWhiteSpace(x.UserDto.Password));
 
             RuleFor(x => x.UserDto.RoleId).GreaterThan(0).WithMessage("الدور مطلوب");
+
+            RuleFor(x => x.UserDto.PersonalIdNumber)
+                .Must(v => System.Text.RegularExpressions.Regex.IsMatch(v!.Trim(), "^[A-Za-z0-9-]{1,20}$"))
+                .WithMessage("الرقم الذاتي: حروف لاتينية وأرقام فقط، حتى 20 خانة")
+                .When(x => !string.IsNullOrWhiteSpace(x.UserDto.PersonalIdNumber));
+
+            RuleFor(x => x.UserDto.PhoneNumber)
+                .Must(Application.Common.PhoneRules.IsValid)
+                .WithMessage("رقم التواصل غير صحيح: جوال 09XXXXXXXX أو أرضي يبدأ بـ 0 ورمز المحافظة");
         }
     }
 }

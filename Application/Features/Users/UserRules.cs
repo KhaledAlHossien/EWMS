@@ -81,6 +81,10 @@ namespace Application.Features.Users
                 throw new UnauthorizedAccessException("لا يمكنك إدارة مستخدم خارج فرعك");
         }
 
+        /// <summary>الرقم الذاتي: بلا فراغات وبحروف كبيرة (m201160 = M201160)، والفارغ = null</summary>
+        public static string? NormalizePersonalIdNumber(string? value) =>
+            string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToUpperInvariant();
+
         public static void EnsureCanChangeExistingUser(ICurrentUserService currentUserService, User user)
         {
             if (currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))

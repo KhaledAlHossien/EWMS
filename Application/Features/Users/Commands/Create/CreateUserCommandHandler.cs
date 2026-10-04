@@ -45,6 +45,10 @@ namespace Application.Features.Users.Commands.Create
             if (!await _userService.IsEmailUniqueAsync(request.UserDto.Email))
                 throw new InvalidOperationException("البريد الإلكتروني مستخدم مسبقاً");
 
+            var personalId = UserRules.NormalizePersonalIdNumber(request.UserDto.PersonalIdNumber);
+            if (personalId != null && !await _userService.IsPersonalIdNumberUniqueAsync(personalId))
+                throw new InvalidOperationException("الرقم الذاتي مسجّل لموظف آخر");
+
             var placement = await UserRules.EnsureUserReferencesAsync(
                 _branchService,
                 _departmentService,
@@ -66,6 +70,8 @@ namespace Application.Features.Users.Commands.Create
             {
                 FullName = request.UserDto.FullName,
                 Email = request.UserDto.Email,
+                PersonalIdNumber = personalId,
+                PhoneNumber = Application.Common.PhoneRules.ToStored(request.UserDto.PhoneNumber),
                 PasswordHash = _passwordHasher.Hash(request.UserDto.Password),
                 RoleId = request.UserDto.RoleId,
                 DepartmentId = placement.DepartmentId,

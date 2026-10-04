@@ -95,6 +95,12 @@ namespace Infrastructure.Persistence.Repositories
                 .FirstOrDefaultAsync(u => u.Id == id);
         }
 
+        public async Task<bool> IsPersonalIdNumberUniqueAsync(string personalIdNumber, int? excludeId = null)
+        {
+            return !await _context.Users
+                .AnyAsync(u => u.PersonalIdNumber == personalIdNumber && u.Id != excludeId);
+        }
+
         public async Task<bool> IsEmailUniqueAsync(string email, int? excludeId = null)
         {
             return !await _context.Users

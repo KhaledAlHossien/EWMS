@@ -5,6 +5,8 @@ namespace Application.DTOs.Response
         public int Id { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public string? PersonalIdNumber { get; set; }
+        public string? PhoneNumber { get; set; }
         public int RoleId { get; set; }
         public string RoleName { get; set; } = string.Empty;
         public int? DepartmentId { get; set; }
