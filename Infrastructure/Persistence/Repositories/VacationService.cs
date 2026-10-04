@@ -226,6 +226,52 @@ IF @r < 0 THROW 50001, N'vacation lock timeout', 1;", $"vacation-user-{userId}")
                      v.Status == VacationStatus.PendingBranchManager));  // ⬅️
         }
 
+        // ==================== «سجل الموظف» قبل القرار ====================
+
+        private static readonly VacationStatus[] ActiveStatuses =
+            { VacationStatus.PendingManager, VacationStatus.PendingBranchManager, VacationStatus.Approved };
+
+        public async Task<Vacation?> GetLastTakenAsync(int userId, DateTime upTo) =>
+            await _context.Vacation.AsNoTracking()
+                .Include(v => v.VacationType)
+                .Where(v => v.UserId == userId && v.Status == VacationStatus.Approved && v.StartVac <= upTo)
+                .OrderByDescending(v => v.StartVac)
+                .FirstOrDefaultAsync();
+
+        public async Task<(int Count, int Days)> GetApprovedInMonthAsync(int userId, int year, int month)
+        {
+            var monthStart = new DateTime(year, month, 1);
+            var nextMonth = monthStart.AddMonths(1);
+
+            var rows = await _context.VacationSegments
+                .Where(s => s.Vacation.UserId == userId
+                         && s.Vacation.Status == VacationStatus.Approved
+                         && s.StartDate >= monthStart && s.StartDate < nextMonth)
+                .Select(s => new { s.VacationId, s.Days })
+                .ToListAsync();
+
+            return (rows.Select(r => r.VacationId).Distinct().Count(), rows.Sum(r => r.Days));
+        }
+
+        public async Task<List<Vacation>> GetOverlappingInDepartmentAsync(int departmentId, int excludeUserId, DateTime start, DateTime end) =>
+            await _context.Vacation.AsNoTracking()
+                .Include(v => v.User)
+                .Include(v => v.VacationType)
+                .Where(v => v.DepartmentId == departmentId
+                         && v.UserId != excludeUserId
+                         && ActiveStatuses.Contains(v.Status)
+                         && v.StartVac <= end && v.EndVac >= start)
+                .OrderBy(v => v.StartVac)
+                .ToListAsync();
+
+        public async Task<List<Vacation>> GetOtherPendingAsync(int userId, int excludeVacationId) =>
+            await _context.Vacation.AsNoTracking()
+                .Include(v => v.VacationType)
+                .Where(v => v.UserId == userId && v.Id != excludeVacationId
+                         && (v.Status == VacationStatus.PendingManager || v.Status == VacationStatus.PendingBranchManager))
+                .OrderBy(v => v.StartVac)
+                .ToListAsync();
+
         // ==================== حساب الأيام المدفوعة ====================
         // من أجزاء الإجازات المعتمدة فقط (قرار المستخدم 2026-10-04) — الجزء لا يتجاوز شهراً واحداً،
         // فيُنسب كله لشهر تاريخ بدايته

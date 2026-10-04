@@ -46,6 +46,19 @@ namespace Application.Interfaces
         Task<Dictionary<(int Year, int Month), int>> GetApprovedPaidDaysByMonthAsync(
             int userId, DateTime start, DateTime end, int? excludeVacationId = null);
 
+        // ==================== «سجل الموظف» قبل القرار ====================
+        /// <summary>آخر إجازة معتمدة بدأت حتى تاريخ معيّن</summary>
+        Task<Vacation?> GetLastTakenAsync(int userId, DateTime upTo);
+
+        /// <summary>الإجازات المعتمدة وأيام العمل فيها خلال شهر (من أجزاء الإجازات المعتمدة)</summary>
+        Task<(int Count, int Days)> GetApprovedInMonthAsync(int userId, int year, int month);
+
+        /// <summary>إجازات قسم (معتمدة أو معلّقة) تتداخل مع فترة، لغير موظف معيّن</summary>
+        Task<List<Vacation>> GetOverlappingInDepartmentAsync(int departmentId, int excludeUserId, DateTime start, DateTime end);
+
+        /// <summary>طلبات الموظف المعلّقة الأخرى</summary>
+        Task<List<Vacation>> GetOtherPendingAsync(int userId, int excludeVacationId);
+
         /// <summary>ينفّذ العملية داخل معاملة بقفل حصري على الموظف (لا يُحسب الحد الشهري مرتين بالتوازي)</summary>
         Task<T> RunExclusiveForUserAsync<T>(int userId, Func<Task<T>> action);
     }
