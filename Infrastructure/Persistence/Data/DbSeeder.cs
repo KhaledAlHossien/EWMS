@@ -111,7 +111,7 @@ namespace Infrastructure.Persistence.Data
                     new MaintenanceRequestStatus { Name = "جديد", Color = "#3B82F6" },
                     new MaintenanceRequestStatus { Name = "قيد الصيانة", Color = "#F59E0B" },
                     new MaintenanceRequestStatus { Name = "تم الإصلاح", Color = "#10B981" },
-                    new MaintenanceRequestStatus { Name = "تم التسليم", Color = "#6B7280" },
+                    new MaintenanceRequestStatus { Name = "تم التسليم", Color = "#6B7280", IsDelivery = true },
                     new MaintenanceRequestStatus { Name = "غير قابل للإصلاح", Color = "#EF4444" }
                 );
                 await context.SaveChangesAsync();

@@ -23,6 +23,7 @@ namespace Application.DTOs.Request
     {
         public string Name { get; set; } = string.Empty;
         public string Color { get; set; } = "#FFFFFF";
+        public bool IsDelivery { get; set; }
     }
 
     // ==================== جهاز الصيانة ====================
