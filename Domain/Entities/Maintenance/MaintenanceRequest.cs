@@ -15,19 +15,14 @@ namespace Domain.Entities.Maintenance
         public string ClientName { get; set; } = string.Empty; //اسم العميل
         public string ClientPhone { get; set; } = string.Empty; //هاتف العميل
 
-        public required int DeviceTypeId { get; set; }
-        public DeviceType DeviceType { get; set; } = null!;
+        // الجهاز (نوعه وشركته وموديله ورقمه التسلسلي في DeviceMaintenance)
+        public required int DeviceMaintenanceId { get; set; }
+        public DeviceMaintenance DeviceMaintenance { get; set; } = null!;
 
         public required int DamageTypeId { get; set; }
         public DamageType DamageType { get; set; } = null!;
 
-        public required int DeviceCompanyId { get; set; }
-        public DeviceCompany DeviceCompany { get; set; } = null!;
-
-        public string Model { get; set; } = string.Empty;
-
         public string Accessories { get; set; } = string.Empty;
-        public string SerialNumber { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
 
         public required int MaintenanceRequestStatusId { get; set; }

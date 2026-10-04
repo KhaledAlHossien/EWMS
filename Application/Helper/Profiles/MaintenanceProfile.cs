@@ -22,6 +22,12 @@ namespace Application.Helper.Profiles
             CreateMap<MaintenanceRequestStatus, MaintenanceRequestStatusResponseDto>();
             CreateMap<MaintenanceRequestStatusRequestDto, MaintenanceRequestStatus>();
 
+            // ----- جهاز الصيانة -----
+            CreateMap<DeviceMaintenance, DeviceMaintenanceResponseDto>()
+                .ForMember(d => d.DeviceTypeName, o => o.MapFrom(s => s.DeviceType != null ? s.DeviceType.Name : string.Empty))
+                .ForMember(d => d.DeviceCompanyName, o => o.MapFrom(s => s.DeviceCompany != null ? s.DeviceCompany.Name : string.Empty));
+            CreateMap<DeviceMaintenanceRequestDto, DeviceMaintenance>();
+
             // ----- طلب الصيانة -----
             CreateMap<MaintenanceRequest, MaintenanceRequestResponseDto>()
                 .ForMember(d => d.Number, o => o.MapFrom(s => Application.Features.Maintenance.MaintenanceRules.RequestNumber(s.Id, s.CreatedAt)))
@@ -30,9 +36,14 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.CanAssign, o => o.Ignore())
                 .ForMember(d => d.TechnicianName, o => o.MapFrom(s => s.User != null ? s.User.FullName : string.Empty))
                 .ForMember(d => d.DepartmentName, o => o.MapFrom(s => s.Department != null ? s.Department.Name : string.Empty))
-                .ForMember(d => d.DeviceTypeName, o => o.MapFrom(s => s.DeviceType != null ? s.DeviceType.Name : string.Empty))
+                .ForMember(d => d.DeviceName, o => o.MapFrom(s => s.DeviceMaintenance != null ? s.DeviceMaintenance.Name : string.Empty))
+                .ForMember(d => d.SerialNumber, o => o.MapFrom(s => s.DeviceMaintenance != null ? s.DeviceMaintenance.SerialNumber : string.Empty))
+                .ForMember(d => d.Model, o => o.MapFrom(s => s.DeviceMaintenance != null ? s.DeviceMaintenance.Model : string.Empty))
+                .ForMember(d => d.DeviceTypeId, o => o.MapFrom(s => s.DeviceMaintenance != null ? s.DeviceMaintenance.DeviceTypeId : 0))
+                .ForMember(d => d.DeviceTypeName, o => o.MapFrom(s => s.DeviceMaintenance != null && s.DeviceMaintenance.DeviceType != null ? s.DeviceMaintenance.DeviceType.Name : string.Empty))
+                .ForMember(d => d.DeviceCompanyId, o => o.MapFrom(s => s.DeviceMaintenance != null ? s.DeviceMaintenance.DeviceCompanyId : 0))
+                .ForMember(d => d.DeviceCompanyName, o => o.MapFrom(s => s.DeviceMaintenance != null && s.DeviceMaintenance.DeviceCompany != null ? s.DeviceMaintenance.DeviceCompany.Name : string.Empty))
                 .ForMember(d => d.DamageTypeName, o => o.MapFrom(s => s.DamageType != null ? s.DamageType.Name : string.Empty))
-                .ForMember(d => d.DeviceCompanyName, o => o.MapFrom(s => s.DeviceCompany != null ? s.DeviceCompany.Name : string.Empty))
                 .ForMember(d => d.StatusName, o => o.MapFrom(s => s.MaintenanceRequestStatus != null ? s.MaintenanceRequestStatus.Name : string.Empty))
                 .ForMember(d => d.StatusColor, o => o.MapFrom(s => s.MaintenanceRequestStatus != null ? s.MaintenanceRequestStatus.Color : string.Empty));
 

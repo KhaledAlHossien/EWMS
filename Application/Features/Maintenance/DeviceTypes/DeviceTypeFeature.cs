@@ -97,7 +97,7 @@ namespace Application.Features.Maintenance.DeviceTypes
             var entity = await LoadAsync(request.Id);
 
             if (await _service.IsUsedAsync(request.Id))
-                throw new InvalidOperationException("لا يمكن حذف نوع جهاز مستخدم في طلبات صيانة");
+                throw new InvalidOperationException("لا يمكن حذف نوع جهاز مستخدم في أجهزة الصيانة");
 
             await _service.DeleteAsync(entity);
             return Unit.Value;

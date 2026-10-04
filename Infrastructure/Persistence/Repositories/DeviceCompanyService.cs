@@ -46,6 +46,6 @@ namespace Infrastructure.Persistence.Repositories
             await _context.DeviceCompanies.AnyAsync(x => x.Name == name && x.Id != excludeId);
 
         public async Task<bool> IsUsedAsync(int id) =>
-            await _context.MaintenanceRequests.AnyAsync(r => r.DeviceCompanyId == id);
+            await _context.DeviceMaintenances.AnyAsync(d => d.DeviceCompanyId == id);
     }
 }

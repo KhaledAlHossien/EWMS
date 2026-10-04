@@ -26,18 +26,42 @@ namespace Application.DTOs.Request
         public bool IsDelivery { get; set; }
     }
 
+    // ==================== جهاز الصيانة ====================
+    public class DeviceMaintenanceRequestDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public string SerialNumber { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int DeviceTypeId { get; set; }
+        public int DeviceCompanyId { get; set; }
+    }
+
+    /// <summary>
+    /// بحث أجهزة الصيانة — كل الحقول اختيارية وتُجمع بـ AND.
+    /// SerialNumber/Model: "يبدأ بـ" (يستفيد من الفهرس)، Name: "يحتوي".
+    /// </summary>
+    public class DeviceMaintenanceFilterDto
+    {
+        public string? SerialNumber { get; set; }
+        public string? Model { get; set; }
+        public string? Name { get; set; }
+        public int? DeviceTypeId { get; set; }
+        public int? DeviceCompanyId { get; set; }
+        public int Page { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+    }
+
     // ==================== طلب الصيانة ====================
-    // الفني (UserId) والقسم لا يُرسلان: يُؤخذان من المستخدم الحالي عند الإنشاء
+    // الفني (UserId) والقسم لا يُرسلان: يُؤخذان من المستخدم الحالي عند الإنشاء.
+    // الجهاز يُختار من أجهزة الصيانة الموجودة (يُضاف أولاً من MaintenanceDevices إن كان جديداً).
     public class SaveMaintenanceRequestDto
     {
         public string ClientName { get; set; } = string.Empty;
         public string ClientPhone { get; set; } = string.Empty;
-        public int DeviceTypeId { get; set; }
+        public int DeviceMaintenanceId { get; set; }
         public int DamageTypeId { get; set; }
-        public int DeviceCompanyId { get; set; }
-        public string Model { get; set; } = string.Empty;
         public string Accessories { get; set; } = string.Empty;
-        public string SerialNumber { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public int MaintenanceRequestStatusId { get; set; }
         public DateTime? StartedAt { get; set; }
@@ -46,10 +70,12 @@ namespace Application.DTOs.Request
 
     /// <summary>
     /// بحث طلبات الصيانة — كل الحقول اختيارية وتُجمع بـ AND.
-    /// SerialNumber/Model: "يبدأ بـ" (يستفيد من الفهرس)، ClientName: "يحتوي".
+    /// SerialNumber/Model: "يبدأ بـ" على جهاز الطلب (يستفيد من فهرس DeviceMaintenances)، ClientName: "يحتوي".
+    /// DeviceMaintenanceId: كل طلبات جهاز واحد (سجل إصلاحاته).
     /// </summary>
     public class MaintenanceRequestFilterDto
     {
+        public int? DeviceMaintenanceId { get; set; }
         public string? SerialNumber { get; set; }
         public string? Model { get; set; }
         public string? ClientName { get; set; }

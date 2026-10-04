@@ -37,6 +37,7 @@ namespace Infrastructure.Persistence.Data
         public DbSet<DeviceCompany> DeviceCompanies { get; set; }
         public DbSet<DamageType> DamageTypes { get; set; }
         public DbSet<MaintenanceRequestStatus> MaintenanceRequestStatuses { get; set; }
+        public DbSet<DeviceMaintenance> DeviceMaintenances { get; set; }
         public DbSet<MaintenanceRequest> MaintenanceRequests { get; set; }
         public DbSet<MaintenanceTask> MaintenanceTasks { get; set; }
         public DbSet<MaintenanceRequestActivity> MaintenanceRequestActivities { get; set; }
@@ -314,36 +315,47 @@ namespace Infrastructure.Persistence.Data
                 entity.HasIndex(x => x.Name).IsUnique();
             });
 
+            // ==================== الصيانة: أجهزة الصيانة ====================
+            // الجهاز قطعة فعلية: رقمه التسلسلي فريد (فهرس فريد يخدم البحث بـ"يبدأ بـ" أيضاً — Index Seek)
+            builder.Entity<DeviceMaintenance>(entity =>
+            {
+                entity.Property(d => d.Name).HasMaxLength(200);
+                entity.Property(d => d.SerialNumber).HasMaxLength(100).IsRequired();
+                entity.Property(d => d.Model).HasMaxLength(100);
+                entity.Property(d => d.Description).HasMaxLength(1000);
+
+                entity.HasOne(d => d.DeviceType).WithMany().HasForeignKey(d => d.DeviceTypeId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.DeviceCompany).WithMany().HasForeignKey(d => d.DeviceCompanyId).OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(d => d.SerialNumber).IsUnique();
+                entity.HasIndex(d => d.Model);
+            });
+
             // ==================== الصيانة: طلبات الصيانة ====================
-            // كل العلاقات Restrict: لا يُحذف نوع/شركة/عطل/حالة/موظف/قسم مستخدم في طلب (الحذف يُمنع برسالة واضحة)
+            // كل العلاقات Restrict: لا يُحذف جهاز/عطل/حالة/موظف/قسم مستخدم في طلب (الحذف يُمنع برسالة واضحة)
             builder.Entity<MaintenanceRequest>(entity =>
             {
                 entity.Property(r => r.ClientName).HasMaxLength(200).IsRequired();
                 entity.Property(r => r.ClientPhone).HasMaxLength(30);
-                entity.Property(r => r.Model).HasMaxLength(100);
-                entity.Property(r => r.SerialNumber).HasMaxLength(100);
                 entity.Property(r => r.Accessories).HasMaxLength(500);
                 entity.Property(r => r.Description).HasMaxLength(2000);
 
                 entity.HasOne(r => r.User).WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(r => r.Department).WithMany().HasForeignKey(r => r.DepartmentId).OnDelete(DeleteBehavior.Restrict);
-                entity.HasOne(r => r.DeviceType).WithMany().HasForeignKey(r => r.DeviceTypeId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.DeviceMaintenance).WithMany().HasForeignKey(r => r.DeviceMaintenanceId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(r => r.DamageType).WithMany().HasForeignKey(r => r.DamageTypeId).OnDelete(DeleteBehavior.Restrict);
-                entity.HasOne(r => r.DeviceCompany).WithMany().HasForeignKey(r => r.DeviceCompanyId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(r => r.MaintenanceRequestStatus).WithMany().HasForeignKey(r => r.MaintenanceRequestStatusId).OnDelete(DeleteBehavior.Restrict);
                 // موقّع ورقة التسليم ونسخة توقيعه وقت التسليم
                 entity.HasOne(r => r.DeliverySigner).WithMany().HasForeignKey(r => r.DeliverySignerId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(r => r.DeliverySignature).WithMany().HasForeignKey(r => r.DeliverySignatureId).OnDelete(DeleteBehavior.Restrict);
 
                 // ----- فهارس البحث -----
-                // الرقم التسلسلي والموديل يُبحث عنهما بـ"يبدأ بـ" (LIKE 'x%') فيستفيدان من الفهرس (Index Seek)
-                entity.HasIndex(r => r.SerialNumber);
-                entity.HasIndex(r => r.Model);
+                // الرقم التسلسلي والموديل والشركة والنوع صارت في DeviceMaintenance (يُبحث عنها بالربط معه)
                 entity.HasIndex(r => r.ClientName);
 
-                // الفني والشركة والقسم: فلترة بالمعرّف + ترتيب بالأحدث (تغني عن فهرس الـ FK المنفرد)
+                // فلترة بالمعرّف + ترتيب بالأحدث (تغني عن فهرس الـ FK المنفرد)
                 entity.HasIndex(r => new { r.UserId, r.CreatedAt });
-                entity.HasIndex(r => new { r.DeviceCompanyId, r.CreatedAt });
+                entity.HasIndex(r => new { r.DeviceMaintenanceId, r.CreatedAt }); // سجل إصلاحات الجهاز
                 entity.HasIndex(r => new { r.DepartmentId, r.CreatedAt });
                 entity.HasIndex(r => new { r.MaintenanceRequestStatusId, r.CreatedAt });
             });

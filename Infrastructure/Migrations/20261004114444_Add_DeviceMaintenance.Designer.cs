@@ -4,6 +4,7 @@ using Infrastructure.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20261004114444_Add_DeviceMaintenance")]
+    partial class Add_DeviceMaintenance
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -423,15 +426,6 @@ namespace Infrastructure.Migrations
                     b.Property<int>("DamageTypeId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("DeliveredAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("DeliverySignatureId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("DeliverySignerId")
-                        .HasColumnType("int");
-
                     b.Property<int?>("DepartmentId")
                         .HasColumnType("int");
 
@@ -518,9 +512,6 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(7)
                         .HasColumnType("nvarchar(7)");
-
-                    b.Property<bool>("IsDelivery")
-                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -691,30 +682,6 @@ namespace Infrastructure.Migrations
                     b.ToTable("Permissions");
                 });
 
-            modelBuilder.Entity("Domain.Entities.PublicHoliday", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Date")
-                        .IsUnique();
-
-                    b.ToTable("PublicHolidays");
-                });
-
             modelBuilder.Entity("Domain.Entities.Role", b =>
                 {
                     b.Property<int>("Id")
@@ -831,13 +798,11 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("PersonalIdNumber")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                    b.Property<int>("PersonalIdNumber")
+                        .HasColumnType("int");
 
-                    b.Property<string>("PhoneNumber")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                    b.Property<int>("PhoneNumber")
+                        .HasColumnType("int");
 
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
@@ -853,10 +818,6 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("OfficeId");
 
-                    b.HasIndex("PersonalIdNumber")
-                        .IsUnique()
-                        .HasFilter("[PersonalIdNumber] IS NOT NULL");
-
                     b.HasIndex("RoleId");
 
                     b.ToTable("Users");
@@ -864,30 +825,17 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Domain.Entities.UserSignature", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<int>("UserId")
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("Image")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("IsCurrent")
-                        .HasColumnType("bit");
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique()
-                        .HasFilter("[IsCurrent] = 1");
+                    b.HasKey("UserId");
 
                     b.ToTable("UserSignatures");
                 });
@@ -964,18 +912,6 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("EndVac")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("FinalApprovedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("FinalApprovedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("FinalApprovedSignatureId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("FirstApprovedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<int?>("FirstApprovedByUserId")
                         .HasColumnType("int");
 
@@ -987,30 +923,15 @@ namespace Infrastructure.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
-                    b.Property<int>("PaidDays")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("RejectedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("RejectedAtStage")
-                        .HasColumnType("int");
-
                     b.Property<int?>("RejectedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("RejectedSignatureId")
                         .HasColumnType("int");
 
                     b.Property<string>("RejectionReason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
 
                     b.Property<DateTime>("StartVac")
                         .HasColumnType("datetime2");
@@ -1019,9 +940,6 @@ namespace Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(1);
-
-                    b.Property<int>("UnpaidDays")
-                        .HasColumnType("int");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -1046,15 +964,9 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("DepartmentId");
 
-                    b.HasIndex("FinalApprovedByUserId");
-
-                    b.HasIndex("FinalApprovedSignatureId");
-
                     b.HasIndex("FirstApprovedByUserId");
 
                     b.HasIndex("RejectedByUserId");
-
-                    b.HasIndex("RejectedSignatureId");
 
                     b.HasIndex("StartVac");
 
@@ -1069,36 +981,6 @@ namespace Infrastructure.Migrations
                     b.HasIndex("UserId", "StartVac", "EndVac");
 
                     b.ToTable("Vacation");
-                });
-
-            modelBuilder.Entity("Domain.Entities.VacationSegment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Days")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("date");
-
-                    b.Property<bool>("IsPaid")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("date");
-
-                    b.Property<int>("VacationId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("VacationId", "StartDate");
-
-                    b.ToTable("VacationSegments");
                 });
 
             modelBuilder.Entity("Domain.Entities.VacationType", b =>
@@ -1293,16 +1175,6 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Domain.Entities.UserSignature", "DeliverySignature")
-                        .WithMany()
-                        .HasForeignKey("DeliverySignatureId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Domain.Entities.User", "DeliverySigner")
-                        .WithMany()
-                        .HasForeignKey("DeliverySignerId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Domain.Entities.Department", "Department")
                         .WithMany()
                         .HasForeignKey("DepartmentId")
@@ -1327,10 +1199,6 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("DamageType");
-
-                    b.Navigation("DeliverySignature");
-
-                    b.Navigation("DeliverySigner");
 
                     b.Navigation("Department");
 
@@ -1454,8 +1322,8 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Entities.UserSignature", b =>
                 {
                     b.HasOne("Domain.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
+                        .WithOne()
+                        .HasForeignKey("Domain.Entities.UserSignature", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1506,16 +1374,6 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Domain.Entities.User", "FinalApprovedByUser")
-                        .WithMany()
-                        .HasForeignKey("FinalApprovedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Domain.Entities.UserSignature", "FinalApprovedSignature")
-                        .WithMany()
-                        .HasForeignKey("FinalApprovedSignatureId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Domain.Entities.User", "FirstApprovedByUser")
                         .WithMany()
                         .HasForeignKey("FirstApprovedByUserId")
@@ -1524,11 +1382,6 @@ namespace Infrastructure.Migrations
                     b.HasOne("Domain.Entities.User", "RejectedByUser")
                         .WithMany()
                         .HasForeignKey("RejectedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Domain.Entities.UserSignature", "RejectedSignature")
-                        .WithMany()
-                        .HasForeignKey("RejectedSignatureId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Domain.Entities.User", "User")
@@ -1547,30 +1400,13 @@ namespace Infrastructure.Migrations
 
                     b.Navigation("Department");
 
-                    b.Navigation("FinalApprovedByUser");
-
-                    b.Navigation("FinalApprovedSignature");
-
                     b.Navigation("FirstApprovedByUser");
 
                     b.Navigation("RejectedByUser");
 
-                    b.Navigation("RejectedSignature");
-
                     b.Navigation("User");
 
                     b.Navigation("VacationType");
-                });
-
-            modelBuilder.Entity("Domain.Entities.VacationSegment", b =>
-                {
-                    b.HasOne("Domain.Entities.Vacation", "Vacation")
-                        .WithMany("Segments")
-                        .HasForeignKey("VacationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Vacation");
                 });
 
             modelBuilder.Entity("Domain.Entities.WorkTask", b =>
@@ -1589,11 +1425,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("Activities");
 
                     b.Navigation("SubTasks");
-                });
-
-            modelBuilder.Entity("Domain.Entities.Vacation", b =>
-                {
-                    b.Navigation("Segments");
                 });
 
             modelBuilder.Entity("Domain.Entities.WorkTask", b =>
