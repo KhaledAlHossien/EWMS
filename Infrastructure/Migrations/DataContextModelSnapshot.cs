@@ -461,16 +461,6 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("DamageTypeId");
 
-                    b.HasIndex("DeliverySignatureId");
-
-                    b.HasIndex("DeliverySignerId");
-
-                    b.HasIndex("DeviceTypeId");
-
-                    b.HasIndex("Model");
-
-                    b.HasIndex("SerialNumber");
-
                     b.HasIndex("DepartmentId", "CreatedAt");
 
                     b.HasIndex("DeviceMaintenanceId", "CreatedAt");
