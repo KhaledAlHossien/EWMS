@@ -173,6 +173,7 @@ namespace Application.Features.Vacations.Commands.Approve
 
         private void MarkAsRejected(Domain.Entities.Vacation vacation, string? reason)
         {
+            vacation.RejectedAtStage = vacation.Status;
             vacation.Status = VacationStatus.Rejected;
             vacation.RejectedByUserId = _userService.UserId;
             vacation.RejectionReason = string.IsNullOrWhiteSpace(reason)

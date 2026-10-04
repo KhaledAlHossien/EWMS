@@ -4,6 +4,7 @@ using Application.Features.Vacations.Commands.Approve;
 using Application.Features.Vacations.Commands.Cancel;
 using Application.Features.Vacations.Commands.Create;
 using Application.Features.Vacations.Holidays;
+using Application.Features.Vacations.Queries.Print;
 using Application.Features.Vacations.Queries.GetByUser;
 using Application.Features.Vacations.Query.GetAll;
 using Application.Features.Vacations.Query.GetById;
@@ -73,6 +74,12 @@ namespace API.Controllers
         // المرحلة (الأولى أو النهائية) وحدّ الفرع يفحصهما الـ handler
         public async Task<ActionResult<List<VacationResponseDto>>> GetPendingForMe()
             => Ok(await _mediator.Send(new GetPendingVacationsForMeQuery()));
+
+        // ========== نموذج الطباعة (طلب الإجازة الورقي) — حدّه ما يستطيع عرضه ==========
+        [HttpGet("Print/{id}")]
+        [Authorize(Policy = "PrintVacation")]
+        public async Task<ActionResult<VacationPrintDto>> Print(int id)
+            => Ok(await _mediator.Send(new GetVacationPrintQuery(id)));
 
         // ========== تفاصيل إجازة (بعد التحقق من الملكية/النطاق داخل الـ Handler) ==========
         [HttpGet("Get/{id}")]
