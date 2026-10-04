@@ -4,6 +4,7 @@ using Infrastructure.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20261004082300_Maintenance_Delivery_Signature")]
+    partial class Maintenance_Delivery_Signature
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -322,54 +325,6 @@ namespace Infrastructure.Migrations
                     b.ToTable("DeviceCompanies");
                 });
 
-            modelBuilder.Entity("Domain.Entities.Maintenance.DeviceMaintenance", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int>("DeviceCompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("DeviceTypeId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Model")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("SerialNumber")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DeviceCompanyId");
-
-                    b.HasIndex("DeviceTypeId");
-
-                    b.HasIndex("Model");
-
-                    b.HasIndex("SerialNumber")
-                        .IsUnique();
-
-                    b.ToTable("DeviceMaintenances");
-                });
-
             modelBuilder.Entity("Domain.Entities.Maintenance.DeviceType", b =>
                 {
                     b.Property<int>("Id")
@@ -440,11 +395,24 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<int>("DeviceMaintenanceId")
+                    b.Property<int>("DeviceCompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DeviceTypeId")
                         .HasColumnType("int");
 
                     b.Property<int>("MaintenanceRequestStatusId")
                         .HasColumnType("int");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SerialNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("datetime2");
@@ -473,7 +441,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("DepartmentId", "CreatedAt");
 
-                    b.HasIndex("DeviceMaintenanceId", "CreatedAt");
+                    b.HasIndex("DeviceCompanyId", "CreatedAt");
 
                     b.HasIndex("MaintenanceRequestStatusId", "CreatedAt");
 
@@ -1276,25 +1244,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("Site");
                 });
 
-            modelBuilder.Entity("Domain.Entities.Maintenance.DeviceMaintenance", b =>
-                {
-                    b.HasOne("Domain.Entities.Maintenance.DeviceCompany", "DeviceCompany")
-                        .WithMany()
-                        .HasForeignKey("DeviceCompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Domain.Entities.Maintenance.DeviceType", "DeviceType")
-                        .WithMany()
-                        .HasForeignKey("DeviceTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("DeviceCompany");
-
-                    b.Navigation("DeviceType");
-                });
-
             modelBuilder.Entity("Domain.Entities.Maintenance.MaintenanceRequest", b =>
                 {
                     b.HasOne("Domain.Entities.Maintenance.DamageType", "DamageType")
@@ -1318,9 +1267,15 @@ namespace Infrastructure.Migrations
                         .HasForeignKey("DepartmentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Domain.Entities.Maintenance.DeviceMaintenance", "DeviceMaintenance")
+                    b.HasOne("Domain.Entities.Maintenance.DeviceCompany", "DeviceCompany")
                         .WithMany()
-                        .HasForeignKey("DeviceMaintenanceId")
+                        .HasForeignKey("DeviceCompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Maintenance.DeviceType", "DeviceType")
+                        .WithMany()
+                        .HasForeignKey("DeviceTypeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -1344,7 +1299,9 @@ namespace Infrastructure.Migrations
 
                     b.Navigation("Department");
 
-                    b.Navigation("DeviceMaintenance");
+                    b.Navigation("DeviceCompany");
+
+                    b.Navigation("DeviceType");
 
                     b.Navigation("MaintenanceRequestStatus");
 

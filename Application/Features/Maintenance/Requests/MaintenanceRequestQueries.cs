@@ -117,18 +117,21 @@ namespace Application.Features.Maintenance.Requests
 
             var result = new MaintenancePrintDto { Request = MaintenanceRequestMapping.ToDto(_mapper, entity, scopes) };
 
-            // الموقِّع: من يملك SignMaintenanceReceipt في قسم الطلب (الأقدم إن تعدّدوا) وتوقيعه
-            if (entity.DepartmentId is int departmentId)
+            if (entity.DeliveredAt != null)
             {
+                // سُلِّم: الموقّع وتوقيعه كما ثُبِّتا لحظة التسليم (لا يتغيران بعد ذلك)
+                result.Delivered = true;
+                result.DeliveredAt = entity.DeliveredAt;
+                result.ManagerName = entity.DeliverySigner?.FullName ?? string.Empty;
+                result.ManagerSignature = await _signatureService.GetImageAsync(entity.DeliverySignatureId);
+            }
+            else if (entity.DepartmentId is int departmentId)
+            {
+                // لم يُسلَّم بعد: اسم الموقّع المتوقع فقط، بلا توقيع (يُثبَّت عند تحويل الطلب إلى حالة تسليم)
                 var manager = (await _permissions.GetUsersWithPermissionAsync(AppPermissions.SignMaintenanceReceipt, departmentId: departmentId))
                     .OrderBy(u => u.Id)
                     .FirstOrDefault();
-
-                if (manager != null)
-                {
-                    result.ManagerName = manager.FullName;
-                    result.ManagerSignature = await _signatureService.GetAsync(manager.Id);
-                }
+                result.ManagerName = manager?.FullName ?? string.Empty;
             }
 
             return result;

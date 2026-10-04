@@ -345,6 +345,9 @@ namespace Infrastructure.Persistence.Data
                 entity.HasOne(r => r.DeviceMaintenance).WithMany().HasForeignKey(r => r.DeviceMaintenanceId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(r => r.DamageType).WithMany().HasForeignKey(r => r.DamageTypeId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(r => r.MaintenanceRequestStatus).WithMany().HasForeignKey(r => r.MaintenanceRequestStatusId).OnDelete(DeleteBehavior.Restrict);
+                // موقّع ورقة التسليم ونسخة توقيعه وقت التسليم
+                entity.HasOne(r => r.DeliverySigner).WithMany().HasForeignKey(r => r.DeliverySignerId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.DeliverySignature).WithMany().HasForeignKey(r => r.DeliverySignatureId).OnDelete(DeleteBehavior.Restrict);
 
                 // ----- فهارس البحث -----
                 // الرقم التسلسلي والموديل والشركة والنوع صارت في DeviceMaintenance (يُبحث عنها بالربط معه)
