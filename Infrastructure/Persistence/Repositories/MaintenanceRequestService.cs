@@ -23,7 +23,8 @@ namespace Infrastructure.Persistence.Repositories
             .Include(r => r.DeviceType)
             .Include(r => r.DamageType)
             .Include(r => r.DeviceCompany)
-            .Include(r => r.MaintenanceRequestStatus);
+            .Include(r => r.MaintenanceRequestStatus)
+            .Include(r => r.DeliverySigner);
 
         public async Task<MaintenanceRequest?> GetByIdAsync(int id) =>
             await WithDetails().FirstOrDefaultAsync(r => r.Id == id);
@@ -213,7 +214,7 @@ namespace Infrastructure.Persistence.Repositories
 
         // سجل الطلبات يرتبط بالموظف أيضاً (Restrict)
         public async Task<bool> ExistsForUserAsync(int userId) =>
-            await _context.MaintenanceRequests.AnyAsync(r => r.UserId == userId)
+            await _context.MaintenanceRequests.AnyAsync(r => r.UserId == userId || r.DeliverySignerId == userId)
             || await _context.MaintenanceRequestActivities.AnyAsync(a => a.UserId == userId);
 
         public async Task<bool> ExistsForDepartmentAsync(int departmentId) =>

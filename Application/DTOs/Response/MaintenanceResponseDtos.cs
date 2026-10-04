@@ -25,6 +25,7 @@ namespace Application.DTOs.Response
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Color { get; set; } = string.Empty;
+        public bool IsDelivery { get; set; }
     }
 
     public class MaintenanceRequestResponseDto
@@ -104,12 +105,17 @@ namespace Application.DTOs.Response
         public DateTime CreatedAt { get; set; }
     }
 
-    /// <summary>بيانات الطباعة: إيصال الاستلام وورقة التسليم (توقيع رئيس القسم يُطبع على ورقة التسليم)</summary>
+    /// <summary>
+    /// بيانات الطباعة: إيصال الاستلام وورقة التسليم. بعد التسليم (Delivered) يُطبع الموقّع وتوقيعه كما ثُبِّتا لحظة التسليم؛
+    /// قبله يُعرض اسم الموقّع المتوقع بلا توقيع.
+    /// </summary>
     public class MaintenancePrintDto
     {
         public MaintenanceRequestResponseDto Request { get; set; } = new();
         public string ManagerName { get; set; } = string.Empty;
         public string? ManagerSignature { get; set; }
+        public bool Delivered { get; set; }
+        public DateTime? DeliveredAt { get; set; }
     }
 
     // ==================== الإحصائيات ====================

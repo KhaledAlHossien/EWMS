@@ -37,5 +37,13 @@ namespace Domain.Entities.Maintenance
         public DateTime UpdatedAt { get; set; }
         public DateTime? StartedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
+
+        // ===== ورقة التسليم الموقَّعة: تُثبَّت لحظة دخول الطلب حالة تسليم (IsDelivery) =====
+        // الموقّع = صاحب SignMaintenanceReceipt في قسم الطلب (الأقدم)، والتوقيع = نسخته الحالية وقتها (null = بلا توقيع)
+        public DateTime? DeliveredAt { get; set; }
+        public int? DeliverySignerId { get; set; }
+        public User? DeliverySigner { get; set; }
+        public int? DeliverySignatureId { get; set; }
+        public UserSignature? DeliverySignature { get; set; }
     }
 }

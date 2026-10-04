@@ -93,6 +93,7 @@ namespace Application.Features.Maintenance.Requests
         private readonly IUserService _userService;
         private readonly INotificationService _notifications;
         private readonly IUserPermissionService _permissions;
+        private readonly IUserSignatureService _signatures;
         private readonly IMapper _mapper;
 
         public MaintenanceRequestCommandsHandler(
@@ -104,9 +105,11 @@ namespace Application.Features.Maintenance.Requests
             IUserService userService,
             INotificationService notifications,
             IUserPermissionService permissions,
+            IUserSignatureService signatures,
             IMapper mapper)
         {
             _permissions = permissions;
+            _signatures = signatures;
             _requestService = requestService;
             _deviceTypeService = deviceTypeService;
             _damageTypeService = damageTypeService;
@@ -145,6 +148,27 @@ namespace Application.Features.Maintenance.Requests
                 throw new KeyNotFoundException("حالة الطلب المحددة غير موجودة");
         }
 
+        /// <summary>
+        /// عند دخول الطلب حالة تسليم (IsDelivery): يُثبَّت موقّع ورقة التسليم — صاحب SignMaintenanceReceipt في قسم الطلب
+        /// (الأقدم إن تعدّدوا) — ونسخة توقيعه الحالية، فلا تتغير الورقة إن تغيّر التوقيع أو الموقّع لاحقاً.
+        /// كل دخول جديد لحالة تسليم (بعد إعادة الجهاز للصيانة مثلاً) يُثبِّت من جديد.
+        /// </summary>
+        private async Task StampDeliveryAsync(MaintenanceRequest entity, int? previousStatusId)
+        {
+            if (entity.MaintenanceRequestStatusId == previousStatusId) return;
+            var status = await _statusService.GetByIdAsync(entity.MaintenanceRequestStatusId);
+            if (status is not { IsDelivery: true }) return;
+
+            var signer = entity.DepartmentId is int departmentId
+                ? (await _permissions.GetUsersWithPermissionAsync(AppPermissions.SignMaintenanceReceipt, departmentId: departmentId))
+                    .OrderBy(u => u.Id).FirstOrDefault()
+                : null;
+
+            entity.DeliveredAt = DateTime.UtcNow;
+            entity.DeliverySignerId = signer?.Id;
+            entity.DeliverySignatureId = signer == null ? null : await _signatures.GetCurrentIdAsync(signer.Id);
+        }
+
         // حقول البحث تُحفظ بلا فراغات زائدة حتى يعمل "يبدأ بـ" بشكل صحيح
         private static void Trim(MaintenanceRequest r)
         {
@@ -168,6 +192,7 @@ namespace Application.Features.Maintenance.Requests
             entity.UserId = user.Id;
             entity.DepartmentId = user.DepartmentId;
             entity.CreatedAt = entity.UpdatedAt = DateTime.UtcNow;
+            await StampDeliveryAsync(entity, null);
 
             var created = await _requestService.AddAsync(entity);
 
@@ -199,6 +224,7 @@ namespace Application.Features.Maintenance.Requests
             _mapper.Map(request.Dto, entity);
             Trim(entity);
             entity.UpdatedAt = DateTime.UtcNow;
+            await StampDeliveryAsync(entity, oldStatusId);
 
             await _requestService.UpdateAsync(entity);
 
@@ -232,8 +258,10 @@ namespace Application.Features.Maintenance.Requests
 
             var oldStatusName = entity.MaintenanceRequestStatus?.Name ?? "";
 
+            var previousStatusId = entity.MaintenanceRequestStatusId;
             entity.MaintenanceRequestStatusId = request.StatusId;
             entity.UpdatedAt = DateTime.UtcNow;
+            await StampDeliveryAsync(entity, previousStatusId);
             await _requestService.UpdateAsync(entity);
 
             var updated = await LoadAsync(entity.Id);
