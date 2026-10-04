@@ -1,10 +1,3 @@
-
-        // الرقم مخزّن كعدد فيضيع الصفر الأول: 9 خانات = 09XXXXXXXX بعد إعادة الصفر
-        private static string FormatPhone(int phone)
-        {
-            var text = phone.ToString();
-            return text.Length == 9 ? "0" + text : text;
-        }
 using System.Globalization;
 using Application.Common;
 using Application.DTOs.Response;
@@ -66,8 +59,8 @@ namespace Application.Features.Vacations.Queries.Print
                 SubmittedAt = submitted,
                 SubmittedHijri = HijriDate(submitted),
                 EmployeeName = user?.FullName ?? string.Empty,
-                PersonalIdNumber = user is { PersonalIdNumber: > 0 } ? user.PersonalIdNumber.ToString() : null,
-                Phone = user is { PhoneNumber: > 0 } ? FormatPhone(user.PhoneNumber) : null,
+                PersonalIdNumber = user?.PersonalIdNumber,
+                Phone = user?.PhoneNumber,
                 DepartmentName = vacation.Department?.Name ?? string.Empty,
                 BranchName = vacation.Branch?.Name ?? string.Empty,
                 Types = (await _types.GetAllAsync())
