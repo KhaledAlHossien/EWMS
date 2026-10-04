@@ -197,6 +197,9 @@ namespace Application.DTOs.Response
         public string Status { get; set; } = string.Empty;
         public string StatusAr { get; set; } = string.Empty;
         public bool IsPaid { get; set; }
+        public int PaidDays { get; set; }
+        public int UnpaidDays { get; set; }
+        public string PaymentStatusAr { get; set; } = string.Empty;
     }
 
     /// <summary>آخر ما حدث على طلبات الإجازة — مستنتج من حالة الطلب وتاريخ آخر تحديث</summary>
