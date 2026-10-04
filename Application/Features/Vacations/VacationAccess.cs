@@ -43,6 +43,32 @@ namespace Application.Features.Vacations
             || CanSeeBranch(v, target.BranchId)
             || CanSeeDepartment(v, target.DepartmentId);
 
+        /// <summary>
+        /// هل يستطيع المستخدم اتخاذ القرار على هذا الطلب في مرحلته الحالية؟ (يرمي UnauthorizedAccessException برسالة واضحة)
+        /// مستخدم في الموافقة نفسها وفي «سجل الموظف» قبل القرار — عدّلهما معاً هنا فقط.
+        /// </summary>
+        public static void EnsureCanDecide(Viewer viewer, Vacation vacation)
+        {
+            if (viewer.IsSuperAdmin) return;
+
+            var permission = PermissionForStage(vacation.Status)
+                ?? throw new InvalidOperationException("الطلب ليس بانتظار قرار");
+
+            if (vacation.UserId == viewer.Id)
+                throw new UnauthorizedAccessException("لا يمكنك الموافقة على إجازتك الخاصة");
+
+            if (!viewer.Has(permission))
+                throw new UnauthorizedAccessException(vacation.Status == VacationStatus.PendingManager
+                    ? "لا تملك صلاحية الموافقة الأولى على الإجازات"
+                    : "لا تملك صلاحية الاعتماد النهائي للإجازات");
+
+            if (viewer.User.BranchId != vacation.BranchId)
+                throw new UnauthorizedAccessException("لا تملك صلاحية الموافقة على إجازات خارج فرعك");
+
+            if (vacation.Status == VacationStatus.PendingBranchManager && vacation.FirstApprovedByUserId == viewer.Id)
+                throw new UnauthorizedAccessException("وافقت على هذه الإجازة في المرحلة الأولى، والاعتماد النهائي لشخص آخر");
+        }
+
         /// <summary>الصلاحية المطلوبة لاتخاذ القرار في المرحلة الحالية</summary>
         public static string? PermissionForStage(VacationStatus status) => status switch
         {

@@ -53,7 +53,6 @@ namespace Application.Features.Vacations.Commands.Approve
                 ?? throw new KeyNotFoundException("الإجازة غير موجودة");
 
             var viewer = await Viewer.CurrentAsync(_userService, _permissions);
-            var isSuperAdmin = viewer.IsSuperAdmin;
 
             // ══════════ 1. فحوصات الحالة ══════════
             if (vacation.Status == VacationStatus.Approved)
@@ -63,26 +62,11 @@ namespace Application.Features.Vacations.Commands.Approve
             if (vacation.Status == VacationStatus.Cancelled)
                 throw new InvalidOperationException("الإجازة ملغاة");
 
-            var permission = VacationAccess.PermissionForStage(vacation.Status)
-                ?? throw new InvalidOperationException("حالة الإجازة غير معروفة");
+            if (VacationAccess.PermissionForStage(vacation.Status) == null)
+                throw new InvalidOperationException("حالة الإجازة غير معروفة");
 
-            // ══════════ 2. من يقرر في هذه المرحلة ══════════
-            if (!isSuperAdmin)
-            {
-                if (vacation.UserId == viewer.Id)
-                    throw new UnauthorizedAccessException("لا يمكنك الموافقة على إجازتك الخاصة");
-
-                if (!viewer.Has(permission))
-                    throw new UnauthorizedAccessException(vacation.Status == VacationStatus.PendingManager
-                        ? "لا تملك صلاحية الموافقة الأولى على الإجازات"
-                        : "لا تملك صلاحية الاعتماد النهائي للإجازات");
-
-                if (viewer.User.BranchId != vacation.BranchId)
-                    throw new UnauthorizedAccessException("لا تملك صلاحية الموافقة على إجازات خارج فرعك");
-
-                if (vacation.Status == VacationStatus.PendingBranchManager && vacation.FirstApprovedByUserId == viewer.Id)
-                    throw new UnauthorizedAccessException("وافقت على هذه الإجازة في المرحلة الأولى، والاعتماد النهائي لشخص آخر");
-            }
+            // ══════════ 2. من يقرر في هذه المرحلة (VacationAccess.EnsureCanDecide) ══════════
+            VacationAccess.EnsureCanDecide(viewer, vacation);
 
             // ══════════ 3. القرار ══════════
             var stageBeforeDecision = vacation.Status;
