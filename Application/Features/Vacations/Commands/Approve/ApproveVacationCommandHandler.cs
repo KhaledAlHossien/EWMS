@@ -26,6 +26,7 @@ namespace Application.Features.Vacations.Commands.Approve
         private readonly IPublicHolidayService _holidays;
         private readonly IUserService _userService;
         private readonly IUserPermissionService _permissions;
+        private readonly IUserSignatureService _signatures;
         private readonly INotificationService _notificationService;
 
         public ApproveVacationCommandHandler(
@@ -34,6 +35,7 @@ namespace Application.Features.Vacations.Commands.Approve
             IPublicHolidayService holidays,
             IUserService userService,
             IUserPermissionService permissions,
+            IUserSignatureService signatures,
             INotificationService notificationService)
         {
             _service = service;
@@ -41,6 +43,7 @@ namespace Application.Features.Vacations.Commands.Approve
             _holidays = holidays;
             _userService = userService;
             _permissions = permissions;
+            _signatures = signatures;
             _notificationService = notificationService;
         }
 
@@ -93,7 +96,7 @@ namespace Application.Features.Vacations.Commands.Approve
                     vacation.FirstApprovedAt = DateTime.UtcNow;
                     vacation.Status = VacationStatus.PendingBranchManager;
                 }
-                else MarkAsRejected(vacation, request.Dto.Reason);
+                else await MarkAsRejectedAsync(vacation, request.Dto.Reason);
 
                 vacation.UpdatedAt = DateTime.UtcNow;
                 await _service.UpdateAsync(vacation);
@@ -106,6 +109,8 @@ namespace Application.Features.Vacations.Commands.Approve
                     vacation.BranchManagerAccept = true;
                     vacation.FinalApprovedByUserId = viewer.Id;
                     vacation.FinalApprovedAt = DateTime.UtcNow;
+                    // الاعتماد النهائي موقَّع: نسخة توقيع المعتمِد الآن (null = بلا توقيع، الموافقة مسموحة — قرار المستخدم)
+                    vacation.FinalApprovedSignatureId = await _signatures.GetCurrentIdAsync(viewer.Id);
                     vacation.Status = VacationStatus.Approved;
                     vacation.UpdatedAt = DateTime.UtcNow;
                     await _service.UpdateAsync(vacation);
@@ -115,7 +120,7 @@ namespace Application.Features.Vacations.Commands.Approve
             else
             {
                 vacation.BranchManagerAccept = false;
-                MarkAsRejected(vacation, request.Dto.Reason);
+                await MarkAsRejectedAsync(vacation, request.Dto.Reason);
                 vacation.UpdatedAt = DateTime.UtcNow;
                 await _service.UpdateAsync(vacation);
             }
@@ -171,8 +176,10 @@ namespace Application.Features.Vacations.Commands.Approve
             vacation.IsPaid = vacation.PaidDays > 0;
         }
 
-        private void MarkAsRejected(Domain.Entities.Vacation vacation, string? reason)
+        private async Task MarkAsRejectedAsync(Domain.Entities.Vacation vacation, string? reason)
         {
+            // الرفض موقَّع أيضاً: نسخة توقيع الرافض وقتها (أو null إن لم يكن له توقيع)
+            vacation.RejectedSignatureId = await _signatures.GetCurrentIdAsync(_userService.UserId);
             vacation.RejectedAtStage = vacation.Status;
             vacation.Status = VacationStatus.Rejected;
             vacation.RejectedByUserId = _userService.UserId;

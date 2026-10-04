@@ -35,6 +35,9 @@ namespace Domain.Entities
         public int? FinalApprovedByUserId { get; set; }
         public User? FinalApprovedByUser { get; set; }
         public DateTime? FinalApprovedAt { get; set; }
+        // توقيع المعتمِد كما كان لحظة الاعتماد (null = لم يكن له توقيع، فتُطبع الخانة فارغة)
+        public int? FinalApprovedSignatureId { get; set; }
+        public UserSignature? FinalApprovedSignature { get; set; }
 
         // ===== حالة سير العمل (جديد) =====
         public VacationStatus Status { get; set; } = VacationStatus.PendingManager;
@@ -53,6 +56,9 @@ namespace Domain.Entities
         public DateTime? RejectedAt { get; set; }
         // المرحلة التي رُفض فيها الطلب (PendingManager = الأولى، PendingBranchManager = النهائية) — لنموذج الطباعة
         public VacationStatus? RejectedAtStage { get; set; }
+        // توقيع من رفض كما كان لحظة الرفض
+        public int? RejectedSignatureId { get; set; }
+        public UserSignature? RejectedSignature { get; set; }
 
         // ===== بيانات الإجازة =====
         public string VacReason { get; set; } = string.Empty;
