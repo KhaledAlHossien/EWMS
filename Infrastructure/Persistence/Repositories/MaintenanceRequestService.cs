@@ -20,9 +20,9 @@ namespace Infrastructure.Persistence.Repositories
         private IQueryable<MaintenanceRequest> WithDetails() => _context.MaintenanceRequests
             .Include(r => r.User)
             .Include(r => r.Department)
-            .Include(r => r.DeviceType)
+            .Include(r => r.DeviceMaintenance).ThenInclude(d => d.DeviceType)
+            .Include(r => r.DeviceMaintenance).ThenInclude(d => d.DeviceCompany)
             .Include(r => r.DamageType)
-            .Include(r => r.DeviceCompany)
             .Include(r => r.MaintenanceRequestStatus);
 
         public async Task<MaintenanceRequest?> GetByIdAsync(int id) =>
@@ -36,17 +36,20 @@ namespace Infrastructure.Persistence.Repositories
         {
             var query = _context.MaintenanceRequests.Where(scope);
 
-            // "يبدأ بـ" تُترجم إلى LIKE 'x%' فتستخدم الفهرس (Index Seek)
+            if (filter.DeviceMaintenanceId is int deviceId)
+                query = query.Where(r => r.DeviceMaintenanceId == deviceId);
+
+            // بيانات الجهاز في DeviceMaintenances: "يبدأ بـ" تُترجم إلى LIKE 'x%' فتستخدم فهرسه (Index Seek) ثم تُربط بالطلبات
             if (!string.IsNullOrWhiteSpace(filter.SerialNumber))
             {
                 var serial = filter.SerialNumber.Trim();
-                query = query.Where(r => r.SerialNumber.StartsWith(serial));
+                query = query.Where(r => r.DeviceMaintenance.SerialNumber.StartsWith(serial));
             }
 
             if (!string.IsNullOrWhiteSpace(filter.Model))
             {
                 var model = filter.Model.Trim();
-                query = query.Where(r => r.Model.StartsWith(model));
+                query = query.Where(r => r.DeviceMaintenance.Model.StartsWith(model));
             }
 
             // الاسم قد يُكتب من وسطه (مثل الكنية) فنبحث بـ"يحتوي" — يمسح فهرس الاسم بدل الجدول كاملاً
@@ -57,13 +60,13 @@ namespace Infrastructure.Persistence.Repositories
             }
 
             if (filter.DeviceCompanyId is int companyId)
-                query = query.Where(r => r.DeviceCompanyId == companyId);
+                query = query.Where(r => r.DeviceMaintenance.DeviceCompanyId == companyId);
 
             if (filter.TechnicianId is int technicianId)
                 query = query.Where(r => r.UserId == technicianId);
 
             if (filter.DeviceTypeId is int deviceTypeId)
-                query = query.Where(r => r.DeviceTypeId == deviceTypeId);
+                query = query.Where(r => r.DeviceMaintenance.DeviceTypeId == deviceTypeId);
 
             if (filter.DamageTypeId is int damageTypeId)
                 query = query.Where(r => r.DamageTypeId == damageTypeId);
@@ -80,9 +83,9 @@ namespace Infrastructure.Persistence.Repositories
                 .Take(pageSize)
                 .Include(r => r.User)
                 .Include(r => r.Department)
-                .Include(r => r.DeviceType)
+                .Include(r => r.DeviceMaintenance).ThenInclude(d => d.DeviceType)
+                .Include(r => r.DeviceMaintenance).ThenInclude(d => d.DeviceCompany)
                 .Include(r => r.DamageType)
-                .Include(r => r.DeviceCompany)
                 .Include(r => r.MaintenanceRequestStatus)
                 .AsNoTracking()
                 .ToListAsync();
@@ -174,12 +177,12 @@ namespace Infrastructure.Persistence.Repositories
                     .ToListAsync(),
 
                 ByDeviceType = await query
-                    .GroupBy(r => new { r.DeviceTypeId, r.DeviceType.Name })
+                    .GroupBy(r => new { r.DeviceMaintenance.DeviceTypeId, r.DeviceMaintenance.DeviceType.Name })
                     .Select(g => new MaintenanceCountDto { Id = g.Key.DeviceTypeId, Name = g.Key.Name, Count = g.Count() })
                     .ToListAsync(),
 
                 ByCompany = await query
-                    .GroupBy(r => new { r.DeviceCompanyId, r.DeviceCompany.Name })
+                    .GroupBy(r => new { r.DeviceMaintenance.DeviceCompanyId, r.DeviceMaintenance.DeviceCompany.Name })
                     .Select(g => new MaintenanceCountDto { Id = g.Key.DeviceCompanyId, Name = g.Key.Name, Count = g.Count() })
                     .ToListAsync()
             };

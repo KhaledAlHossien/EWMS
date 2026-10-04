@@ -49,6 +49,7 @@ namespace Infrastructure
             services.AddScoped<IDeviceCompanyService, DeviceCompanyService>();
             services.AddScoped<IDamageTypeService, DamageTypeService>();
             services.AddScoped<IMaintenanceRequestStatusService, MaintenanceRequestStatusService>();
+            services.AddScoped<IDeviceMaintenanceService, DeviceMaintenanceService>();
             services.AddScoped<IMaintenanceRequestService, MaintenanceRequestService>();
             services.AddScoped<IMaintenanceTaskService, MaintenanceTaskService>();
 

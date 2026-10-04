@@ -35,13 +35,10 @@ namespace Application.Features.Maintenance.Requests
                 .Must(MaintenanceRules.IsValidPhone)
                 .WithMessage("رقم الهاتف غير صحيح — مثال: 0933123456 أو 0112345678 أو ‎+963933123456");
 
-            RuleFor(x => x.DeviceTypeId).GreaterThan(0).WithMessage("يجب اختيار نوع الجهاز");
+            RuleFor(x => x.DeviceMaintenanceId).GreaterThan(0).WithMessage("يجب اختيار الجهاز");
             RuleFor(x => x.DamageTypeId).GreaterThan(0).WithMessage("يجب اختيار نوع العطل");
-            RuleFor(x => x.DeviceCompanyId).GreaterThan(0).WithMessage("يجب اختيار الشركة المصنعة");
             RuleFor(x => x.MaintenanceRequestStatusId).GreaterThan(0).WithMessage("يجب اختيار حالة الطلب");
 
-            RuleFor(x => x.Model).MaximumLength(100).WithMessage("الموديل لا يتجاوز 100 حرف");
-            RuleFor(x => x.SerialNumber).MaximumLength(100).WithMessage("الرقم التسلسلي لا يتجاوز 100 حرف");
             RuleFor(x => x.Accessories).MaximumLength(500).WithMessage("الملحقات لا تتجاوز 500 حرف");
             RuleFor(x => x.Description).MaximumLength(2000).WithMessage("الوصف لا يتجاوز 2000 حرف");
 
@@ -86,9 +83,8 @@ namespace Application.Features.Maintenance.Requests
         IRequestHandler<AssignMaintenanceRequestCommand, MaintenanceRequestResponseDto>
     {
         private readonly IMaintenanceRequestService _requestService;
-        private readonly IDeviceTypeService _deviceTypeService;
+        private readonly IDeviceMaintenanceService _deviceService;
         private readonly IDamageTypeService _damageTypeService;
-        private readonly IDeviceCompanyService _companyService;
         private readonly IMaintenanceRequestStatusService _statusService;
         private readonly IUserService _userService;
         private readonly INotificationService _notifications;
@@ -97,9 +93,8 @@ namespace Application.Features.Maintenance.Requests
 
         public MaintenanceRequestCommandsHandler(
             IMaintenanceRequestService requestService,
-            IDeviceTypeService deviceTypeService,
+            IDeviceMaintenanceService deviceService,
             IDamageTypeService damageTypeService,
-            IDeviceCompanyService companyService,
             IMaintenanceRequestStatusService statusService,
             IUserService userService,
             INotificationService notifications,
@@ -108,9 +103,8 @@ namespace Application.Features.Maintenance.Requests
         {
             _permissions = permissions;
             _requestService = requestService;
-            _deviceTypeService = deviceTypeService;
+            _deviceService = deviceService;
             _damageTypeService = damageTypeService;
-            _companyService = companyService;
             _statusService = statusService;
             _userService = userService;
             _notifications = notifications;
@@ -135,12 +129,10 @@ namespace Application.Features.Maintenance.Requests
 
         private async Task EnsureReferencesAsync(SaveMaintenanceRequestDto dto)
         {
-            if (!await _deviceTypeService.ExistsAsync(dto.DeviceTypeId))
-                throw new KeyNotFoundException("نوع الجهاز المحدد غير موجود");
+            if (!await _deviceService.ExistsAsync(dto.DeviceMaintenanceId))
+                throw new KeyNotFoundException("الجهاز المحدد غير موجود — أضفه من أجهزة الصيانة أولاً");
             if (!await _damageTypeService.ExistsAsync(dto.DamageTypeId))
                 throw new KeyNotFoundException("نوع العطل المحدد غير موجود");
-            if (!await _companyService.ExistsAsync(dto.DeviceCompanyId))
-                throw new KeyNotFoundException("الشركة المصنعة المحددة غير موجودة");
             if (!await _statusService.ExistsAsync(dto.MaintenanceRequestStatusId))
                 throw new KeyNotFoundException("حالة الطلب المحددة غير موجودة");
         }
@@ -150,8 +142,6 @@ namespace Application.Features.Maintenance.Requests
         {
             r.ClientName = r.ClientName.Trim();
             r.ClientPhone = MaintenanceRules.NormalizePhone(r.ClientPhone); // يُحفظ أرقاماً متصلة
-            r.Model = r.Model.Trim();
-            r.SerialNumber = r.SerialNumber.Trim();
             r.Accessories = r.Accessories.Trim();
             r.Description = r.Description.Trim();
         }

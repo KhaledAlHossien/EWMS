@@ -27,6 +27,19 @@ namespace Application.DTOs.Response
         public string Color { get; set; } = string.Empty;
     }
 
+    public class DeviceMaintenanceResponseDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string SerialNumber { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int DeviceTypeId { get; set; }
+        public string DeviceTypeName { get; set; } = string.Empty;
+        public int DeviceCompanyId { get; set; }
+        public string DeviceCompanyName { get; set; } = string.Empty;
+    }
+
     public class MaintenanceRequestResponseDto
     {
         public int Id { get; set; }
@@ -48,6 +61,9 @@ namespace Application.DTOs.Response
         public string ClientName { get; set; } = string.Empty;
         public string ClientPhone { get; set; } = string.Empty;
 
+        // بيانات الجهاز (من DeviceMaintenance) — مسطّحة هنا حتى تعرضها القوائم والطباعة دون طلب إضافي
+        public int DeviceMaintenanceId { get; set; }
+        public string DeviceName { get; set; } = string.Empty;
         public int DeviceTypeId { get; set; }
         public string DeviceTypeName { get; set; } = string.Empty;
         public int DamageTypeId { get; set; }
