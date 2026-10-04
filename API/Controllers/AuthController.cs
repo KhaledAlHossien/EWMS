@@ -35,17 +35,17 @@ namespace API.Controllers
         public async Task<ActionResult<MyPermissionsDto>> Permissions()
             => Ok(await _mediator.Send(new GetMyPermissionsQuery()));
 
-        // ========== توقيعي (يُطبع على ورقة تسليم طلب الصيانة لمن يملك SignMaintenanceReceipt) ==========
+        // ========== توقيعي (ManageMySignature): يُحفظ مع القرارات الموقَّعة ويُطبع على الأوراق ==========
         [HttpGet("Signature")]
-        [Authorize(Policy = "SignMaintenanceReceipt")]
+        [Authorize(Policy = "ManageMySignature")]
         public async Task<IActionResult> GetSignature()
             => Ok(new { image = await _mediator.Send(new GetMySignatureQuery()) });
 
         [HttpPut("Signature")]
-        [Authorize(Policy = "SignMaintenanceReceipt")]
+        [Authorize(Policy = "ManageMySignature")]
         public async Task<IActionResult> SetSignature([FromBody] SignatureRequestDto dto)
         {
-            await _mediator.Send(new SetMySignatureCommand(dto.Image));
+            await _mediator.Send(new SetMySignatureCommand(dto.Image, dto.Password));
             return Ok(new { message = string.IsNullOrWhiteSpace(dto.Image) ? "تم حذف التوقيع" : "تم حفظ التوقيع" });
         }
 

@@ -458,6 +458,16 @@ namespace Infrastructure.Persistence.Data
                     .HasForeignKey(v => v.FinalApprovedByUserId)
                     .OnDelete(DeleteBehavior.Restrict);
 
+                // التوقيع المحفوظ مع الاعتماد النهائي ومع الرفض (نسخة التوقيع وقتها — لا يتغير بعد ذلك)
+                entity.HasOne(v => v.FinalApprovedSignature)
+                    .WithMany()
+                    .HasForeignKey(v => v.FinalApprovedSignatureId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(v => v.RejectedSignature)
+                    .WithMany()
+                    .HasForeignKey(v => v.RejectedSignatureId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 // قراران متزامنان على نفس الطلب → الثاني يفشل (DbUpdateConcurrencyException)
                 entity.Property(v => v.RowVersion).IsRowVersion();
 
@@ -511,11 +521,13 @@ namespace Infrastructure.Persistence.Data
             });
 
             // ==================== توقيع المستخدم ====================
+            // نسخ التوقيع: لكل مستخدم عدة نسخ، واحدة حالية على الأكثر (فهرس فريد مُرشَّح)
             builder.Entity<UserSignature>(entity =>
             {
-                entity.HasKey(s => s.UserId);
-                entity.HasOne(s => s.User).WithOne()
-                    .HasForeignKey<UserSignature>(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasKey(s => s.Id);
+                entity.HasOne(s => s.User).WithMany()
+                    .HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(s => s.UserId).IsUnique().HasFilter("[IsCurrent] = 1");
             });
         }
     }

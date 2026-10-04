@@ -69,28 +69,29 @@ namespace Application.Features.Vacations.Queries.Print
                     .ToList()
             };
 
-            var (opinion, signer) = BranchDecision(vacation);
+            var (opinion, signer, signatureId) = BranchDecision(vacation);
             result.BranchOpinion = opinion;
             if (signer != null)
             {
                 result.SignerName = signer.FullName;
-                result.SignerSignature = await _signatures.GetAsync(signer.Id);
+                // التوقيع المحفوظ مع القرار نفسه — لا التوقيع الحالي، كي لا تتغير الورقة إن غيّره صاحبه
+                result.SignerSignature = await _signatures.GetImageAsync(signatureId);
             }
 
             return result;
         }
 
         /// <summary>رأي المرحلة النهائية ومن أبداه. رفض المرحلة الأولى أو الإلغاء يُكتب بلا توقيع رئيس الفرع.</summary>
-        private static (string? Opinion, User? Signer) BranchDecision(Vacation v) => v.Status switch
+        private static (string? Opinion, User? Signer, int? SignatureId) BranchDecision(Vacation v) => v.Status switch
         {
             VacationStatus.Approved =>
-                ($"موافق ({VacationRules.PaymentAr(v)})", v.FinalApprovedByUser),
+                ($"موافق ({VacationRules.PaymentAr(v)})", v.FinalApprovedByUser, v.FinalApprovedSignatureId),
             VacationStatus.Rejected when v.RejectedAtStage == VacationStatus.PendingBranchManager =>
-                ($"غير موافق. السبب: {v.RejectionReason}", v.RejectedByUser),
+                ($"غير موافق. السبب: {v.RejectionReason}", v.RejectedByUser, v.RejectedSignatureId),
             VacationStatus.Rejected =>
-                ($"رُفض الطلب في مرحلة الموافقة الأولى. السبب: {v.RejectionReason}", null),
-            VacationStatus.Cancelled => ("ألغى الموظف الطلب قبل البت فيه", null),
-            _ => (null, null)
+                ($"رُفض الطلب في مرحلة الموافقة الأولى. السبب: {v.RejectionReason}", null, null),
+            VacationStatus.Cancelled => ("ألغى الموظف الطلب قبل البت فيه", null, null),
+            _ => (null, null, null)
         };
 
         private static string HijriDate(DateTime date)
