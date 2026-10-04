@@ -7,7 +7,7 @@ namespace Application.Interfaces
 {
     public interface IMaintenanceRequestService
     {
-        /// <summary>مع الفني والقسم والنوع والعطل والشركة والحالة</summary>
+        /// <summary>مع الفني والقسم والجهاز (ونوعه وشركته) والعطل والحالة</summary>
         Task<MaintenanceRequest?> GetByIdAsync(int id);
 
         /// <summary>البحث ضمن نطاق المستخدم (scope) مع الفلاتر، الأحدث أولاً</summary>

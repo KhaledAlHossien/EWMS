@@ -100,7 +100,7 @@ namespace Application.Features.Maintenance.DeviceCompanies
             var entity = await LoadAsync(request.Id);
 
             if (await _service.IsUsedAsync(request.Id))
-                throw new InvalidOperationException("لا يمكن حذف شركة مستخدمة في طلبات صيانة");
+                throw new InvalidOperationException("لا يمكن حذف شركة مستخدمة في أجهزة الصيانة");
 
             await _service.DeleteAsync(entity);
             return Unit.Value;
