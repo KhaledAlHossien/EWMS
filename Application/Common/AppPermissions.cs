@@ -57,6 +57,12 @@ namespace Application.Common
             new("EditVacationType",   "تعديل نوع إجازة"),
             new("DeleteVacationType", "حذف نوع إجازة"),
 
+            // العطل الرسمية: لا تُحسب من مدة الإجازة (مع الجمعة)
+            new("ViewHolidays",  "عرض العطل الرسمية"),
+            new("CreateHoliday", "إضافة عطلة رسمية"),
+            new("EditHoliday",   "تعديل عطلة رسمية"),
+            new("DeleteHoliday", "حذف عطلة رسمية"),
+
             // لوحات المتابعة: لوحة وحدة المستخدم وما تحتها (لا لوحة بلا صلاحية، حتى الشخصية)
             new("ViewOrganizationDashboard", "لوحة نظرة عامة على المؤسسة كلها (كل الفروع)"),
             new("ViewMyDashboard",           "لوحتي الشخصية في لوحة المتابعة"),

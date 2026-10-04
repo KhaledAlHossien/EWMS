@@ -38,6 +38,7 @@ using (var scope = app.Services.CreateScope())
     await db.Database.MigrateAsync();
     await DbSeeder.SeedAsync(db);
     await DbSeeder.BackfillSiteGovernoratesAsync(db);
+    await DbSeeder.BackfillVacationSegmentsAsync(db);
 }
 
 app.Run();

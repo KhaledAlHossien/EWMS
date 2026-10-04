@@ -48,6 +48,7 @@ namespace Infrastructure
             services.AddScoped<IDeviceTypeService, DeviceTypeService>();
             services.AddScoped<IDeviceCompanyService, DeviceCompanyService>();
             services.AddScoped<IDamageTypeService, DamageTypeService>();
+            services.AddScoped<IPublicHolidayService, PublicHolidayService>();
             services.AddScoped<IMaintenanceRequestStatusService, MaintenanceRequestStatusService>();
             services.AddScoped<IMaintenanceRequestService, MaintenanceRequestService>();
             services.AddScoped<IMaintenanceTaskService, MaintenanceTaskService>();

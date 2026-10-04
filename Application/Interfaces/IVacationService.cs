@@ -39,9 +39,14 @@ namespace Application.Interfaces
         Task<bool> HasOverlappingVacationAsync(
             int userId, DateTime start, DateTime end, int? excludeId = null);
 
-        Task<int> GetVacationDaysInMonthAsync(int userId, int year, int month);
+        /// <summary>الأيام المدفوعة المعتمدة للموظف في شهر (من أجزاء الإجازات المعتمدة)</summary>
         Task<int> GetPaidVacationDaysInMonthAsync(int userId, int year, int month);
-        Task<int> GetTotalPaidDaysInYearAsync(int userId, int year);
-        Task<int> GetTotalUnpaidDaysInYearAsync(int userId, int year);
+
+        /// <summary>الأيام المدفوعة المعتمدة لكل شهر تمر به المدة — لتوزيع الدفع عند الاعتماد النهائي</summary>
+        Task<Dictionary<(int Year, int Month), int>> GetApprovedPaidDaysByMonthAsync(
+            int userId, DateTime start, DateTime end, int? excludeVacationId = null);
+
+        /// <summary>ينفّذ العملية داخل معاملة بقفل حصري على الموظف (لا يُحسب الحد الشهري مرتين بالتوازي)</summary>
+        Task<T> RunExclusiveForUserAsync<T>(int userId, Func<Task<T>> action);
     }
 }

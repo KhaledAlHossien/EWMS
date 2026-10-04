@@ -22,6 +22,8 @@ namespace Infrastructure.Persistence.Data
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<Vacation> Vacation { get; set; }
         public DbSet<VacationType> VacationType { get; set; }
+        public DbSet<VacationSegment> VacationSegments { get; set; }
+        public DbSet<PublicHoliday> PublicHolidays { get; set; }
         public DbSet<UserToken> UserTokens { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Site> Sites { get; set; }
@@ -426,6 +428,15 @@ namespace Infrastructure.Persistence.Data
                     .HasForeignKey(v => v.FirstApprovedByUserId)
                     .OnDelete(DeleteBehavior.Restrict);
 
+                // من اعتمد نهائياً
+                entity.HasOne(v => v.FinalApprovedByUser)
+                    .WithMany()
+                    .HasForeignKey(v => v.FinalApprovedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // قراران متزامنان على نفس الطلب → الثاني يفشل (DbUpdateConcurrencyException)
+                entity.Property(v => v.RowVersion).IsRowVersion();
+
                 // فهرس على Status لتسريع الاستعلامات
                 entity.HasIndex(v => v.Status);
 
@@ -436,6 +447,28 @@ namespace Infrastructure.Persistence.Data
                 entity.HasIndex(v => v.StartVac);
                 entity.HasIndex(v => new { v.UserId, v.StartVac, v.EndVac });
                 entity.HasIndex(v => new { v.UserId, v.IsPaid });
+            });
+
+            // ==================== أجزاء الإجازة المعتمدة (الدفع الشهري) ====================
+            builder.Entity<VacationSegment>(entity =>
+            {
+                entity.Property(s => s.StartDate).HasColumnType("date");
+                entity.Property(s => s.EndDate).HasColumnType("date");
+
+                entity.HasOne(s => s.Vacation)
+                    .WithMany(v => v.Segments)
+                    .HasForeignKey(s => s.VacationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(s => new { s.VacationId, s.StartDate });
+            });
+
+            // ==================== العطل الرسمية ====================
+            builder.Entity<PublicHoliday>(entity =>
+            {
+                entity.Property(h => h.Date).HasColumnType("date");
+                entity.Property(h => h.Name).HasMaxLength(100).IsRequired();
+                entity.HasIndex(h => h.Date).IsUnique();
             });
 
             // ==================== الصيانة: سجل الطلب ====================

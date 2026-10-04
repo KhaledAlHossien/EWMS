@@ -15,22 +15,30 @@ namespace Application.Features.Vacations.Commands.Approve
     /// - PendingManager: يحتاج ApproveVacationFirst والإجازة من فرعي.
     /// - PendingBranchManager: يحتاج ApproveVacationFinal والإجازة من فرعي، ولستُ من وافق عليها في المرحلة الأولى.
     /// - لا أحد يقرر في إجازته الخاصة. SuperAdmin يتجاوز كل ذلك.
+    /// عند الاعتماد النهائي يُحدَّد الدفع (قرار المستخدم 2026-10-04): تُعاد أيام العمل بالعطل الحالية،
+    /// وتُوزَّع على أجزاء مدفوعة/غير مدفوعة بحسب ما اعتُمد مسبقاً هذا الشهر، تحت قفل على الموظف.
     /// </summary>
     public class ApproveVacationCommandHandler
       : IRequestHandler<ApproveVacationCommand, Unit>
     {
         private readonly IVacationService _service;
+        private readonly IVacationTypeService _vacationTypes;
+        private readonly IPublicHolidayService _holidays;
         private readonly IUserService _userService;
         private readonly IUserPermissionService _permissions;
         private readonly INotificationService _notificationService;
 
         public ApproveVacationCommandHandler(
             IVacationService service,
+            IVacationTypeService vacationTypes,
+            IPublicHolidayService holidays,
             IUserService userService,
             IUserPermissionService permissions,
             INotificationService notificationService)
         {
             _service = service;
+            _vacationTypes = vacationTypes;
+            _holidays = holidays;
             _userService = userService;
             _permissions = permissions;
             _notificationService = notificationService;
@@ -82,19 +90,35 @@ namespace Application.Features.Vacations.Commands.Approve
                 if (request.Dto.Approve)
                 {
                     vacation.FirstApprovedByUserId = viewer.Id;
+                    vacation.FirstApprovedAt = DateTime.UtcNow;
                     vacation.Status = VacationStatus.PendingBranchManager;
                 }
                 else MarkAsRejected(vacation, request.Dto.Reason);
+
+                vacation.UpdatedAt = DateTime.UtcNow;
+                await _service.UpdateAsync(vacation);
+            }
+            else if (request.Dto.Approve)
+            {
+                await _service.RunExclusiveForUserAsync(vacation.UserId, async () =>
+                {
+                    await AllocatePaymentAsync(vacation);
+                    vacation.BranchManagerAccept = true;
+                    vacation.FinalApprovedByUserId = viewer.Id;
+                    vacation.FinalApprovedAt = DateTime.UtcNow;
+                    vacation.Status = VacationStatus.Approved;
+                    vacation.UpdatedAt = DateTime.UtcNow;
+                    await _service.UpdateAsync(vacation);
+                    return true;
+                });
             }
             else
             {
-                vacation.BranchManagerAccept = request.Dto.Approve;
-                if (request.Dto.Approve) vacation.Status = VacationStatus.Approved;
-                else MarkAsRejected(vacation, request.Dto.Reason);
+                vacation.BranchManagerAccept = false;
+                MarkAsRejected(vacation, request.Dto.Reason);
+                vacation.UpdatedAt = DateTime.UtcNow;
+                await _service.UpdateAsync(vacation);
             }
-
-            vacation.UpdatedAt = DateTime.UtcNow;
-            await _service.UpdateAsync(vacation);
 
             // ══════════ 4. الإشعارات ══════════
             var employee = await _userService.GetByIdAsync(vacation.UserId);
@@ -120,6 +144,31 @@ namespace Application.Features.Vacations.Commands.Approve
             }
 
             return Unit.Value;
+        }
+
+        /// <summary>
+        /// يوزّع أيام العمل على أجزاء مدفوعة/غير مدفوعة: الحد الشهري مشترك بين كل الأنواع المدفوعة،
+        /// ويُخصم منه فقط ما اعتُمد نهائياً قبل هذه الإجازة. النوع غير المدفوع → كل الأيام غير مدفوعة.
+        /// </summary>
+        private async Task AllocatePaymentAsync(Domain.Entities.Vacation vacation)
+        {
+            var type = await _vacationTypes.GetByIdAsync(vacation.VacationTypeId)
+                ?? throw new KeyNotFoundException("نوع الإجازة غير موجود");
+
+            var holidays = await _holidays.GetDatesAsync(vacation.StartVac, vacation.EndVac);
+            var usedPaid = await _service.GetApprovedPaidDaysByMonthAsync(
+                vacation.UserId, vacation.StartVac, vacation.EndVac, vacation.Id);
+
+            var segments = VacationCalendar.Allocate(
+                vacation.StartVac, vacation.EndVac, type.IsPaid, holidays, usedPaid);
+
+            vacation.Segments.Clear();
+            foreach (var segment in segments) vacation.Segments.Add(segment);
+
+            vacation.PaidDays = segments.Where(x => x.IsPaid).Sum(x => x.Days);
+            vacation.UnpaidDays = segments.Where(x => !x.IsPaid).Sum(x => x.Days);
+            vacation.VacDayCount = vacation.PaidDays + vacation.UnpaidDays; // بالعطل المسجّلة وقت الاعتماد
+            vacation.IsPaid = vacation.PaidDays > 0;
         }
 
         private void MarkAsRejected(Domain.Entities.Vacation vacation, string? reason)

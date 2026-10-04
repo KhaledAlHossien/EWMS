@@ -462,13 +462,14 @@ namespace Infrastructure.Persistence.Repositories
         private IQueryable<Vacation> OnLeaveToday(IQueryable<Vacation> q) =>
             q.Where(v => v.Status == VacationStatus.Approved && v.StartVac < Tomorrow && v.EndVac >= _today);
 
-        /// <summary>أيام الإجازات المعتمدة الواقعة داخل الشهر الحالي (الجزء المتداخل فقط)</summary>
+        /// <summary>أيام العمل في الإجازات المعتمدة داخل الشهر الحالي (من أجزاء الإجازة — كل جزء داخل شهر واحد)</summary>
         private async Task<int> ApprovedDaysThisMonthAsync(IQueryable<Vacation> q)
         {
-            var monthEnd = MonthStart.AddMonths(1).AddDays(-1);
-            var list = await q.Where(v => v.Status == VacationStatus.Approved && v.StartVac <= monthEnd && v.EndVac >= MonthStart)
-                .Select(v => new { v.StartVac, v.EndVac }).ToListAsync();
-            return list.Sum(v => OverlapDays(v.StartVac, v.EndVac, MonthStart, monthEnd));
+            var nextMonth = MonthStart.AddMonths(1);
+            return await q.Where(v => v.Status == VacationStatus.Approved)
+                .SelectMany(v => v.Segments)
+                .Where(x => x.StartDate >= MonthStart && x.StartDate < nextMonth)
+                .SumAsync(x => x.Days);
         }
 
         private async Task<List<DashboardCountItemDto>> VacationsByTypeAsync(IQueryable<Vacation> q)
@@ -493,7 +494,9 @@ namespace Infrastructure.Persistence.Repositories
                 v.EndVac,
                 v.VacDayCount,
                 v.Status,
-                v.IsPaid
+                v.IsPaid,
+                v.PaidDays,
+                v.UnpaidDays
             }).ToListAsync();
 
             return raw.Select(r => new DashboardVacationRowDto
@@ -508,7 +511,10 @@ namespace Infrastructure.Persistence.Repositories
                 VacDayCount = r.VacDayCount,
                 Status = r.Status.ToString(),
                 StatusAr = VacationRules.StatusAr(r.Status),
-                IsPaid = r.IsPaid
+                IsPaid = r.IsPaid,
+                PaidDays = r.PaidDays,
+                UnpaidDays = r.UnpaidDays,
+                PaymentStatusAr = VacationRules.PaymentAr(r.Status, r.PaidDays, r.UnpaidDays)
             }).ToList();
         }
 
@@ -552,11 +558,5 @@ namespace Infrastructure.Persistence.Repositories
             }).ToList();
         }
 
-        private static int OverlapDays(DateTime start, DateTime end, DateTime rangeStart, DateTime rangeEnd)
-        {
-            var from = start.Date > rangeStart ? start.Date : rangeStart;
-            var to = end.Date < rangeEnd ? end.Date : rangeEnd;
-            return to < from ? 0 : (to - from).Days + 1;
-        }
     }
 }

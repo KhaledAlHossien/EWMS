@@ -70,7 +70,7 @@ namespace Application.Features.Vacations
             string employeeFullName)
         {
             var toEmployee = New(vacation.UserId, vacation, "تم اعتماد إجازتك نهائياً",
-                "تم اعتماد طلب إجازتك نهائياً", NotificationType.VacationApprovedFinal);
+                $"تم اعتماد طلب إجازتك نهائياً ({VacationRules.PaymentAr(vacation)})", NotificationType.VacationApprovedFinal);
 
             var toFirstApprover = FirstApprover(vacation).Select(id => New(id, vacation, "اعتماد نهائي لإجازة",
                 $"اعتُمدت نهائياً إجازة {employeeFullName} التي سبق ووافقت عليها", NotificationType.VacationApprovedFinal));
