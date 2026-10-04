@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.DTOs.Request;
 using Application.DTOs.Response;
 using AutoMapper;
@@ -10,11 +11,14 @@ namespace Application.Helper.Profiles
         public SiteProfile()
         {
             CreateMap<Site, SiteResponseDto>()
-                .ForMember(dest => dest.RegionName,
-                    opt => opt.MapFrom(src => src.Region != null ? src.Region.Name : string.Empty));
+                .ForMember(dest => dest.GovernorateName,
+                    opt => opt.MapFrom(src => Governorates.NameOf(src.GovernorateCode)));
 
-            CreateMap<CreateSiteRequestDto, Site>();
-            CreateMap<UpdateSiteRequestDto, Site>();
+            // المحافظة لا تأتي من العميل: يحدّدها المعالج من الإحداثيات
+            CreateMap<CreateSiteRequestDto, Site>()
+                .ForMember(dest => dest.GovernorateCode, opt => opt.Ignore());
+            CreateMap<UpdateSiteRequestDto, Site>()
+                .ForMember(dest => dest.GovernorateCode, opt => opt.Ignore());
         }
     }
 }

@@ -44,6 +44,40 @@ namespace API.Controllers
         public async Task<ActionResult<List<TechnicianOptionDto>>> Technicians()
             => Ok(await _mediator.Send(new GetMaintenanceTechniciansQuery()));
 
+        // سجل الطلب: من فعل ماذا ومتى
+        [HttpGet("Activities/{id}")]
+        [Authorize(Policy = "ViewMaintenanceRequests")]
+        public async Task<ActionResult<List<MaintenanceActivityDto>>> Activities(int id)
+            => Ok(await _mediator.Send(new GetMaintenanceRequestActivitiesQuery(id)));
+
+        // بيانات الطباعة (إيصال الاستلام / ورقة التسليم بتوقيع صاحب SignMaintenanceReceipt في القسم)
+        [HttpGet("Print/{id}")]
+        [Authorize(Policy = "ViewMaintenanceRequests")]
+        public async Task<ActionResult<MaintenancePrintDto>> Print(int id)
+            => Ok(await _mediator.Send(new GetMaintenanceRequestPrintQuery(id)));
+
+        // إحصائيات الصيانة للسجلات التي أراها
+        [HttpGet("Stats")]
+        [Authorize(Policy = "ViewMaintenanceStats")]
+        public async Task<ActionResult<MaintenanceStatsDto>> Stats()
+            => Ok(await _mediator.Send(new GetMaintenanceStatsQuery()));
+
+        // الموظفون المتاحون لنقل طلب/مهمة إليهم (موظفو قسمي لمن يملك صلاحية النقل، وفارغة لغيره)
+        [HttpGet("Assignees")]
+        [Authorize(Policy = "AnyMaintenanceAssign")]
+        public async Task<ActionResult<List<TechnicianOptionDto>>> Assignees([FromQuery] int? departmentId)
+            => Ok(await _mediator.Send(new GetMaintenanceAssigneesQuery(departmentId)));
+
+        [HttpPut("Status/{id}")]
+        [Authorize(Policy = "ChangeMaintenanceStatus")]
+        public async Task<ActionResult<MaintenanceRequestResponseDto>> ChangeStatus(int id, [FromBody] ChangeMaintenanceStatusDto dto)
+            => Ok(await _mediator.Send(new ChangeMaintenanceRequestStatusCommand(id, dto.StatusId)));
+
+        [HttpPut("Assign/{id}")]
+        [Authorize(Policy = "AssignMaintenanceRequest")]
+        public async Task<ActionResult<MaintenanceRequestResponseDto>> Assign(int id, [FromBody] AssignMaintenanceDto dto)
+            => Ok(await _mediator.Send(new AssignMaintenanceRequestCommand(id, dto.UserId)));
+
         [HttpPost("Create")]
         [Authorize(Policy = "CreateMaintenanceRequest")]
         public async Task<ActionResult<MaintenanceRequestResponseDto>> Create([FromBody] SaveMaintenanceRequestDto dto)

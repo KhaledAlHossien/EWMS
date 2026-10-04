@@ -12,15 +12,18 @@ namespace Application.Features.Vacations.Commands.Cancel
     {
         private readonly IVacationService _service;
         private readonly IUserService _userService;
+        private readonly IUserPermissionService _permissions;
         private readonly INotificationService _notificationService;
 
         public CancelVacationCommandHandler(
             IVacationService service,
             IUserService userService,
+            IUserPermissionService permissions,
             INotificationService notificationService)
         {
             _service = service;
             _userService = userService;
+            _permissions = permissions;
             _notificationService = notificationService;
         }
 
@@ -55,7 +58,7 @@ namespace Application.Features.Vacations.Commands.Cancel
             // إشعار كل من كان يملك رؤية على هذا الطلب (رئيس القسم دائماً، ورئيس الفرع إن كان الطلب قد وصله)
             var employee = await _userService.GetByIdAsync(vacation.UserId);
             await VacationNotifier.NotifyCancelledAsync(
-                _userService, _notificationService, vacation, employee?.FullName ?? "موظف", hadReachedBranchManager);
+                _permissions, _notificationService, vacation, employee?.FullName ?? "موظف", hadReachedBranchManager);
 
             return Unit.Value;
         }

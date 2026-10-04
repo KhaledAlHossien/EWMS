@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Application.Common;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using Domain.Entities;
@@ -13,8 +14,11 @@ namespace Application.Features.AssignedTasks
     /// </summary>
     public record GetTaskBoardQuery(string Mode) : IRequest<TaskBoardDto>;
     public record GetAssignedTaskQuery(int Id) : IRequest<AssignedTaskDetailDto>;
-    /// <summary>الجهات التي يستطيع المستخدم الإسناد إليها (أقسام فرعه / مكاتب قسمه / موظفو مكتبه)</summary>
-    public record GetTaskTargetsQuery : IRequest<List<TaskTargetOptionDto>>;
+    /// <summary>
+    /// الجهات التي يستطيع المستخدم الإسناد إليها من نوع معيّن (أقسام فرعه / مكاتب قسمه / موظفو مكتبه)،
+    /// أو جهات التفويض من مهمة واردة (مكاتب قسم المهمة / موظفو مكتبها).
+    /// </summary>
+    public record GetTaskTargetsQuery(string? Type = null, int? ParentTaskId = null) : IRequest<List<TaskTargetOptionDto>>;
 
     public class AssignedTaskQueriesHandler :
         IRequestHandler<GetTaskBoardQuery, TaskBoardDto>,
@@ -23,108 +27,140 @@ namespace Application.Features.AssignedTasks
     {
         private readonly IAssignedTaskService _taskService;
         private readonly IUserService _userService;
+        private readonly IUserPermissionService _permissions;
         private readonly IDepartmentService _departmentService;
         private readonly IOfficeService _officeService;
 
         public AssignedTaskQueriesHandler(
             IAssignedTaskService taskService,
             IUserService userService,
+            IUserPermissionService permissions,
             IDepartmentService departmentService,
             IOfficeService officeService)
         {
             _taskService = taskService;
             _userService = userService;
+            _permissions = permissions;
             _departmentService = departmentService;
             _officeService = officeService;
         }
 
-        private async Task<User> CurrentAsync() =>
-            await _userService.GetByIdAsync(_userService.UserId)
-            ?? throw new UnauthorizedAccessException("المستخدم غير مصادق");
+        private Task<Viewer> CurrentAsync() => Viewer.CurrentAsync(_userService, _permissions);
 
         public async Task<TaskBoardDto> Handle(GetTaskBoardQuery request, CancellationToken ct)
         {
-            var user = await CurrentAsync();
+            var viewer = await CurrentAsync();
             var mode = (request.Mode ?? "incoming").ToLowerInvariant();
-            var userId = user.Id;
+            var userId = viewer.Id;
 
             Expression<Func<AssignedTask, bool>> filter = mode switch
             {
                 "outgoing" => t => t.CreatedByUserId == userId,
-                "scope" => AssignedTaskRules.Scope(user),
-                _ => AssignedTaskRules.Incoming(user)
+                "scope" => AssignedTaskRules.Scope(viewer),
+                _ => AssignedTaskRules.Incoming(viewer)
             };
 
             var doneSince = DateTime.UtcNow.AddDays(-30);
             var tasks = await _taskService.GetBoardAsync(filter);
-            var targetType = AssignedTaskRules.TargetTypeFor(user.Role?.Name ?? "");
+            var targetTypes = AssignedTaskRules.TargetTypesFor(viewer);
 
             return new TaskBoardDto
             {
                 Mode = mode is "outgoing" or "scope" ? mode : "incoming",
-                CanCreate = targetType != null,
-                TargetTypeLabel = AssignedTaskRules.TargetTypeLabel(targetType),
+                CanCreate = targetTypes.Count > 0,
+                TargetTypeLabel = AssignedTaskRules.TargetTypeLabel(targetTypes.FirstOrDefault()),
+                TargetTypes = targetTypes.Select(t => new TaskTargetTypeDto
+                {
+                    Value = t.ToString(),
+                    Label = AssignedTaskRules.TargetTypeLabel(t)
+                }).ToList(),
+                HasScope = AssignedTaskRules.HasScope(viewer),
                 Tasks = tasks
                     .Where(t => t.Status != AssignedTaskStatus.Done || (t.CompletedAt ?? t.UpdatedAt) >= doneSince)
-                    .Select(t => AssignedTaskRules.ToCard(t, user))
+                    .Select(t => AssignedTaskRules.ToCard(t, viewer))
                     .ToList()
             };
         }
 
         public async Task<AssignedTaskDetailDto> Handle(GetAssignedTaskQuery request, CancellationToken ct)
         {
-            var user = await CurrentAsync();
+            var viewer = await CurrentAsync();
             var task = await _taskService.GetByIdAsync(request.Id)
                 ?? throw new KeyNotFoundException("المهمة غير موجودة");
 
-            if (!AssignedTaskRules.CanView(task, user))
+            if (!AssignedTaskRules.CanView(task, viewer))
                 throw new UnauthorizedAccessException("لا تملك صلاحية عرض هذه المهمة");
 
-            return AssignedTaskRules.ToDetail(task, user);
+            return AssignedTaskRules.ToDetail(task, viewer);
         }
 
         public async Task<List<TaskTargetOptionDto>> Handle(GetTaskTargetsQuery request, CancellationToken ct)
         {
-            var user = await CurrentAsync();
+            var viewer = await CurrentAsync();
+            var user = viewer.User;
 
-            switch (AssignedTaskRules.TargetTypeFor(user.Role?.Name ?? ""))
+            // التفويض: الجهات أدنى بدرجة ضمن وحدة المهمة الأصل
+            if (request.ParentTaskId is int parentId)
             {
-                case AssignedTaskTargetType.Department when user.BranchId is int branchId:
+                var parent = await _taskService.GetByIdAsync(parentId)
+                    ?? throw new KeyNotFoundException("المهمة غير موجودة");
+                if (!AssignedTaskRules.CanHandle(parent, viewer))
+                    throw new UnauthorizedAccessException("يمكنك تفويض المهام الواردة إليك فقط");
+
+                return AssignedTaskRules.DelegationTargetFor(parent) switch
                 {
-                    var branchUsers = await _userService.GetByBranchAsync(branchId);
-                    return (await _departmentService.GetAllAsync())
-                        .Where(d => d.BranchId == branchId).OrderBy(d => d.Name)
-                        .Select(d => new TaskTargetOptionDto
-                        {
-                            Id = d.Id,
-                            Name = d.Name,
-                            HeadNames = string.Join("، ", branchUsers
-                                .Where(u => u.IsActive && u.DepartmentId == d.Id && u.Role?.Name == "Manager")
-                                .Select(u => u.FullName))
-                        }).ToList();
-                }
-                case AssignedTaskTargetType.Office when user.DepartmentId is int departmentId:
-                {
-                    var deptUsers = await _userService.GetByDepartmentAsync(departmentId);
-                    return (await _officeService.GetByDepartmentAsync(departmentId))
-                        .OrderBy(o => o.Name)
-                        .Select(o => new TaskTargetOptionDto
-                        {
-                            Id = o.Id,
-                            Name = o.Name,
-                            HeadNames = string.Join("، ", deptUsers
-                                .Where(u => u.IsActive && u.OfficeId == o.Id && u.Role?.Name == "OfficeManager")
-                                .Select(u => u.FullName))
-                        }).ToList();
-                }
-                case AssignedTaskTargetType.User when user.OfficeId is int officeId:
-                    return (await _userService.GetByOfficeAsync(officeId))
-                        .Where(u => u.IsActive && u.Id != user.Id).OrderBy(u => u.FullName)
-                        .Select(u => new TaskTargetOptionDto { Id = u.Id, Name = u.FullName })
-                        .ToList();
-                default:
-                    return [];
+                    AssignedTaskTargetType.Office when parent.DepartmentId is int d => await OfficesAsync(d),
+                    AssignedTaskTargetType.User when parent.OfficeId is int o => await UsersAsync(o, user.Id),
+                    _ => []
+                };
             }
+
+            var types = AssignedTaskRules.TargetTypesFor(viewer);
+            var type = string.IsNullOrWhiteSpace(request.Type)
+                ? types.Cast<AssignedTaskTargetType?>().FirstOrDefault()
+                : Enum.TryParse<AssignedTaskTargetType>(request.Type, true, out var parsed) && types.Contains(parsed) ? parsed
+                : throw new UnauthorizedAccessException("لا تملك صلاحية الإسناد لهذا النوع من الجهات");
+
+            return type switch
+            {
+                AssignedTaskTargetType.Department when user.BranchId is int b => await DepartmentsAsync(b),
+                AssignedTaskTargetType.Office when user.DepartmentId is int d => await OfficesAsync(d),
+                AssignedTaskTargetType.User when user.OfficeId is int o => await UsersAsync(o, user.Id),
+                _ => []
+            };
         }
+
+        private async Task<List<TaskTargetOptionDto>> DepartmentsAsync(int branchId)
+        {
+            var handlers = await _permissions.GetUsersWithPermissionAsync(AppPermissions.HandleUnitTasks, branchId: branchId);
+            return (await _departmentService.GetAllAsync())
+                .Where(d => d.BranchId == branchId).OrderBy(d => d.Name)
+                .Select(d => new TaskTargetOptionDto
+                {
+                    Id = d.Id,
+                    Name = d.Name,
+                    HeadNames = string.Join("، ", handlers
+                        .Where(u => OrganizationRole.IsInDepartmentItself(u, d.Id)).Select(u => u.FullName))
+                }).ToList();
+        }
+
+        private async Task<List<TaskTargetOptionDto>> OfficesAsync(int departmentId)
+        {
+            var handlers = await _permissions.GetUsersWithPermissionAsync(AppPermissions.HandleUnitTasks, departmentId: departmentId);
+            return (await _officeService.GetByDepartmentAsync(departmentId))
+                .OrderBy(o => o.Name)
+                .Select(o => new TaskTargetOptionDto
+                {
+                    Id = o.Id,
+                    Name = o.Name,
+                    HeadNames = string.Join("، ", handlers.Where(u => u.OfficeId == o.Id).Select(u => u.FullName))
+                }).ToList();
+        }
+
+        private async Task<List<TaskTargetOptionDto>> UsersAsync(int officeId, int excludeUserId) =>
+            (await _userService.GetByOfficeAsync(officeId))
+                .Where(u => u.IsActive && u.Id != excludeUserId).OrderBy(u => u.FullName)
+                .Select(u => new TaskTargetOptionDto { Id = u.Id, Name = u.FullName })
+                .ToList();
     }
 }

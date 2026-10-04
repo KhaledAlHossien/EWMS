@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using Infrastructure.Persistence.Data;
@@ -59,14 +60,15 @@ namespace Infrastructure.Persistence.Repositories
                     Id = s.Id,
                     Name = s.Name,
                     Description = s.Description,
-                    RegionId = s.RegionId,
-                    RegionName = s.Region.Name,
+                    GovernorateCode = s.GovernorateCode,
                     Latitude = s.Latitude,
                     Longitude = s.Longitude
                 }).ToListAsync();
 
             foreach (var site in sites)
             {
+                site.GovernorateName = Governorates.NameOf(site.GovernorateCode);
+
                 if (installationsPerSite.TryGetValue(site.Id, out var stats))
                 {
                     site.InstallationsCount = stats.Count;
@@ -74,29 +76,9 @@ namespace Infrastructure.Persistence.Repositories
                 }
             }
 
-            var regions = await _context.Regions.AsNoTracking()
-                .OrderBy(r => r.Name)
-                .Select(r => new MapRegionDto
-                {
-                    Id = r.Id,
-                    Name = r.Name,
-                    Description = r.Description,
-                    Latitude = r.Latitude,
-                    Longitude = r.Longitude
-                }).ToListAsync();
-
-            foreach (var region in regions)
-            {
-                var regionSites = sites.Where(s => s.RegionId == region.Id).ToList();
-                region.SitesCount = regionSites.Count;
-                region.InstallationsCount = regionSites.Sum(s => s.InstallationsCount);
-            }
-
             return new DevicesMapLayerDto
             {
-                Regions = regions,
                 Sites = sites,
-                RegionsWithoutCoordinates = regions.Count(r => r.Latitude == null || r.Longitude == null),
                 SitesWithoutCoordinates = sites.Count(s => s.Latitude == null || s.Longitude == null)
             };
         }

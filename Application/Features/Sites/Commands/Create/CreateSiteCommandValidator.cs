@@ -16,8 +16,6 @@ namespace Application.Features.Sites.Commands.Create
 
             GeoRules.CoordinatesRules(this, x => x.SiteDto.Latitude, x => x.SiteDto.Longitude);
 
-            RuleFor(x => x.SiteDto.RegionId)
-                .GreaterThan(0).WithMessage("يجب اختيار منطقة");
         }
     }
 }

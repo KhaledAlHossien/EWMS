@@ -57,10 +57,12 @@ namespace API.Controllers
 
         // ========== للموظفين ==========
         [HttpGet("My")]
+        [Authorize(Policy = "ViewMyWorkTasks")]
         public async Task<ActionResult<List<WorkTaskCardDto>>> GetMy()
             => Ok(await _mediator.Send(new GetMyWorkTasksQuery()));
 
         [HttpGet("View/{id}")]
+        [Authorize(Policy = "AnyWorkTaskView")]
         public async Task<ActionResult<WorkTaskCardDto>> View(int id)
             => Ok(await _mediator.Send(new GetWorkTaskViewQuery(id)));
     }

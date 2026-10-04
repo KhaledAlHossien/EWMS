@@ -1,75 +1,55 @@
-﻿using Application.Interfaces;
+﻿using Application.Common;
+using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
 
 namespace Application.Features.Vacations
 {
     /// <summary>
-    /// مسؤول عن إرسال إشعارات سير عمل الإجازة لكل الأطراف المعنية:
-    /// الموظف صاحب الطلب، رئيس/رؤساء قسمه، رئيس/رؤساء فرعه.
+    /// إشعارات سير عمل الإجازة. المستلمون حسب الصلاحية لا المنصب (Role-Permission، 2026-10-03):
+    /// أصحاب ApproveVacationFirst / ApproveVacationFinal في فرع الإجازة، ومن وافق في المرحلة الأولى، والموظف صاحب الطلب.
     /// </summary>
     internal static class VacationNotifier
     {
         public static async Task NotifySubmittedAsync(
-            IUserService userService,
+            IUserPermissionService permissions,
             INotificationService notificationService,
             Vacation vacation,
             string employeeFullName)
         {
-            // إجازة رئيس القسم تبدأ مباشرة بانتظار رئيس الفرع
-            var toBranch = vacation.Status == VacationStatus.PendingBranchManager;
+            // من يملك صلاحية المرحلة الأولى تبدأ إجازته مباشرة بانتظار الاعتماد النهائي
+            var toFinal = vacation.Status == VacationStatus.PendingBranchManager;
 
-            var recipients = toBranch
-                ? await GetBranchManagersAsync(userService, vacation.BranchId, vacation.UserId)
-                : await GetDepartmentManagersAsync(userService, vacation.DepartmentId, vacation.UserId);
+            var recipients = await ApproversAsync(permissions,
+                toFinal ? AppPermissions.ApproveVacationFinal : AppPermissions.ApproveVacationFirst,
+                vacation, vacation.UserId);
 
-            var notifications = recipients.Select(m => new Notification
-            {
-                UserId = m.Id,
-                Title = toBranch ? "طلب إجازة بانتظار اعتمادك" : "طلب إجازة جديد",
-                Message = toBranch
-                    ? $"قدّم رئيس القسم {employeeFullName} طلب إجازة ({vacation.VacDayCount} يوم) بحاجة لاعتمادك"
+            await notificationService.AddRangeAsync(recipients.Select(id => New(id, vacation,
+                toFinal ? "طلب إجازة بانتظار اعتمادك" : "طلب إجازة جديد",
+                toFinal
+                    ? $"قدّم {employeeFullName} طلب إجازة ({vacation.VacDayCount} يوم) بحاجة لاعتمادك النهائي"
                     : $"قدّم {employeeFullName} طلب إجازة ({vacation.VacDayCount} يوم) بحاجة لموافقتك",
-                Type = NotificationType.VacationSubmitted,
-                RelatedEntityType = "Vacation",
-                RelatedEntityId = vacation.Id,
-                CreatedAt = DateTime.UtcNow
-            });
-
-            await notificationService.AddRangeAsync(notifications);
+                NotificationType.VacationSubmitted)));
         }
 
         public static async Task NotifyApprovedByManagerAsync(
-            IUserService userService,
+            IUserPermissionService permissions,
             INotificationService notificationService,
             Vacation vacation,
             string employeeFullName)
         {
-            var toEmployee = new Notification
-            {
-                UserId = vacation.UserId,
-                Title = "تمت الموافقة على طلبك",
-                Message = "وافق رئيس القسم على طلب إجازتك، وهو الآن بانتظار اعتماد رئيس الفرع",
-                Type = NotificationType.VacationApprovedByManager,
-                RelatedEntityType = "Vacation",
-                RelatedEntityId = vacation.Id,
-                CreatedAt = DateTime.UtcNow
-            };
+            var toEmployee = New(vacation.UserId, vacation, "تمت الموافقة على طلبك",
+                "تمت الموافقة الأولى على طلب إجازتك، وهو الآن بانتظار الاعتماد النهائي",
+                NotificationType.VacationApprovedByManager);
 
-            var branchManagers = await GetBranchManagersAsync(userService, vacation.BranchId, vacation.UserId);
+            var finalApprovers = (await ApproversAsync(permissions, AppPermissions.ApproveVacationFinal, vacation, vacation.UserId))
+                .Where(id => id != vacation.FirstApprovedByUserId);
 
-            var toBranchManagers = branchManagers.Select(bm => new Notification
-            {
-                UserId = bm.Id,
-                Title = "طلب إجازة بانتظار اعتمادك",
-                Message = $"طلب إجازة من {employeeFullName} وافق عليه رئيس القسم، وهو الآن بانتظار اعتمادك النهائي",
-                Type = NotificationType.VacationForwardedToBranchManager,
-                RelatedEntityType = "Vacation",
-                RelatedEntityId = vacation.Id,
-                CreatedAt = DateTime.UtcNow
-            });
+            var toApprovers = finalApprovers.Select(id => New(id, vacation, "طلب إجازة بانتظار اعتمادك",
+                $"طلب إجازة من {employeeFullName} تمت الموافقة الأولى عليه، وهو الآن بانتظار اعتمادك النهائي",
+                NotificationType.VacationForwardedToBranchManager));
 
-            await notificationService.AddRangeAsync(toBranchManagers.Append(toEmployee));
+            await notificationService.AddRangeAsync(toApprovers.Append(toEmployee));
         }
 
         public static async Task NotifyRejectedByManagerAsync(
@@ -77,57 +57,28 @@ namespace Application.Features.Vacations
             Vacation vacation,
             string? reason)
         {
-            var toEmployee = new Notification
-            {
-                UserId = vacation.UserId,
-                Title = "تم رفض طلب إجازتك",
-                Message = string.IsNullOrWhiteSpace(reason)
-                    ? "رفض رئيس القسم طلب إجازتك"
-                    : $"رفض رئيس القسم طلب إجازتك. السبب: {reason}",
-                Type = NotificationType.VacationRejectedByManager,
-                RelatedEntityType = "Vacation",
-                RelatedEntityId = vacation.Id,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await notificationService.AddAsync(toEmployee);
+            await notificationService.AddAsync(New(vacation.UserId, vacation, "تم رفض طلب إجازتك",
+                string.IsNullOrWhiteSpace(reason)
+                    ? "رُفض طلب إجازتك في مرحلة الموافقة الأولى"
+                    : $"رُفض طلب إجازتك في مرحلة الموافقة الأولى. السبب: {reason}",
+                NotificationType.VacationRejectedByManager));
         }
 
         public static async Task NotifyApprovedFinalAsync(
-            IUserService userService,
             INotificationService notificationService,
             Vacation vacation,
             string employeeFullName)
         {
-            var toEmployee = new Notification
-            {
-                UserId = vacation.UserId,
-                Title = "تم اعتماد إجازتك نهائياً",
-                Message = "وافق رئيس الفرع على طلب إجازتك، وتم اعتمادها نهائياً",
-                Type = NotificationType.VacationApprovedFinal,
-                RelatedEntityType = "Vacation",
-                RelatedEntityId = vacation.Id,
-                CreatedAt = DateTime.UtcNow
-            };
+            var toEmployee = New(vacation.UserId, vacation, "تم اعتماد إجازتك نهائياً",
+                "تم اعتماد طلب إجازتك نهائياً", NotificationType.VacationApprovedFinal);
 
-            var managers = await GetParticipatingDepartmentManagersAsync(userService, vacation);
+            var toFirstApprover = FirstApprover(vacation).Select(id => New(id, vacation, "اعتماد نهائي لإجازة",
+                $"اعتُمدت نهائياً إجازة {employeeFullName} التي سبق ووافقت عليها", NotificationType.VacationApprovedFinal));
 
-            var toManagers = managers.Select(m => new Notification
-            {
-                UserId = m.Id,
-                Title = "اعتماد نهائي لإجازة",
-                Message = $"وافق رئيس الفرع نهائياً على إجازة {employeeFullName} التي سبق ووافقت عليها",
-                Type = NotificationType.VacationApprovedFinal,
-                RelatedEntityType = "Vacation",
-                RelatedEntityId = vacation.Id,
-                CreatedAt = DateTime.UtcNow
-            });
-
-            await notificationService.AddRangeAsync(toManagers.Append(toEmployee));
+            await notificationService.AddRangeAsync(toFirstApprover.Append(toEmployee));
         }
 
         public static async Task NotifyRejectedByBranchManagerAsync(
-            IUserService userService,
             INotificationService notificationService,
             Vacation vacation,
             string employeeFullName,
@@ -135,84 +86,55 @@ namespace Application.Features.Vacations
         {
             var reasonSuffix = string.IsNullOrWhiteSpace(reason) ? "" : $" السبب: {reason}";
 
-            var toEmployee = new Notification
-            {
-                UserId = vacation.UserId,
-                Title = "تم رفض طلب إجازتك",
-                Message = $"رفض رئيس الفرع طلب إجازتك بشكل نهائي.{reasonSuffix}",
-                Type = NotificationType.VacationRejectedByBranchManager,
-                RelatedEntityType = "Vacation",
-                RelatedEntityId = vacation.Id,
-                CreatedAt = DateTime.UtcNow
-            };
+            var toEmployee = New(vacation.UserId, vacation, "تم رفض طلب إجازتك",
+                $"رُفض طلب إجازتك في مرحلة الاعتماد النهائي.{reasonSuffix}", NotificationType.VacationRejectedByBranchManager);
 
-            var managers = await GetParticipatingDepartmentManagersAsync(userService, vacation);
+            var toFirstApprover = FirstApprover(vacation).Select(id => New(id, vacation, "رفض نهائي لإجازة",
+                $"رُفضت نهائياً إجازة {employeeFullName} التي سبق ووافقت عليها.{reasonSuffix}",
+                NotificationType.VacationRejectedByBranchManager));
 
-            var toManagers = managers.Select(m => new Notification
-            {
-                UserId = m.Id,
-                Title = "رفض نهائي لإجازة",
-                Message = $"رفض رئيس الفرع إجازة {employeeFullName} التي سبق ووافقت عليها.{reasonSuffix}",
-                Type = NotificationType.VacationRejectedByBranchManager,
-                RelatedEntityType = "Vacation",
-                RelatedEntityId = vacation.Id,
-                CreatedAt = DateTime.UtcNow
-            });
-
-            await notificationService.AddRangeAsync(toManagers.Append(toEmployee));
+            await notificationService.AddRangeAsync(toFirstApprover.Append(toEmployee));
         }
 
         public static async Task NotifyCancelledAsync(
-            IUserService userService,
+            IUserPermissionService permissions,
             INotificationService notificationService,
             Vacation vacation,
             string employeeFullName,
             bool hadReachedBranchManager)
         {
-            // إجازة رئيس القسم لم تمر على رؤساء القسم أصلاً → لا نبلغهم بإلغائها
-            var skippedManagerStage = hadReachedBranchManager && !vacation.ManagerAccept;
+            // قبل الموافقة الأولى: أصحاب الموافقة الأولى. بعدها: من وافق + أصحاب الاعتماد النهائي.
+            var recipients = hadReachedBranchManager
+                ? FirstApprover(vacation)
+                    .Concat(await ApproversAsync(permissions, AppPermissions.ApproveVacationFinal, vacation, vacation.UserId))
+                : await ApproversAsync(permissions, AppPermissions.ApproveVacationFirst, vacation, vacation.UserId);
 
-            var recipients = skippedManagerStage
-                ? new List<User>()
-                : await GetDepartmentManagersAsync(userService, vacation.DepartmentId, vacation.UserId);
-
-            if (hadReachedBranchManager)
-                recipients = recipients.Concat(await GetBranchManagersAsync(userService, vacation.BranchId, vacation.UserId)).ToList();
-
-            var notifications = recipients.Select(r => new Notification
-            {
-                UserId = r.Id,
-                Title = "تم إلغاء طلب إجازة",
-                Message = $"ألغى {employeeFullName} طلب إجازته بنفسه",
-                Type = NotificationType.VacationCancelled,
-                RelatedEntityType = "Vacation",
-                RelatedEntityId = vacation.Id,
-                CreatedAt = DateTime.UtcNow
-            });
-
-            await notificationService.AddRangeAsync(notifications);
+            await notificationService.AddRangeAsync(recipients.Distinct().Select(id => New(id, vacation,
+                "تم إلغاء طلب إجازة", $"ألغى {employeeFullName} طلب إجازته بنفسه", NotificationType.VacationCancelled)));
         }
 
         // ==================== دوال مساعدة ====================
 
-        // excludeUserId: صاحب الطلب — رئيس القسم لا يُبلَّغ بإجازته الخاصة كأنه مراجِع لها
-        private static async Task<List<User>> GetDepartmentManagersAsync(IUserService userService, int departmentId, int excludeUserId)
-        {
-            var users = await userService.GetByDepartmentAsync(departmentId);
-            return users.Where(u => u.Role?.Name == "Manager" && u.Id != excludeUserId).ToList();
-        }
+        // أصحاب الصلاحية في فرع الإجازة، عدا صاحب الطلب
+        private static async Task<List<int>> ApproversAsync(
+            IUserPermissionService permissions, string permission, Vacation vacation, int excludeUserId) =>
+            (await permissions.GetUsersWithPermissionAsync(permission, branchId: vacation.BranchId))
+                .Where(u => u.Id != excludeUserId)
+                .Select(u => u.Id)
+                .ToList();
 
-        private static async Task<List<User>> GetBranchManagersAsync(IUserService userService, int branchId, int excludeUserId)
-        {
-            var users = await userService.GetByBranchAsync(branchId);
-            return users.Where(u => u.Role?.Name == "BranchManager" && u.Id != excludeUserId).ToList();
-        }
+        private static IEnumerable<int> FirstApprover(Vacation vacation) =>
+            vacation.FirstApprovedByUserId is int id && id != vacation.UserId ? [id] : [];
 
-        // رؤساء القسم يُبلَّغون بالقرار النهائي فقط إن كانوا قد وافقوا على الطلب في المرحلة الأولى
-        private static async Task<List<User>> GetParticipatingDepartmentManagersAsync(IUserService userService, Vacation vacation)
+        private static Notification New(int userId, Vacation vacation, string title, string message, NotificationType type) => new()
         {
-            if (!vacation.ManagerAccept) return new List<User>();
-            return await GetDepartmentManagersAsync(userService, vacation.DepartmentId, vacation.UserId);
-        }
+            UserId = userId,
+            Title = title,
+            Message = message,
+            Type = type,
+            RelatedEntityType = "Vacation",
+            RelatedEntityId = vacation.Id,
+            CreatedAt = DateTime.UtcNow
+        };
     }
 }

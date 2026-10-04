@@ -6,22 +6,33 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+using Application.Common;
+
 namespace Application.Features.Vacations.Commands.Approve
 {
+    /// <summary>
+    /// قرار على إجازة في مرحلتها الحالية (Role-Permission، قرار المستخدم 2026-10-03):
+    /// - PendingManager: يحتاج ApproveVacationFirst والإجازة من فرعي.
+    /// - PendingBranchManager: يحتاج ApproveVacationFinal والإجازة من فرعي، ولستُ من وافق عليها في المرحلة الأولى.
+    /// - لا أحد يقرر في إجازته الخاصة. SuperAdmin يتجاوز كل ذلك.
+    /// </summary>
     public class ApproveVacationCommandHandler
       : IRequestHandler<ApproveVacationCommand, Unit>
     {
         private readonly IVacationService _service;
         private readonly IUserService _userService;
+        private readonly IUserPermissionService _permissions;
         private readonly INotificationService _notificationService;
 
         public ApproveVacationCommandHandler(
             IVacationService service,
             IUserService userService,
+            IUserPermissionService permissions,
             INotificationService notificationService)
         {
             _service = service;
             _userService = userService;
+            _permissions = permissions;
             _notificationService = notificationService;
         }
 
@@ -30,79 +41,62 @@ namespace Application.Features.Vacations.Commands.Approve
             var vacation = await _service.GetByIdAsync(request.VacationId)
                 ?? throw new KeyNotFoundException("الإجازة غير موجودة");
 
-            // ══════════════════════════════════════════════════════
-            // 1. من أنا؟
-            // ══════════════════════════════════════════════════════
-            var currentUser = await _userService.GetByIdAsync(_userService.UserId)
-                ?? throw new UnauthorizedAccessException("المستخدم غير مصادق");
+            var viewer = await Viewer.CurrentAsync(_userService, _permissions);
+            var isSuperAdmin = viewer.IsSuperAdmin;
 
-            var roleName = currentUser.Role?.Name ?? "";
-            var isSuperAdmin = roleName == "SuperAdmin";
-
-            // لا يمكن لأحد (سوى SuperAdmin) الموافقة على إجازته الخاصة
-            if (!isSuperAdmin && vacation.UserId == currentUser.Id)
-                throw new UnauthorizedAccessException("لا يمكنك الموافقة على إجازتك الخاصة");
-
-            // ══════════════════════════════════════════════════════
-            // 2. فحوصات الحالة
-            // ══════════════════════════════════════════════════════
+            // ══════════ 1. فحوصات الحالة ══════════
             if (vacation.Status == VacationStatus.Approved)
                 throw new InvalidOperationException("الإجازة معتمدة نهائياً");
-
             if (vacation.Status == VacationStatus.Rejected)
                 throw new InvalidOperationException("الإجازة مرفوضة مسبقاً");
+            if (vacation.Status == VacationStatus.Cancelled)
+                throw new InvalidOperationException("الإجازة ملغاة");
 
-            // ══════════════════════════════════════════════════════
-            // 3. switch حسب المرحلة + التحقق من الدور
-            // ══════════════════════════════════════════════════════
+            var permission = VacationAccess.PermissionForStage(vacation.Status)
+                ?? throw new InvalidOperationException("حالة الإجازة غير معروفة");
+
+            // ══════════ 2. من يقرر في هذه المرحلة ══════════
+            if (!isSuperAdmin)
+            {
+                if (vacation.UserId == viewer.Id)
+                    throw new UnauthorizedAccessException("لا يمكنك الموافقة على إجازتك الخاصة");
+
+                if (!viewer.Has(permission))
+                    throw new UnauthorizedAccessException(vacation.Status == VacationStatus.PendingManager
+                        ? "لا تملك صلاحية الموافقة الأولى على الإجازات"
+                        : "لا تملك صلاحية الاعتماد النهائي للإجازات");
+
+                if (viewer.User.BranchId != vacation.BranchId)
+                    throw new UnauthorizedAccessException("لا تملك صلاحية الموافقة على إجازات خارج فرعك");
+
+                if (vacation.Status == VacationStatus.PendingBranchManager && vacation.FirstApprovedByUserId == viewer.Id)
+                    throw new UnauthorizedAccessException("وافقت على هذه الإجازة في المرحلة الأولى، والاعتماد النهائي لشخص آخر");
+            }
+
+            // ══════════ 3. القرار ══════════
             var stageBeforeDecision = vacation.Status;
 
-            switch (vacation.Status)
+            if (stageBeforeDecision == VacationStatus.PendingManager)
             {
-                case VacationStatus.PendingManager:
-
-                    // هل أنا Manager AND في نفس القسم؟ (أو SuperAdmin)
-                    if (!isSuperAdmin &&
-                        (roleName != "Manager" ||
-                         currentUser.DepartmentId != vacation.DepartmentId))
-                        throw new UnauthorizedAccessException(
-                            "لا تملك صلاحية الموافقة على إجازات خارج قسمك");
-
-                    vacation.ManagerAccept = request.Dto.Approve;
-
-                    if (request.Dto.Approve)
-                        vacation.Status = VacationStatus.PendingBranchManager;
-                    else
-                        MarkAsRejected(vacation, request.Dto.Reason);
-                    break;
-
-                case VacationStatus.PendingBranchManager:
-
-                    // هل أنا BranchManager AND في نفس الفرع؟ (أو SuperAdmin)
-                    if (!isSuperAdmin &&
-                        (roleName != "BranchManager" ||
-                         currentUser.BranchId != vacation.BranchId))
-                        throw new UnauthorizedAccessException(
-                            "لا تملك صلاحية الموافقة على إجازات خارج فرعك");
-
-                    vacation.BranchManagerAccept = request.Dto.Approve;
-
-                    if (request.Dto.Approve)
-                        vacation.Status = VacationStatus.Approved;
-                    else
-                        MarkAsRejected(vacation, request.Dto.Reason);
-                    break;
-
-                default:
-                    throw new InvalidOperationException("حالة الإجازة غير معروفة");
+                vacation.ManagerAccept = request.Dto.Approve;
+                if (request.Dto.Approve)
+                {
+                    vacation.FirstApprovedByUserId = viewer.Id;
+                    vacation.Status = VacationStatus.PendingBranchManager;
+                }
+                else MarkAsRejected(vacation, request.Dto.Reason);
+            }
+            else
+            {
+                vacation.BranchManagerAccept = request.Dto.Approve;
+                if (request.Dto.Approve) vacation.Status = VacationStatus.Approved;
+                else MarkAsRejected(vacation, request.Dto.Reason);
             }
 
             vacation.UpdatedAt = DateTime.UtcNow;
             await _service.UpdateAsync(vacation);
 
-            // ══════════════════════════════════════════════════════
-            // 4. إشعار الأطراف المعنية حسب نتيجة القرار
-            // ══════════════════════════════════════════════════════
+            // ══════════ 4. الإشعارات ══════════
             var employee = await _userService.GetByIdAsync(vacation.UserId);
             var employeeFullName = employee?.FullName ?? "موظف";
 
@@ -110,19 +104,19 @@ namespace Application.Features.Vacations.Commands.Approve
             {
                 if (request.Dto.Approve)
                     await VacationNotifier.NotifyApprovedByManagerAsync(
-                        _userService, _notificationService, vacation, employeeFullName);
+                        _permissions, _notificationService, vacation, employeeFullName);
                 else
                     await VacationNotifier.NotifyRejectedByManagerAsync(
                         _notificationService, vacation, request.Dto.Reason);
             }
-            else // PendingBranchManager
+            else
             {
                 if (request.Dto.Approve)
                     await VacationNotifier.NotifyApprovedFinalAsync(
-                        _userService, _notificationService, vacation, employeeFullName);
+                        _notificationService, vacation, employeeFullName);
                 else
                     await VacationNotifier.NotifyRejectedByBranchManagerAsync(
-                        _userService, _notificationService, vacation, employeeFullName, request.Dto.Reason);
+                        _notificationService, vacation, employeeFullName, request.Dto.Reason);
             }
 
             return Unit.Value;

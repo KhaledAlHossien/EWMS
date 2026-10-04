@@ -1,34 +1,31 @@
-using Infrastructure.Persistence.Data;
+using Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace API.Authorization
 {
+    /// <summary>
+    /// يفحص صلاحيات دور المستخدم الحالي من قاعدة البيانات (بمعرّف المستخدم لا باسم الدور في التوكن)،
+    /// فتغيير دور المستخدم أو صلاحيات دوره يُطبَّق فوراً بلا إعادة تسجيل دخول.
+    /// </summary>
     public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionRequirement>
     {
-        private readonly DataContext _context;
+        private readonly IUserPermissionService _permissions;
 
-        public PermissionAuthorizationHandler(DataContext context)
+        public PermissionAuthorizationHandler(IUserPermissionService permissions)
         {
-            _context = context;
+            _permissions = permissions;
         }
 
         protected override async Task HandleRequirementAsync(
             AuthorizationHandlerContext context,
             PermissionRequirement requirement)
         {
-            var roleName = context.User.FindFirst(ClaimTypes.Role)?.Value;
-            if (string.IsNullOrWhiteSpace(roleName))
+            if (!int.TryParse(context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
                 return;
 
-            var hasPermission = await _context.RolePermissions
-                .Include(rp => rp.Role)
-                .Include(rp => rp.Permission)
-                .AnyAsync(rp => rp.Role.Name == roleName
-                             && rp.Permission.Name == requirement.PermissionName);
-
-            if (hasPermission)
+            var granted = await _permissions.GetAsync(userId);
+            if (requirement.PermissionNames.Any(granted.Contains))
                 context.Succeed(requirement);
         }
     }

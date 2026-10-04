@@ -1,5 +1,6 @@
 using Application.DTOs.Request;
 using Application.DTOs.Response;
+using Application.Common;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
@@ -71,25 +72,26 @@ namespace Application.Features.AssignedTasks
         private readonly IUserService _userService;
         private readonly IDepartmentService _departmentService;
         private readonly IOfficeService _officeService;
+        private readonly IUserPermissionService _permissions;
         private readonly INotificationService _notificationService;
 
         public AssignedTaskCommandsHandler(
             IAssignedTaskService taskService,
             IUserService userService,
+            IUserPermissionService permissions,
             IDepartmentService departmentService,
             IOfficeService officeService,
             INotificationService notificationService)
         {
             _taskService = taskService;
             _userService = userService;
+            _permissions = permissions;
             _departmentService = departmentService;
             _officeService = officeService;
             _notificationService = notificationService;
         }
 
-        private async Task<User> CurrentAsync() =>
-            await _userService.GetByIdAsync(_userService.UserId)
-            ?? throw new UnauthorizedAccessException("المستخدم غير مصادق");
+        private Task<Viewer> CurrentAsync() => Viewer.CurrentAsync(_userService, _permissions);
 
         private async Task<AssignedTask> LoadAsync(int id) =>
             await _taskService.GetByIdAsync(id) ?? throw new KeyNotFoundException("المهمة غير موجودة");
@@ -97,10 +99,33 @@ namespace Application.Features.AssignedTasks
         // ─────────── إنشاء / تفويض ───────────
         public async Task<AssignedTaskDetailDto> Handle(CreateAssignedTaskCommand request, CancellationToken ct)
         {
-            var user = await CurrentAsync();
+            var viewer = await CurrentAsync();
+            var user = viewer.User;
             var dto = request.Dto;
-            var targetType = AssignedTaskRules.TargetTypeFor(user.Role?.Name ?? "")
-                ?? throw new UnauthorizedAccessException("لا تملك صلاحية إسناد المهام");
+
+            // التفويض: المهمة الأصل يجب أن تكون واردة إليّ (أنا منفِّذها) ولم تُنجز بعد، والجهة أدنى منها بدرجة
+            AssignedTask? parent = null;
+            AssignedTaskTargetType targetType;
+            if (dto.ParentTaskId is int parentId)
+            {
+                parent = await LoadAsync(parentId);
+                if (!AssignedTaskRules.CanHandle(parent, viewer))
+                    throw new UnauthorizedAccessException("يمكنك تفويض المهام الواردة إليك فقط");
+                if (parent.Status == AssignedTaskStatus.Done)
+                    throw new InvalidOperationException("لا يمكن التفويض من مهمة منجزة");
+                targetType = AssignedTaskRules.DelegationTargetFor(parent)
+                    ?? throw new InvalidOperationException("لا يمكن تفويض مهمة موجّهة لموظف");
+            }
+            else
+            {
+                var types = AssignedTaskRules.TargetTypesFor(viewer);
+                if (types.Count == 0)
+                    throw new UnauthorizedAccessException("لا تملك صلاحية إسناد المهام");
+                if (string.IsNullOrWhiteSpace(dto.TargetType))
+                    targetType = types.Count == 1 ? types[0] : throw new ArgumentException("اختر نوع الجهة المُسندة إليها المهمة");
+                else if (!Enum.TryParse(dto.TargetType, true, out targetType) || !types.Contains(targetType))
+                    throw new UnauthorizedAccessException("لا تملك صلاحية الإسناد لهذا النوع من الجهات");
+            }
 
             var now = DateTime.UtcNow;
             var task = new AssignedTask
@@ -116,13 +141,17 @@ namespace Application.Features.AssignedTasks
                 UpdatedAt = now
             };
 
-            // الجهة يجب أن تكون ضمن نطاق المُسنِد مباشرة (نزولاً درجة واحدة)
+            // الجهة ضمن حدّ الصلاحية (أقسام فرعي / مكاتب قسمي / موظفو مكتبي)، أو ضمن وحدة المهمة الأصل عند التفويض
+            var branchLimit = parent?.BranchId ?? user.BranchId;
+            var departmentLimit = parent != null ? parent.DepartmentId : user.DepartmentId;
+            var officeLimit = parent != null ? parent.OfficeId : user.OfficeId;
+
             switch (targetType)
             {
                 case AssignedTaskTargetType.Department:
                     var department = await _departmentService.GetByIdAsync(dto.TargetId)
                         ?? throw new KeyNotFoundException("القسم غير موجود");
-                    if (department.BranchId != user.BranchId)
+                    if (department.BranchId != branchLimit)
                         throw new UnauthorizedAccessException("يمكنك إسناد المهام لأقسام فرعك فقط");
                     task.BranchId = department.BranchId;
                     task.DepartmentId = department.Id;
@@ -130,17 +159,19 @@ namespace Application.Features.AssignedTasks
                 case AssignedTaskTargetType.Office:
                     var office = await _officeService.GetByIdAsync(dto.TargetId)
                         ?? throw new KeyNotFoundException("المكتب غير موجود");
-                    if (office.DepartmentId != user.DepartmentId)
-                        throw new UnauthorizedAccessException("يمكنك إسناد المهام لمكاتب قسمك فقط");
-                    task.BranchId = office.Department?.BranchId ?? user.BranchId ?? 0;
+                    if (departmentLimit == null || office.DepartmentId != departmentLimit)
+                        throw new UnauthorizedAccessException(parent != null
+                            ? "يمكنك التفويض لمكاتب قسم المهمة فقط" : "يمكنك إسناد المهام لمكاتب قسمك فقط");
+                    task.BranchId = office.Department?.BranchId ?? branchLimit ?? 0;
                     task.DepartmentId = office.DepartmentId;
                     task.OfficeId = office.Id;
                     break;
                 case AssignedTaskTargetType.User:
                     var assignee = await _userService.GetByIdAsync(dto.TargetId)
                         ?? throw new KeyNotFoundException("الموظف غير موجود");
-                    if (assignee.OfficeId == null || assignee.OfficeId != user.OfficeId || assignee.Id == user.Id || !assignee.IsActive)
-                        throw new UnauthorizedAccessException("يمكنك إسناد المهام لموظفي مكتبك فقط");
+                    if (officeLimit == null || assignee.OfficeId != officeLimit || assignee.Id == user.Id || !assignee.IsActive)
+                        throw new UnauthorizedAccessException(parent != null
+                            ? "يمكنك التفويض لموظفي مكتب المهمة فقط" : "يمكنك إسناد المهام لموظفي مكتبك فقط");
                     task.BranchId = assignee.BranchId ?? 0;
                     task.DepartmentId = assignee.DepartmentId;
                     task.OfficeId = assignee.OfficeId;
@@ -148,17 +179,7 @@ namespace Application.Features.AssignedTasks
                     break;
             }
 
-            // التفويض: المهمة الأصل يجب أن تكون واردة إليّ (أنا منفِّذها) ولم تُنجز بعد
-            AssignedTask? parent = null;
-            if (dto.ParentTaskId is int parentId)
-            {
-                parent = await LoadAsync(parentId);
-                if (!AssignedTaskRules.CanHandle(parent, user))
-                    throw new UnauthorizedAccessException("يمكنك تفويض المهام الواردة إليك فقط");
-                if (parent.Status == AssignedTaskStatus.Done)
-                    throw new InvalidOperationException("لا يمكن التفويض من مهمة منجزة");
-                task.ParentTaskId = parent.Id;
-            }
+            task.ParentTaskId = parent?.Id;
 
             await _taskService.AddAsync(task);
             await _taskService.AddActivityAsync(AssignedTaskRules.Activity(task, user, AssignedTaskActivityType.Created, "أنشأ المهمة"));
@@ -182,17 +203,18 @@ namespace Application.Features.AssignedTasks
 
             var created = await LoadAsync(task.Id);
             await AssignedTaskRules.NotifyAsync(_notificationService,
-                await AssignedTaskRules.HandlerUserIdsAsync(_userService, created), user.Id, created,
+                await AssignedTaskRules.HandlerUserIdsAsync(_permissions, created), user.Id, created,
                 NotificationType.TaskAssigned, "مهمة جديدة",
                 $"أسند إليك {user.FullName} مهمة: {created.Title}");
 
-            return AssignedTaskRules.ToDetail(created, user);
+            return AssignedTaskRules.ToDetail(created, viewer);
         }
 
         // ─────────── تعديل (المُسنِد فقط، قبل الإنجاز) ───────────
         public async Task<AssignedTaskDetailDto> Handle(UpdateAssignedTaskCommand request, CancellationToken ct)
         {
-            var user = await CurrentAsync();
+            var viewer = await CurrentAsync();
+            var user = viewer.User;
             var task = await LoadAsync(request.Id);
 
             if (task.CreatedByUserId != user.Id)
@@ -209,13 +231,14 @@ namespace Application.Features.AssignedTasks
             await _taskService.SaveChangesAsync();
             await _taskService.AddActivityAsync(AssignedTaskRules.Activity(task, user, AssignedTaskActivityType.Edited, "عدّل تفاصيل المهمة"));
 
-            return AssignedTaskRules.ToDetail(await LoadAsync(task.Id), user);
+            return AssignedTaskRules.ToDetail(await LoadAsync(task.Id), viewer);
         }
 
         // ─────────── حذف (المُسنِد فقط، قبل البدء وبدون مهام فرعية) ───────────
         public async Task<Unit> Handle(DeleteAssignedTaskCommand request, CancellationToken ct)
         {
-            var user = await CurrentAsync();
+            var viewer = await CurrentAsync();
+            var user = viewer.User;
             var task = await LoadAsync(request.Id);
 
             if (task.CreatedByUserId != user.Id)
@@ -232,15 +255,16 @@ namespace Application.Features.AssignedTasks
         // ─────────── تغيير الحالة (السحب والإفلات — المنفِّذ فقط) ───────────
         public async Task<AssignedTaskCardDto> Handle(ChangeAssignedTaskStatusCommand request, CancellationToken ct)
         {
-            var user = await CurrentAsync();
+            var viewer = await CurrentAsync();
+            var user = viewer.User;
             var task = await LoadAsync(request.Id);
 
-            if (!AssignedTaskRules.CanHandle(task, user))
+            if (!AssignedTaskRules.CanHandle(task, viewer))
                 throw new UnauthorizedAccessException("تغيير حالة المهمة للجهة المنفِّذة فقط");
 
             var from = task.Status;
             var to = (AssignedTaskStatus)request.Status;
-            if (from == to) return AssignedTaskRules.ToCard(task, user);
+            if (from == to) return AssignedTaskRules.ToCard(task, viewer);
 
             var now = DateTime.UtcNow;
             task.Status = to;
@@ -257,28 +281,29 @@ namespace Application.Features.AssignedTasks
                 to == AssignedTaskStatus.Done ? "تم تنفيذ مهمة" : "تحديث على مهمة",
                 $"«{task.Title}»: {AssignedTaskRules.StatusAr(to)} — بواسطة {user.FullName}");
 
-            return AssignedTaskRules.ToCard(await LoadAsync(task.Id), user);
+            return AssignedTaskRules.ToCard(await LoadAsync(task.Id), viewer);
         }
 
         // ─────────── تعليق (كل من يطّلع على المهمة) ───────────
         public async Task<AssignedTaskDetailDto> Handle(AddAssignedTaskCommentCommand request, CancellationToken ct)
         {
-            var user = await CurrentAsync();
+            var viewer = await CurrentAsync();
+            var user = viewer.User;
             var task = await LoadAsync(request.Id);
 
-            if (!AssignedTaskRules.CanView(task, user))
+            if (!AssignedTaskRules.CanView(task, viewer))
                 throw new UnauthorizedAccessException("لا تملك صلاحية التعليق على هذه المهمة");
 
             var text = request.Text.Trim();
             await _taskService.AddActivityAsync(AssignedTaskRules.Activity(task, user, AssignedTaskActivityType.Comment, text));
 
             // المُسنِد + المنفِّذون (عدا كاتب التعليق)
-            var recipients = (await AssignedTaskRules.HandlerUserIdsAsync(_userService, task)).Append(task.CreatedByUserId);
+            var recipients = (await AssignedTaskRules.HandlerUserIdsAsync(_permissions, task)).Append(task.CreatedByUserId);
             await AssignedTaskRules.NotifyAsync(_notificationService, recipients, user.Id, task,
                 NotificationType.TaskCommented, "تعليق جديد على مهمة",
                 $"{user.FullName} على «{task.Title}»: {(text.Length > 80 ? text[..80] + "…" : text)}");
 
-            return AssignedTaskRules.ToDetail(await LoadAsync(task.Id), user);
+            return AssignedTaskRules.ToDetail(await LoadAsync(task.Id), viewer);
         }
     }
 }

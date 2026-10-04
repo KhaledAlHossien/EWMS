@@ -15,14 +15,14 @@ namespace Infrastructure.Persistence.Data
         public static async Task SeedAsync(DataContext context)
         {
             // ==================== 1. الأدوار ====================
-            var roleNames = new[] { "SuperAdmin", "BranchManager", "Manager", "OfficeManager", "Emp" };
-            var newRoles = new HashSet<string>();
+            // الدور العام الوحيد هو SuperAdmin. كل منصب آخر ينشأ من صفحة الأدوار
+            // ويرتبط صراحة بفرع أو قسم أو مكتب.
+            var roleNames = new[] { "SuperAdmin" };
             foreach (var roleName in roleNames)
             {
                 if (!await context.Roles.AnyAsync(r => r.Name == roleName))
                 {
                     await context.Roles.AddAsync(new Role { Name = roleName });
-                    newRoles.Add(roleName);
                 }
             }
 
@@ -153,25 +153,22 @@ namespace Infrastructure.Persistence.Data
             // السوبر ادمن يملك كل الصلاحيات دائماً (أي صلاحية جديدة في AppPermissions تصله تلقائياً)
             await EnsureRolePermissionsAsync(context, "SuperAdmin", AppPermissions.All.Select(p => p.Name));
 
-            // باقي الأدوار: صلاحيات افتراضية عند إنشاء الدور لأول مرة فقط (قاعدة بيانات جديدة).
-            // بعدها يعدّلها السوبر ادمن من صفحة الأدوار ولا يعيدها الـ seeder — قرار المستخدم 2026-09-30.
-            var defaultRolePermissions = new Dictionary<string, string[]>
-            {
-                // رئيس الفرع: يعتمد الإجازات (المرحلة الثانية) ولا يقدّم إجازات
-                ["BranchManager"] = ["ViewDepartments", "ViewVacationTypes", "ViewVacations", "ApproveVacation"],
-                // رئيس القسم: يوافق على إجازات قسمه (المرحلة الأولى) ويقدّم إجازاته
-                ["Manager"] = ["ViewDepartments", "ViewVacationTypes", "ViewVacations", "CreateVacation", "CancelVacation", "ApproveVacation"],
-                // رئيس المكتب: يطّلع على إجازات مكتبه فقط، لا يوافق عليها
-                ["OfficeManager"] = ["ViewDepartments", "ViewVacationTypes", "ViewVacations", "CreateVacation", "CancelVacation"],
-                // الموظف العادي: يقدّم طلب إجازة ويرى إجازاته فقط
-                ["Emp"] = ["ViewDepartments", "ViewVacationTypes", "ViewVacations", "CreateVacation", "CancelVacation"],
-            };
+            await context.SaveChangesAsync();
+        }
 
-            foreach (var (roleName, permissionNames) in defaultRolePermissions)
-            {
-                if (newRoles.Contains(roleName))
-                    await EnsureRolePermissionsAsync(context, roleName, permissionNames);
-            }
+        /// <summary>
+        /// مواقع قديمة بلا محافظة (كانت تتبع "منطقة" قبل حذفها): تُحسب محافظتها من إحداثياتها مرة واحدة.
+        /// من لا إحداثيات لها أو تقع خارج المحافظات تبقى فارغة وتُصحَّح عند تعديل الموقع.
+        /// </summary>
+        public static async Task BackfillSiteGovernoratesAsync(DataContext context)
+        {
+            var sites = await context.Sites
+                .Where(s => s.GovernorateCode == "" && s.Latitude != null && s.Longitude != null)
+                .ToListAsync();
+            if (sites.Count == 0) return;
+
+            foreach (var site in sites)
+                site.GovernorateCode = Governorates.Locate(site.Latitude!.Value, site.Longitude!.Value)?.Code ?? string.Empty;
 
             await context.SaveChangesAsync();
         }

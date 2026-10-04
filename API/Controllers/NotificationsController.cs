@@ -11,7 +11,7 @@ namespace API.Controllers
 {
     [ApiController]
     [Route("api/Notifications")]
-    [Authorize]
+    [Authorize(Policy = "ViewNotifications")]
     public class NotificationsController : ControllerBase
     {
         private readonly IMediator _mediator;

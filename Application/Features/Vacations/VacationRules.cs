@@ -10,8 +10,8 @@ namespace Application.Features.Vacations
         /// <summary>اسم الحالة بالعربي — مصدر واحد للـ AutoMapper والداشبورد</summary>
         public static string StatusAr(VacationStatus status) => status switch
         {
-            VacationStatus.PendingManager => "بانتظار رئيس القسم",
-            VacationStatus.PendingBranchManager => "بانتظار رئيس الفرع",
+            VacationStatus.PendingManager => "بانتظار الموافقة الأولى",
+            VacationStatus.PendingBranchManager => "بانتظار الاعتماد النهائي",
             VacationStatus.Approved => "معتمدة",
             VacationStatus.Rejected => "مرفوضة",
             VacationStatus.Cancelled => "ملغاة",

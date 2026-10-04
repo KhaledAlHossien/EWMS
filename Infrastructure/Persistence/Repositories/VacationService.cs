@@ -120,29 +120,21 @@ namespace Infrastructure.Persistence.Repositories
             return await query.OrderBy(v => v.StartVac).ToListAsync();
         }
 
-        public async Task<List<Vacation>> GetPendingForManagerAsync(int departmentId)
+        public async Task<bool> ExistsForUserAsync(int userId)
         {
-            return await _context.Vacation
-                .Include(v => v.VacationType)
-                .Include(v => v.User)
-                .Include(v => v.Department)
-                .Include(v => v.Branch)
-                .Where(v => v.DepartmentId == departmentId
-                         && v.Status == VacationStatus.PendingManager)
-                .OrderBy(v => v.StartVac)
-                .ToListAsync();
+            return await _context.Vacation.AnyAsync(v =>
+                v.UserId == userId || v.RejectedByUserId == userId || v.FirstApprovedByUserId == userId);
         }
 
-        // ✅ الدالة 1: رئيس الفرع
-        public async Task<List<Vacation>> GetPendingForBranchManagerAsync(int branchId)
+        // إجازات فرع بانتظار مرحلة معيّنة (الموافقة الأولى أو الاعتماد النهائي)
+        public async Task<List<Vacation>> GetPendingInBranchAsync(VacationStatus status, int branchId)
         {
             return await _context.Vacation
                 .Include(v => v.VacationType)
                 .Include(v => v.User)
                 .Include(v => v.Department)
                 .Include(v => v.Branch)
-                .Where(v => v.BranchId == branchId
-                         && v.Status == VacationStatus.PendingBranchManager)  // ⬅️
+                .Where(v => v.BranchId == branchId && v.Status == status)
                 .OrderBy(v => v.StartVac)
                 .ToListAsync();
         }

@@ -41,6 +41,11 @@ namespace Application.Features.Roles.Commands.Update
             if (!isSuperAdmin && request.RoleDto.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
                 throw new UnauthorizedAccessException("فقط SuperAdmin يمكنه إنشاء أو تعديل دور SuperAdmin");
 
+            // مدير النظام يُعرَّف باسم دوره: إعادة تسميته تُفقد صاحبه كل شيء
+            if (role.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
+                != request.RoleDto.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("لا يمكن إعادة تسمية دور SuperAdmin ولا تسمية دور آخر به");
+
             if (await _roleService.ExistsAsync(request.RoleDto.Name, request.Id))
                 throw new InvalidOperationException("يوجد دور آخر بنفس الاسم");
 
@@ -84,7 +89,7 @@ namespace Application.Features.Roles.Commands.Update
                     ?? throw new KeyNotFoundException($"الصلاحية رقم {permissionId} غير موجودة");
 
                 if (AppPermissions.IsBranchManagement(permission.Name))
-                    throw new UnauthorizedAccessException("لا يمكن لرئيس الفرع منح صلاحية إدارة الفروع");
+                    throw new UnauthorizedAccessException("لا يمكنك منح صلاحية إدارة الفروع");
             }
         }
     }

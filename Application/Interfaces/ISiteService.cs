@@ -6,7 +6,6 @@ namespace Application.Interfaces
     {
         Task<Site?> GetByIdAsync(int id);
         Task<List<Site>> GetAllAsync();
-        Task<List<Site>> GetByRegionAsync(int regionId);
         Task<Site> AddAsync(Site site);
         Task<bool> UpdateAsync(Site site);
         Task<bool> DeleteAsync(Site site);

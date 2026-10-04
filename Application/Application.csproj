@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <None Include="AddApplicationRegistrationServices.cs" />
+    <EmbeddedResource Include="Common/Data/syria-governorates.geojson" LogicalName="syria-governorates.geojson" />
   </ItemGroup>
 
   <ItemGroup>

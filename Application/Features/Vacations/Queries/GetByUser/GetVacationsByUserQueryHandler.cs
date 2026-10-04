@@ -1,4 +1,5 @@
-﻿using Application.DTOs.Response;
+﻿using Application.Common;
+using Application.DTOs.Response;
 using Application.Interfaces;
 using AutoMapper;
 using MediatR;
@@ -13,39 +14,32 @@ namespace Application.Features.Vacations.Queries.GetByUser
     {
         private readonly IVacationService _service;
         private readonly IUserService _userService;
+        private readonly IUserPermissionService _permissions;
         private readonly IMapper _mapper;
 
         public GetVacationsByUserQueryHandler(
             IVacationService service,
             IUserService userService,
+            IUserPermissionService permissions,
             IMapper mapper)
         {
             _service = service;
             _userService = userService;
+            _permissions = permissions;
             _mapper = mapper;
         }
 
         public async Task<List<VacationResponseDto>> Handle(
             GetVacationsByUserQuery request, CancellationToken ct)
         {
-            var currentUser = await _userService.GetByIdAsync(_userService.UserId)
-                ?? throw new UnauthorizedAccessException("المستخدم غير مصادق");
+            var viewer = await Viewer.CurrentAsync(_userService, _permissions);
 
-            var roleName = currentUser.Role?.Name ?? "";
-            var isSuperAdmin = roleName == "SuperAdmin";
-
-            if (request.UserId != currentUser.Id && !isSuperAdmin)
+            if (request.UserId != viewer.Id)
             {
                 var targetUser = await _userService.GetByIdAsync(request.UserId)
                     ?? throw new KeyNotFoundException("المستخدم غير موجود");
 
-                var isDepartmentManager = roleName == "Manager" && currentUser.DepartmentId == targetUser.DepartmentId;
-                var isBranchManager = roleName == "BranchManager" && currentUser.BranchId == targetUser.BranchId;
-
-                var isOfficeManager = roleName == "OfficeManager" && currentUser.OfficeId != null
-                    && currentUser.OfficeId == targetUser.OfficeId;
-
-                if (!isDepartmentManager && !isBranchManager && !isOfficeManager)
+                if (!VacationAccess.CanViewUser(viewer, targetUser))
                     throw new UnauthorizedAccessException("لا تملك صلاحية عرض إجازات هذا المستخدم");
             }
 

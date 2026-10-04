@@ -8,7 +8,7 @@ namespace API.Hubs
     /// كل مستخدم يُعرَّف بـ NameIdentifier (UserId) — لذلك نرسل عبر Clients.User(userId).
     /// الخادم فقط يرسل؛ لا توجد دوال يستدعيها العميل.
     /// </summary>
-    [Authorize]
+    [Authorize(Policy = "ViewNotifications")]
     public class NotificationHub : Hub
     {
         public const string Path = "/hubs/notifications";

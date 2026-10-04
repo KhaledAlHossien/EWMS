@@ -5,63 +5,58 @@ using AutoMapper;
 using Domain.Enums;
 using MediatR;
 
+using Application.Common;
+
 namespace Application.Features.Vacations.Queries.GetPendingForMe
 {
+    /// <summary>
+    /// الإجازات التي تنتظر قراري: ApproveVacationFirst → المرحلة الأولى لإجازات فرعي،
+    /// ApproveVacationFinal → الاعتماد النهائي لإجازات فرعي (إلا ما وافقتُ عليه بنفسي في المرحلة الأولى). SuperAdmin الكل.
+    /// </summary>
     public class GetPendingVacationsForMeQueryHandler
         : IRequestHandler<GetPendingVacationsForMeQuery, List<VacationResponseDto>>
     {
         private readonly IVacationService _service;
         private readonly IUserService _userService;
+        private readonly IUserPermissionService _permissions;
         private readonly IMapper _mapper;
 
         public GetPendingVacationsForMeQueryHandler(
             IVacationService service,
             IUserService userService,
+            IUserPermissionService permissions,
             IMapper mapper)
         {
             _service = service;
             _userService = userService;
+            _permissions = permissions;
             _mapper = mapper;
         }
 
         public async Task<List<VacationResponseDto>> Handle(
             GetPendingVacationsForMeQuery request, CancellationToken ct)
         {
-            var currentUser = await _userService.GetByIdAsync(_userService.UserId)
-                ?? throw new UnauthorizedAccessException("المستخدم غير مصادق");
+            var viewer = await Viewer.CurrentAsync(_userService, _permissions);
 
-            var roleName = currentUser.Role?.Name ?? "";
+            if (viewer.IsSuperAdmin)
+                return _mapper.Map<List<VacationResponseDto>>(await _service.GetAllPendingAsync());
 
-            // ══════════════════════════════════════════════
-            // المنطق حسب الدور
-            // ══════════════════════════════════════════════
-            List<Domain.Entities.Vacation> list;
+            if (!VacationAccess.CanApproveAny(viewer))
+                throw new UnauthorizedAccessException("ليس لديك صلاحية مراجعة الإجازات");
 
-            switch (roleName)
-            {
-                // ─────────── مدير: يرى إجازات قسمه فقط ───────────
-                case "Manager":
-                    list = await _service.GetPendingForManagerAsync(
-                        currentUser.DepartmentId ?? 0);
-                    break;
+            if (viewer.User.BranchId is not int branchId)
+                throw new InvalidOperationException("حسابك غير مرتبط بفرع");
 
-                // ─────────── رئيس فرع: يرى كل إجازات فرعه ───────────
-                case "BranchManager":
-                    list = await _service.GetPendingForBranchManagerAsync(
-                        currentUser.BranchId ?? 0);
-                    break;
+            var list = new List<Domain.Entities.Vacation>();
+            if (viewer.Has(AppPermissions.ApproveVacationFirst))
+                list.AddRange(await _service.GetPendingInBranchAsync(VacationStatus.PendingManager, branchId));
+            if (viewer.Has(AppPermissions.ApproveVacationFinal))
+                list.AddRange((await _service.GetPendingInBranchAsync(VacationStatus.PendingBranchManager, branchId))
+                    .Where(v => v.FirstApprovedByUserId != viewer.Id));
 
-                // ─────────── SuperAdmin: يرى كل شيء ───────────
-                case "SuperAdmin":
-                    list = await _service.GetAllPendingAsync();
-                    break;
-
-                default:
-                    throw new UnauthorizedAccessException(
-                        "ليس لديك صلاحية مراجعة الإجازات");
-            }
-
-            return _mapper.Map<List<VacationResponseDto>>(list);
+            // لا يراجع أحد إجازته الخاصة
+            var result = list.Where(v => v.UserId != viewer.Id).OrderBy(v => v.StartVac).ToList();
+            return _mapper.Map<List<VacationResponseDto>>(result);
         }
     }
 }

@@ -9,11 +9,11 @@ namespace API.Controllers
 {
     /// <summary>
     /// لوحة المهام: إسناد المهام نزولاً في الهيكل ومتابعتها (لم تُنفَّذ / قيد التنفيذ / تم التنفيذ).
-    /// كل الصلاحيات حسب الدور والنطاق داخل Features/AssignedTasks/AssignedTaskRules.
+    /// الوصول كله يحتاج ViewTaskBoard، وبقية الفحوص بصلاحيات الدور (AssignTaskTo*, HandleUnitTasks) وحدودها داخل Features/AssignedTasks/AssignedTaskRules.
     /// </summary>
     [ApiController]
     [Route("api/AssignedTasks")]
-    [Authorize]
+    [Authorize(Policy = "ViewTaskBoard")]
     public class AssignedTasksController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -33,8 +33,9 @@ namespace API.Controllers
             => Ok(await _mediator.Send(new GetAssignedTaskQuery(id)));
 
         [HttpGet("Targets")]
-        public async Task<ActionResult<List<TaskTargetOptionDto>>> Targets()
-            => Ok(await _mediator.Send(new GetTaskTargetsQuery()));
+        // type: Department | Office | User (الافتراضي أول نوع متاح) — parentTaskId: جهات التفويض من مهمة واردة
+        public async Task<ActionResult<List<TaskTargetOptionDto>>> Targets([FromQuery] string? type = null, [FromQuery] int? parentTaskId = null)
+            => Ok(await _mediator.Send(new GetTaskTargetsQuery(type, parentTaskId)));
 
         [HttpPost("Create")]
         public async Task<ActionResult<AssignedTaskDetailDto>> Create([FromBody] CreateAssignedTaskRequestDto dto)

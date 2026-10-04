@@ -10,19 +10,22 @@ namespace Application.Features.Users.Commands.Delete
         private readonly IAssignedTaskService _assignedTaskService;
         private readonly IMaintenanceRequestService _maintenanceRequestService;
         private readonly IMaintenanceTaskService _maintenanceTaskService;
+        private readonly IVacationService _vacationService;
 
         public DeleteUserCommandHandler(
             IUserService userService,
             ICurrentUserService currentUserService,
             IAssignedTaskService assignedTaskService,
             IMaintenanceRequestService maintenanceRequestService,
-            IMaintenanceTaskService maintenanceTaskService)
+            IMaintenanceTaskService maintenanceTaskService,
+            IVacationService vacationService)
         {
             _userService = userService;
             _currentUserService = currentUserService;
             _assignedTaskService = assignedTaskService;
             _maintenanceRequestService = maintenanceRequestService;
             _maintenanceTaskService = maintenanceTaskService;
+            _vacationService = vacationService;
         }
 
         public async Task<bool> Handle(DeleteUserCommand request, CancellationToken cancellationToken)
@@ -36,6 +39,9 @@ namespace Application.Features.Users.Commands.Delete
             UserRules.EnsureCanChangeExistingUser(_currentUserService, user);
 
             // أسند مهام أو أُسندت إليه أو شارك في سجلها — يُعطَّل الحساب بدل حذفه
+            if (await _vacationService.ExistsForUserAsync(user.Id))
+                throw new InvalidOperationException("لا يمكن حذف موظف له إجازات أو قرارات على إجازات — عطّل حسابه بدلاً من ذلك");
+
             if (await _assignedTaskService.ExistsForUserAsync(user.Id))
                 throw new InvalidOperationException("لا يمكن حذف موظف مرتبط بمهام على لوحة المهام — عطّل حسابه بدلاً من ذلك");
 

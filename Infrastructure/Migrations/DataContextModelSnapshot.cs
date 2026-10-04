@@ -434,6 +434,40 @@ namespace Infrastructure.Migrations
                     b.ToTable("MaintenanceRequests");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Maintenance.MaintenanceRequestActivity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MaintenanceRequestId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("MaintenanceRequestId", "CreatedAt");
+
+                    b.ToTable("MaintenanceRequestActivities");
+                });
+
             modelBuilder.Entity("Domain.Entities.Maintenance.MaintenanceRequestStatus", b =>
                 {
                     b.Property<int>("Id")
@@ -616,36 +650,6 @@ namespace Infrastructure.Migrations
                     b.ToTable("Permissions");
                 });
 
-            modelBuilder.Entity("Domain.Entities.Region", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<double?>("Latitude")
-                        .HasColumnType("float");
-
-                    b.Property<double?>("Longitude")
-                        .HasColumnType("float");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Regions");
-                });
-
             modelBuilder.Entity("Domain.Entities.Role", b =>
                 {
                     b.Property<int>("Id")
@@ -702,6 +706,11 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("GovernorateCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
                     b.Property<double?>("Latitude")
                         .HasColumnType("float");
 
@@ -712,15 +721,12 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<int>("RegionId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
+
+                    b.HasIndex("GovernorateCode");
 
                     b.HasIndex("Name")
                         .IsUnique();
-
-                    b.HasIndex("RegionId");
 
                     b.ToTable("Sites");
                 });
@@ -783,6 +789,23 @@ namespace Infrastructure.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("Domain.Entities.UserSignature", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Image")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("UserSignatures");
                 });
 
             modelBuilder.Entity("Domain.Entities.UserToken", b =>
@@ -857,6 +880,9 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("EndVac")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("FirstApprovedByUserId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsPaid")
                         .HasColumnType("bit");
 
@@ -905,6 +931,8 @@ namespace Infrastructure.Migrations
                     b.HasIndex("BranchId");
 
                     b.HasIndex("DepartmentId");
+
+                    b.HasIndex("FirstApprovedByUserId");
 
                     b.HasIndex("RejectedByUserId");
 
@@ -1138,6 +1166,25 @@ namespace Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Maintenance.MaintenanceRequestActivity", b =>
+                {
+                    b.HasOne("Domain.Entities.Maintenance.MaintenanceRequest", "MaintenanceRequest")
+                        .WithMany()
+                        .HasForeignKey("MaintenanceRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("MaintenanceRequest");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Domain.Entities.Maintenance.MaintenanceTask", b =>
                 {
                     b.HasOne("Domain.Entities.Department", "Department")
@@ -1197,17 +1244,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("Domain.Entities.Site", b =>
-                {
-                    b.HasOne("Domain.Entities.Region", "Region")
-                        .WithMany()
-                        .HasForeignKey("RegionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Region");
-                });
-
             modelBuilder.Entity("Domain.Entities.User", b =>
                 {
                     b.HasOne("Domain.Entities.Branch", "Branch")
@@ -1238,6 +1274,17 @@ namespace Infrastructure.Migrations
                     b.Navigation("Office");
 
                     b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Domain.Entities.UserSignature", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "User")
+                        .WithOne()
+                        .HasForeignKey("Domain.Entities.UserSignature", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Domain.Entities.UserToken", b =>
@@ -1284,6 +1331,11 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Domain.Entities.User", "FirstApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("FirstApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Domain.Entities.User", "RejectedByUser")
                         .WithMany()
                         .HasForeignKey("RejectedByUserId")
@@ -1304,6 +1356,8 @@ namespace Infrastructure.Migrations
                     b.Navigation("Branch");
 
                     b.Navigation("Department");
+
+                    b.Navigation("FirstApprovedByUser");
 
                     b.Navigation("RejectedByUser");
 

@@ -39,7 +39,7 @@ namespace API.Controllers
             return Ok(await _mediator.Send(new CreateVacationCommand(dto, currentUserId)));
         }
 
-        // ========== إلغاء إجازة (من صاحبها، قبل اعتماد رئيس الفرع نهائياً) ==========
+        // ========== إلغاء إجازة (من صاحبها، قبل الاعتماد النهائي) ==========
         [HttpPut("Cancel/{id}")]
         [Authorize(Policy = "CancelVacation")]
         public async Task<ActionResult> Cancel(int id)
@@ -50,7 +50,8 @@ namespace API.Controllers
 
         // ========== الموافقة / الرفض ==========
         [HttpPut("Approve/{id}")]
-        [Authorize(Policy = "ApproveVacation")]
+        [Authorize(Policy = "AnyVacationApprove")]
+        // المرحلة (الأولى أو النهائية) وحدّ الفرع يفحصهما الـ handler
         public async Task<ActionResult> Approve(
             int id, [FromBody] ApproveVacationRequestDto dto)
         {
@@ -60,25 +61,29 @@ namespace API.Controllers
 
         // ========== الإجازات المعلقة للموافق الحالي ==========
         [HttpGet("PendingForMe")]
-        [Authorize(Policy = "ApproveVacation")]
+        [Authorize(Policy = "AnyVacationApprove")]
+        // المرحلة (الأولى أو النهائية) وحدّ الفرع يفحصهما الـ handler
         public async Task<ActionResult<List<VacationResponseDto>>> GetPendingForMe()
             => Ok(await _mediator.Send(new GetPendingVacationsForMeQuery()));
 
         // ========== تفاصيل إجازة (بعد التحقق من الملكية/النطاق داخل الـ Handler) ==========
         [HttpGet("Get/{id}")]
-        [Authorize(Policy = "ViewVacations")]
+        [Authorize(Policy = "AnyVacationView")]
+        // ViewVacations / ViewDepartmentVacations / ViewBranchVacations / صلاحيات الموافقة — حدّ كل واحدة في VacationAccess
         public async Task<ActionResult<VacationResponseDto>> GetById(int id)
             => Ok(await _mediator.Send(new GetVacationByIdQuery(id)));
 
-        // ========== الإجازات ضمن نطاقي: SuperAdmin=الكل، BranchManager=فرعه، Manager=قسمه، غير ذلك=إجازاتي ==========
+        // ========== الإجازات التي تخصني حسب صلاحياتي ==========
         [HttpGet("GetAll")]
-        [Authorize(Policy = "ViewVacations")]
+        [Authorize(Policy = "AnyVacationView")]
+        // إجازاتي + قسمي (ViewDepartmentVacations) + فرعي (ViewBranchVacations أو الموافقة) — في الـ handler
         public async Task<ActionResult<List<VacationResponseDto>>> GetAll()
             => Ok(await _mediator.Send(new GetAllVacationsQuery()));
 
         // ========== إجازات مستخدم معين (بعد التحقق من الملكية/النطاق داخل الـ Handler) ==========
         [HttpGet("User/{userId}")]
-        [Authorize(Policy = "ViewVacations")]
+        [Authorize(Policy = "AnyVacationView")]
+        // حسب VacationAccess.CanViewUser
         public async Task<ActionResult<List<VacationResponseDto>>> GetByUser(int userId)
             => Ok(await _mediator.Send(new GetVacationsByUserQuery(userId)));
 

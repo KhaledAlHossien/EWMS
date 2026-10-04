@@ -26,6 +26,10 @@ namespace Domain.Entities
         
         public bool BranchManagerAccept { get; set; } = false;  // ⚠️ غيّرنا الافتراضي إلى false
 
+        // من وافق في المرحلة الأولى (صاحب ApproveVacationFirst) — null للإجازات القديمة أو التي تجاوزت المرحلة الأولى
+        public int? FirstApprovedByUserId { get; set; }
+        public User? FirstApprovedByUser { get; set; }
+
         // ===== حالة سير العمل (جديد) =====
         public VacationStatus Status { get; set; } = VacationStatus.PendingManager;
 

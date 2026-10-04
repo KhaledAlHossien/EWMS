@@ -1,4 +1,5 @@
-﻿using Application.DTOs.Response;
+﻿using Application.Common;
+using Application.DTOs.Response;
 using Application.Features.Vacations.Query.GetById;
 using Application.Interfaces;
 using AutoMapper;
@@ -14,15 +15,18 @@ namespace Application.Features.Vacations.Queries.GetById
     {
         private readonly IVacationService _service;
         private readonly IUserService _userService;
+        private readonly IUserPermissionService _permissions;
         private readonly IMapper _mapper;
 
         public GetVacationByIdQueryHandler(
             IVacationService service,
             IUserService userService,
+            IUserPermissionService permissions,
             IMapper mapper)
         {
             _service = service;
             _userService = userService;
+            _permissions = permissions;
             _mapper = mapper;
         }
 
@@ -32,19 +36,8 @@ namespace Application.Features.Vacations.Queries.GetById
             var vacation = await _service.GetWithDetailsAsync(request.Id)
                 ?? throw new KeyNotFoundException("الإجازة غير موجودة");
 
-            var currentUser = await _userService.GetByIdAsync(_userService.UserId)
-                ?? throw new UnauthorizedAccessException("المستخدم غير مصادق");
-
-            var roleName = currentUser.Role?.Name ?? "";
-            var isOwner = vacation.UserId == currentUser.Id;
-            var isSuperAdmin = roleName == "SuperAdmin";
-            var isDepartmentManager = roleName == "Manager" && currentUser.DepartmentId == vacation.DepartmentId;
-            var isBranchManager = roleName == "BranchManager" && currentUser.BranchId == vacation.BranchId;
-
-            var isOfficeManager = roleName == "OfficeManager" && currentUser.OfficeId != null
-                && vacation.User?.OfficeId == currentUser.OfficeId;
-
-            if (!isOwner && !isSuperAdmin && !isDepartmentManager && !isBranchManager && !isOfficeManager)
+            var viewer = await Viewer.CurrentAsync(_userService, _permissions);
+            if (!VacationAccess.CanView(viewer, vacation))
                 throw new UnauthorizedAccessException("لا تملك صلاحية عرض هذه الإجازة");
 
             return _mapper.Map<VacationResponseDto>(vacation);

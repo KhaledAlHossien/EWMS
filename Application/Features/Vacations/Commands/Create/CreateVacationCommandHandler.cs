@@ -18,6 +18,7 @@ namespace Application.Features.Vacations.Commands.Create
         private readonly IVacationService _vacationService;
         private readonly IVacationTypeService _vacationTypeService;
         private readonly IUserService _userService;
+        private readonly IUserPermissionService _permissions;
         private readonly INotificationService _notificationService;
         private readonly IMapper _mapper;
 
@@ -28,12 +29,14 @@ namespace Application.Features.Vacations.Commands.Create
             IVacationService vacationService,
             IVacationTypeService vacationTypeService,
             IUserService userService,
+            IUserPermissionService permissions,
             INotificationService notificationService,
             IMapper mapper)
         {
             _vacationService = vacationService;
             _vacationTypeService = vacationTypeService;
             _userService = userService;
+            _permissions = permissions;
             _notificationService = notificationService;
             _mapper = mapper;
         }
@@ -55,15 +58,14 @@ namespace Application.Features.Vacations.Commands.Create
             var user = await _userService.GetByIdAsync(request.UserId)
                 ?? throw new KeyNotFoundException("المستخدم غير موجود");
 
-            // رئيس الفرع و SuperAdmin لا يتبعان لقسم → لا يقدّمان إجازات من النظام (قرار المستخدم 2026-09-27)
-            var roleName = user.Role?.Name ?? "";
-            if (!UserPlacement.For(roleName).NeedsDepartment)
-                throw new InvalidOperationException("لا يمكن لرئيس الفرع أو مدير النظام تقديم طلب إجازة من النظام");
+            // من لا يتبع لقسم (مدير النظام، أو دور مرتبط بفرع فقط) لا يقدّم إجازات من النظام (قرار المستخدم 2026-09-27)
+            if (Application.Common.OrganizationRole.IsSystemAdmin(user))
+                throw new InvalidOperationException("لا يمكن لمدير النظام تقديم طلب إجازة من النظام");
             if (user.DepartmentId is not int departmentId || user.BranchId is not int branchId)
-                throw new InvalidOperationException("حسابك غير مرتبط بقسم وفرع، تواصل مع المسؤول");
+                throw new InvalidOperationException("حسابك غير مرتبط بقسم وفرع، فلا يمكنك تقديم إجازة من النظام");
 
-            // إجازة رئيس القسم تتجاوز مرحلة رئيس القسم وتذهب مباشرة لرئيس الفرع
-            var initialStatus = roleName == "Manager"
+            // من يملك صلاحية الموافقة الأولى تتجاوز إجازته تلك المرحلة وتذهب مباشرة للاعتماد النهائي
+            var initialStatus = await _permissions.HasAsync(user.Id, Application.Common.AppPermissions.ApproveVacationFirst)
                 ? VacationStatus.PendingBranchManager
                 : VacationStatus.PendingManager;
 
@@ -103,7 +105,7 @@ namespace Application.Features.Vacations.Commands.Create
 
                 // إشعار من ينتظر قراره (رئيس القسم، أو رئيس الفرع لإجازة رئيس القسم) — لكل مقطع
                 await VacationNotifier.NotifySubmittedAsync(
-                    _userService, _notificationService, vacation, user.FullName);
+                    _permissions, _notificationService, vacation, user.FullName);
             }
 
             // 7) إعادة القراءة مع العلاقات لكل إجازة تم إنشاؤها

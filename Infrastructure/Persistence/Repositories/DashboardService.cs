@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
 using Application.DTOs.Response;
-using Application.Features.Users;
 using Application.Features.Vacations;
 using Application.Interfaces;
 using Domain.Entities;
@@ -54,7 +53,7 @@ namespace Infrastructure.Persistence.Repositories
                 .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count);
             var tasksPerBranch = await _context.WorkTasks.Where(t => t.IsActive).GroupBy(t => t.BranchId)
                 .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count);
-            var branchManagers = await ManagersByAsync(staff, "BranchManager", u => u.BranchId!.Value);
+            var branchManagers = await ManagersByAsync(staff, "branch", u => u.BranchId!.Value);
 
             return new OverviewDashboardDto
             {
@@ -97,7 +96,7 @@ namespace Infrastructure.Persistence.Repositories
                 .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count);
             var withTasksPerDept = await WithTasks(users).Where(u => u.DepartmentId != null).GroupBy(u => u.DepartmentId!.Value)
                 .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count);
-            var deptManagers = await ManagersByAsync(users.Where(u => u.DepartmentId != null), "Manager", u => u.DepartmentId!.Value);
+            var deptManagers = await ManagersByAsync(users.Where(u => u.DepartmentId != null), "department", u => u.DepartmentId!.Value);
 
             var tasks = await _context.WorkTasks.AsNoTracking()
                 .Where(t => t.BranchId == branchId && t.IsActive)
@@ -116,7 +115,7 @@ namespace Infrastructure.Persistence.Repositories
             {
                 BranchId = branch.Id,
                 BranchName = branch.Name,
-                ManagerNames = await ManagerNamesAsync(users, "BranchManager"),
+                ManagerNames = await ManagerNamesAsync(users, "branch"),
                 DepartmentsCount = departments.Count,
                 OfficesCount = officesPerDept.Values.Sum(),
                 EmployeesCount = await users.CountAsync(),
@@ -154,7 +153,7 @@ namespace Infrastructure.Persistence.Repositories
                 .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count);
             var withTasksPerOffice = await WithTasks(users).Where(u => u.OfficeId != null).GroupBy(u => u.OfficeId!.Value)
                 .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count);
-            var officeManagers = await ManagersByAsync(users.Where(u => u.OfficeId != null), "OfficeManager", u => u.OfficeId!.Value);
+            var officeManagers = await ManagersByAsync(users.Where(u => u.OfficeId != null), "office", u => u.OfficeId!.Value);
 
             var distribution = await TaskDistributionAsync(department.BranchId, u => u.DepartmentId == departmentId);
             var employeesCount = await users.CountAsync();
@@ -165,7 +164,7 @@ namespace Infrastructure.Persistence.Repositories
                 DepartmentName = department.Name,
                 BranchId = department.BranchId,
                 BranchName = department.Branch?.Name ?? "",
-                ManagerNames = await ManagerNamesAsync(users, "Manager"),
+                ManagerNames = await ManagerNamesAsync(users, "department"),
                 OfficesCount = offices.Count,
                 EmployeesCount = employeesCount,
                 TasksCount = distribution.Count,
@@ -215,7 +214,7 @@ namespace Infrastructure.Persistence.Repositories
                 DepartmentName = office.Department?.Name ?? "",
                 BranchId = branchId,
                 BranchName = office.Department?.Branch?.Name ?? "",
-                ManagerNames = string.Join("، ", members.Where(m => m.RoleName == "OfficeManager").Select(m => m.FullName)),
+                ManagerNames = await ManagerNamesAsync(users, "office"),
                 EmployeesCount = members.Count,
                 TasksCount = distribution.Count,
                 EmployeesWithTasks = withTasks,
@@ -244,7 +243,7 @@ namespace Infrastructure.Persistence.Repositories
             if (user == null) return null;
 
             var limit = VacationRules.MaxPaidVacationDaysPerMonth;
-            var canRequest = UserPlacement.For(user.Role?.Name ?? "").NeedsDepartment;
+            var canRequest = user.DepartmentId != null && user.Role?.Name != "SuperAdmin";
             var paidUsed = canRequest
                 ? await _vacationService.GetPaidVacationDaysInMonthAsync(userId, _today.Year, _today.Month)
                 : 0;
@@ -288,7 +287,7 @@ namespace Infrastructure.Persistence.Repositories
                     if (branch == null) return null;
                     vacations = Vacations.Where(v => v.BranchId == branch.Id);
                     scopeName = branch.Name;
-                    pendingLabel = "بانتظار اعتماد رئيس الفرع";
+                    pendingLabel = "بانتظار الاعتماد النهائي";
                     pendingMine = vacations.Where(v => v.Status == VacationStatus.PendingBranchManager);
                     break;
                 case DashboardScope.Department:
@@ -296,7 +295,7 @@ namespace Infrastructure.Persistence.Repositories
                     if (department == null) return null;
                     vacations = Vacations.Where(v => v.DepartmentId == department.Id);
                     scopeName = department.Name;
-                    pendingLabel = "بانتظار موافقة رئيس القسم";
+                    pendingLabel = "بانتظار الموافقة الأولى";
                     pendingMine = vacations.Where(v => v.Status == VacationStatus.PendingManager);
                     break;
                 case DashboardScope.Office:
@@ -428,17 +427,34 @@ namespace Infrastructure.Persistence.Repositories
                 }).ToList();
         }
 
-        private static async Task<string> ManagerNamesAsync(IQueryable<User> users, string roleName)
+        private async Task<string> ManagerNamesAsync(IQueryable<User> users, string unit)
         {
-            var names = await users.Where(u => u.Role.Name == roleName).Select(u => u.FullName).ToListAsync();
+            var names = await PositionUsers(users, unit).Select(u => u.FullName).ToListAsync();
             return string.Join("، ", names);
         }
 
-        private static async Task<Dictionary<int, string>> ManagersByAsync(
-            IQueryable<User> users, string roleName, Func<User, int> key)
+        private async Task<Dictionary<int, string>> ManagersByAsync(
+            IQueryable<User> users, string unit, Func<User, int> key)
         {
-            var list = await users.Where(u => u.Role.Name == roleName).ToListAsync();
+            var list = await PositionUsers(users, unit).ToListAsync();
             return list.GroupBy(key).ToDictionary(g => g.Key, g => string.Join("، ", g.Select(u => u.FullName)));
+        }
+
+        /// <summary>
+        /// "المسؤول" عن الوحدة = من يملك لوحة متابعتها (Role-Permission، لا منصب مستنتج):
+        /// الفرع ViewBranchDashboard، القسم ViewDepartmentDashboard، المكتب ViewOfficeDashboard.
+        /// </summary>
+        private IQueryable<User> PositionUsers(IQueryable<User> users, string unit)
+        {
+            var permission = unit switch
+            {
+                "branch" => "ViewBranchDashboard",
+                "department" => "ViewDepartmentDashboard",
+                "office" => "ViewOfficeDashboard",
+                _ => null
+            };
+            if (permission == null) return users.Where(_ => false);
+            return users.Where(u => _context.RolePermissions.Any(rp => rp.RoleId == u.RoleId && rp.Permission.Name == permission));
         }
 
         // ════════════════════ دوال مساعدة: الإجازات ════════════════════
@@ -515,9 +531,9 @@ namespace Infrastructure.Persistence.Repositories
             {
                 var (type, text) = r.Status switch
                 {
-                    VacationStatus.PendingManager => ("Submitted", "قدّم طلب إجازة — بانتظار رئيس القسم"),
-                    VacationStatus.PendingBranchManager when r.ManagerAccept => ("Forwarded", "وافق رئيس القسم — بانتظار اعتماد رئيس الفرع"),
-                    VacationStatus.PendingBranchManager => ("Submitted", "قدّم طلب إجازة — بانتظار اعتماد رئيس الفرع"),
+                    VacationStatus.PendingManager => ("Submitted", "قدّم طلب إجازة — بانتظار الموافقة الأولى"),
+                    VacationStatus.PendingBranchManager when r.ManagerAccept => ("Forwarded", "تمت الموافقة الأولى — بانتظار الاعتماد النهائي"),
+                    VacationStatus.PendingBranchManager => ("Submitted", "قدّم طلب إجازة — بانتظار الاعتماد النهائي"),
                     VacationStatus.Approved => ("Approved", "اعتُمدت الإجازة نهائياً"),
                     VacationStatus.Rejected => ("Rejected", "رُفض طلب الإجازة"),
                     VacationStatus.Cancelled => ("Cancelled", "ألغى الموظف طلبه"),

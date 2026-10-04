@@ -20,6 +20,7 @@ namespace Application.Common
             new("ViewUsers",   "عرض المستخدمين"),
             new("CreateUser",  "إضافة مستخدم"),
             new("EditUser",    "تعديل مستخدم"),
+            new("ToggleUserActive", "تفعيل حسابات الموظفين وتعطيلها (دون تعديل بياناتهم)"),
             new("DeleteUser",  "حذف مستخدم"),
 
             new("ViewBranches", "عرض الفروع"),
@@ -42,17 +43,39 @@ namespace Application.Common
             new("EditRole",   "تعديل دور وصلاحياته"),
             new("DeleteRole", "حذف دور"),
 
-            new("ViewVacations",   "عرض الإجازات"),
-            new("CreateVacation",  "تقديم طلب إجازة"),
-            new("CancelVacation",  "إلغاء طلب إجازة"),
-            new("ApproveVacation", "الموافقة على الإجازات ورفضها"),
+            // كل صلاحية تحمل حدّها الثابت في معناها، ويطبّقه الـ handler (قرار المستخدم 2026-10-03: Role-Permission فقط، بلا نطاقات)
+            new("ViewVacations",           "عرض إجازاتي"),
+            new("ViewDepartmentVacations", "عرض إجازات موظفي قسمه وإحصائياتها"),
+            new("ViewBranchVacations",     "عرض إجازات موظفي فرعه وإحصائياتها"),
+            new("CreateVacation",          "تقديم طلب إجازة"),
+            new("CancelVacation",          "إلغاء طلب إجازة"),
+            new("ApproveVacationFirst",    "الموافقة الأولى على إجازات موظفي فرعه أو رفضها"),
+            new("ApproveVacationFinal",    "الاعتماد النهائي لإجازات موظفي فرعه أو رفضها"),
 
             new("ViewVacationTypes",  "عرض أنواع الإجازات"),
             new("CreateVacationType", "إضافة نوع إجازة"),
             new("EditVacationType",   "تعديل نوع إجازة"),
             new("DeleteVacationType", "حذف نوع إجازة"),
 
+            // لوحات المتابعة: لوحة وحدة المستخدم وما تحتها (لا لوحة بلا صلاحية، حتى الشخصية)
+            new("ViewOrganizationDashboard", "لوحة نظرة عامة على المؤسسة كلها (كل الفروع)"),
+            new("ViewMyDashboard",           "لوحتي الشخصية في لوحة المتابعة"),
+            new("ViewBranchDashboard",     "لوحة متابعة فرعه وأقسامه ومكاتبه"),
+            new("ViewDepartmentDashboard", "لوحة متابعة قسمه ومكاتبه"),
+            new("ViewOfficeDashboard",     "لوحة متابعة مكتبه"),
+            new("ViewBranchMap",           "عرض خريطة سوريا ببيانات فرعه في لوحة المتابعة"),
+
+            // لوحة المهام المُسندة: ViewTaskBoard تفتح اللوحة (واستقبال ما أُسند للمستخدم شخصياً)، والإسناد والتولّي بصلاحياتهما
+            new("ViewTaskBoard",          "الوصول إلى لوحة المهام واستقبال المهام المسندة إليه شخصياً"),
+            new("AssignTaskToDepartment", "إسناد مهام لأقسام فرعه"),
+            new("AssignTaskToOffice",     "إسناد مهام لمكاتب قسمه"),
+            new("AssignTaskToUser",       "إسناد مهام لموظفي مكتبه"),
+            new("HandleUnitTasks",        "تولّي المهام المسندة لوحدته (تغيير حالتها وتفويضها)"),
+
+            new("ViewMyWorkTasks", "عرض مهام العمل المسندة إليه وصفحاتها"),
             new("ViewWorkTasks",  "عرض مهام العمل وإسنادها"),
+
+            new("ViewNotifications", "عرض الإشعارات واستلامها (الجرس والتنبيهات اللحظية)"),
             new("CreateWorkTask", "إضافة مهمة عمل"),
             new("EditWorkTask",   "تعديل مهمة عمل وإسنادها"),
             new("DeleteWorkTask", "حذف مهمة عمل"),
@@ -67,11 +90,18 @@ namespace Application.Common
             new("CreateMaintenanceTask", "إضافة مهمة صيانة"),
             new("EditMaintenanceTask",   "تعديل مهمة صيانة"),
             new("DeleteMaintenanceTask", "حذف مهمة صيانة"),
+            new("AssignMaintenanceTask", "توجيه مهمة صيانة أو نقلها إلى موظف من قسمه"),
+
+            new("ViewDepartmentMaintenance", "الاطلاع على سجلات صيانة قسمه (وتعديلها وحذفها لمن يملك صلاحيتهما)"),
 
             new("ViewMaintenanceRequests",  "عرض طلبات الصيانة والبحث فيها"),
             new("CreateMaintenanceRequest", "تقديم طلب صيانة"),
-            new("EditMaintenanceRequest",   "تعديل طلب صيانة"),
+            new("EditMaintenanceRequest",   "تعديل بيانات طلب صيانة (وحالته عند التعديل تحتاج صلاحية تغيير الحالة)"),
+            new("ChangeMaintenanceStatus",  "تغيير حالة طلب صيانة (دون تعديل بياناته)"),
             new("DeleteMaintenanceRequest", "حذف طلب صيانة"),
+            new("ViewMaintenanceStats",     "عرض إحصائيات الصيانة (طلبات ومهام: سجلاته وسجلات قسمه لمن يملك الاطلاع على القسم)"),
+            new("AssignMaintenanceRequest", "نقل طلب صيانة من قسمه إلى موظف آخر من قسمه"),
+            new("SignMaintenanceReceipt",   "توقيع أوراق تسليم طلبات صيانة قسمه (اسمه وتوقيعه في الطباعة)"),
 
             new("ViewMaintenanceLookups", "عرض أنواع الأجهزة والشركات والأعطال وحالات الطلب"),
             new("CreateMaintenanceLookup", "إضافة أنواع الأجهزة والشركات والأعطال وحالات الطلب"),
@@ -89,5 +119,46 @@ namespace Application.Common
         /// </summary>
         public static bool IsBranchManagement(string permissionName) =>
             permissionName is "CreateBranch" or "EditBranch" or "DeleteBranch";
+
+        /// <summary>
+        /// سياسات "أيّ من" لواجهات تقبل أكثر من صلاحية (لا صفوف لها في قاعدة البيانات): من يملك واحدة منها يدخل،
+        /// وحدّ كل صلاحية على السجلات يطبّقه الـ handler. مدير النظام يملك كل الصلاحيات فيمرّ دائماً.
+        /// </summary>
+        public static readonly IReadOnlyDictionary<string, string[]> AnyOf = new Dictionary<string, string[]>
+        {
+            ["AnyDepartmentDashboard"] = ["ViewBranchDashboard", "ViewDepartmentDashboard"],
+            ["AnyOfficeDashboard"] = ["ViewBranchDashboard", "ViewDepartmentDashboard", "ViewOfficeDashboard"],
+            ["AnyVacationView"] = ["ViewVacations", "ViewDepartmentVacations", "ViewBranchVacations", "ApproveVacationFirst", "ApproveVacationFinal"],
+            ["AnyVacationApprove"] = ["ApproveVacationFirst", "ApproveVacationFinal"],
+            ["AnyVacationStats"] = ["ViewDepartmentVacations", "ViewBranchVacations"],
+            ["AnyMaintenanceAssign"] = ["AssignMaintenanceRequest", "AssignMaintenanceTask"],
+            ["AnyWorkTaskView"] = ["ViewMyWorkTasks", "ViewWorkTasks", "ViewBranchDashboard", "ViewDepartmentDashboard", "ViewOfficeDashboard"],
+        };
+
+        // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة
+        public const string ViewVacations = "ViewVacations";
+        public const string ViewDepartmentVacations = "ViewDepartmentVacations";
+        public const string ViewBranchVacations = "ViewBranchVacations";
+        public const string ApproveVacationFirst = "ApproveVacationFirst";
+        public const string ApproveVacationFinal = "ApproveVacationFinal";
+        public const string ViewBranchDashboard = "ViewBranchDashboard";
+        public const string ViewDepartmentDashboard = "ViewDepartmentDashboard";
+        public const string ViewOfficeDashboard = "ViewOfficeDashboard";
+        public const string ViewBranchMap = "ViewBranchMap";
+        public const string ViewTaskBoard = "ViewTaskBoard";
+        public const string AssignTaskToDepartment = "AssignTaskToDepartment";
+        public const string AssignTaskToOffice = "AssignTaskToOffice";
+        public const string AssignTaskToUser = "AssignTaskToUser";
+        public const string HandleUnitTasks = "HandleUnitTasks";
+        public const string ViewDepartmentMaintenance = "ViewDepartmentMaintenance";
+        public const string ChangeMaintenanceStatus = "ChangeMaintenanceStatus";
+        public const string ViewMaintenanceStats = "ViewMaintenanceStats";
+        public const string ToggleUserActive = "ToggleUserActive";
+        public const string ViewWorkTasks = "ViewWorkTasks";
+        public const string ViewOrganizationDashboard = "ViewOrganizationDashboard";
+        public const string ViewMyDashboard = "ViewMyDashboard";
+        public const string ViewMyWorkTasks = "ViewMyWorkTasks";
+        public const string ViewNotifications = "ViewNotifications";
+        public const string SignMaintenanceReceipt = "SignMaintenanceReceipt";
     }
 }

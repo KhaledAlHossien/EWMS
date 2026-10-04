@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Application.DTOs.Response;
 using Application.Interfaces;
 using Domain.Entities.Maintenance;
 using Infrastructure.Persistence.Data;
@@ -67,6 +68,24 @@ namespace Infrastructure.Persistence.Repositories
         {
             _context.MaintenanceTasks.Remove(task);
             return (await _context.SaveChangesAsync()) > 0;
+        }
+
+        public async Task FillStatsAsync(Expression<Func<MaintenanceTask, bool>> scope, MaintenanceStatsDto stats)
+        {
+            var query = _context.MaintenanceTasks.Where(scope);
+
+            var now = DateTime.UtcNow;
+            var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+
+            stats.TotalTasks = await query.CountAsync();
+            stats.TasksThisMonth = await query.CountAsync(t => t.CreatedAt >= monthStart);
+
+            stats.TasksByUser = (await query
+                    .GroupBy(t => new { t.UserId, t.User.FullName })
+                    .Select(g => new MaintenanceCountDto { Id = g.Key.UserId, Name = g.Key.FullName, Count = g.Count() })
+                    .ToListAsync())
+                .OrderByDescending(x => x.Count)
+                .ToList();
         }
 
         public async Task<bool> ExistsForUserAsync(int userId) =>

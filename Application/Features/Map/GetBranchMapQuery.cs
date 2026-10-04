@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using MediatR;
@@ -5,9 +6,9 @@ using MediatR;
 namespace Application.Features.Map
 {
     /// <summary>
-    /// خريطة الفرع في لوحة المتابعة (قرار المستخدم 2026-09-29):
-    /// الآن للسوبر ادمن فقط ويتصفح أي فرع. لاحقاً: رئيس كل فرع يرى خريطة فرعه —
-    /// يكفي عندها إضافة حالة "BranchManager" أدناه (branchId == user.BranchId).
+    /// خريطة الفرع في لوحة المتابعة (Role-Permission، 2026-10-03):
+    /// - SuperAdmin يتصفح خريطة أي فرع.
+    /// - من يملك ViewBranchMap يرى خريطة فرعه فقط ببيانات فرعه (ولا يرى فروعاً أخرى).
     /// </summary>
     public record GetBranchMapQuery(int BranchId) : IRequest<BranchMapDto>;
     public record GetMapBranchesQuery : IRequest<List<MapBranchOptionDto>>;
@@ -15,41 +16,49 @@ namespace Application.Features.Map
     public class GetMapBranchesQueryHandler : IRequestHandler<GetMapBranchesQuery, List<MapBranchOptionDto>>
     {
         private readonly IMapService _mapService;
-        private readonly ICurrentUserService _currentUser;
+        private readonly IUserService _userService;
+        private readonly IUserPermissionService _permissions;
 
-        public GetMapBranchesQueryHandler(IMapService mapService, ICurrentUserService currentUser)
+        public GetMapBranchesQueryHandler(IMapService mapService, IUserService userService, IUserPermissionService permissions)
         {
             _mapService = mapService;
-            _currentUser = currentUser;
+            _userService = userService;
+            _permissions = permissions;
         }
 
         public async Task<List<MapBranchOptionDto>> Handle(GetMapBranchesQuery request, CancellationToken cancellationToken)
         {
-            // التنقل بين الفروع للسوبر ادمن فقط
-            if (_currentUser.Role != "SuperAdmin")
-                throw new UnauthorizedAccessException("لا تملك صلاحية تصفح خرائط الفروع");
-            return await _mapService.GetBranchOptionsAsync();
+            var viewer = await Viewer.CurrentAsync(_userService, _permissions);
+            var options = await _mapService.GetBranchOptionsAsync();
+
+            if (viewer.IsSuperAdmin) return options;
+
+            if (!viewer.Has(AppPermissions.ViewBranchMap) || viewer.User.BranchId is not int branchId)
+                throw new UnauthorizedAccessException("لا تملك صلاحية عرض الخريطة");
+
+            return options.Where(b => b.Id == branchId).ToList();
         }
     }
 
     public class GetBranchMapQueryHandler : IRequestHandler<GetBranchMapQuery, BranchMapDto>
     {
         private readonly IMapService _mapService;
-        private readonly ICurrentUserService _currentUser;
+        private readonly IUserService _userService;
+        private readonly IUserPermissionService _permissions;
 
-        public GetBranchMapQueryHandler(IMapService mapService, ICurrentUserService currentUser)
+        public GetBranchMapQueryHandler(IMapService mapService, IUserService userService, IUserPermissionService permissions)
         {
             _mapService = mapService;
-            _currentUser = currentUser;
+            _userService = userService;
+            _permissions = permissions;
         }
 
         public async Task<BranchMapDto> Handle(GetBranchMapQuery request, CancellationToken cancellationToken)
         {
-            var allowed = _currentUser.Role switch
-            {
-                "SuperAdmin" => true,
-                _ => false
-            };
+            var viewer = await Viewer.CurrentAsync(_userService, _permissions);
+
+            var allowed = viewer.IsSuperAdmin
+                || (viewer.Has(AppPermissions.ViewBranchMap) && viewer.User.BranchId == request.BranchId);
             if (!allowed)
                 throw new UnauthorizedAccessException("لا تملك صلاحية عرض خريطة هذا الفرع");
 

@@ -11,6 +11,8 @@ namespace Application.DTOs.Request
         public int Priority { get; set; } = 2;
         public DateTime? DueDate { get; set; }
         public int TargetId { get; set; }
+        /// <summary>Department | Office | User — مطلوب إن كان للمستخدم أكثر من نوع إسناد (يُتجاهل في التفويض: نوعه من المهمة الأصل)</summary>
+        public string? TargetType { get; set; }
         public int? ParentTaskId { get; set; }
     }
 

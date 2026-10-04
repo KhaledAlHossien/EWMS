@@ -22,9 +22,11 @@ namespace Application.Interfaces
         Task<List<Vacation>> GetByStatusAsync(
             VacationStatus status, int? departmentId, int? branchId);
 
-        Task<List<Vacation>> GetPendingForManagerAsync(int departmentId);
-        Task<List<Vacation>> GetPendingForBranchManagerAsync(int branchId);  // ⬅️
+        Task<List<Vacation>> GetPendingInBranchAsync(VacationStatus status, int branchId);
         Task<List<Vacation>> GetAllPendingAsync();
+
+        /// <summary>هل للمستخدم إجازات، أو قرارات موافقة/رفض على إجازات؟ (حماية حذف المستخدم)</summary>
+        Task<bool> ExistsForUserAsync(int userId);
 
         // ==================== CRUD ====================
         Task AddAsync(Vacation vacation);

@@ -65,11 +65,21 @@ namespace Application.DTOs.Response
         public string HeadNames { get; set; } = string.Empty; // من سيتولاها (رئيس القسم/المكتب)
     }
 
+    public class TaskTargetTypeDto
+    {
+        public string Value { get; set; } = string.Empty; // Department | Office | User
+        public string Label { get; set; } = string.Empty;
+    }
+
     public class TaskBoardDto
     {
         public string Mode { get; set; } = string.Empty;   // incoming | outgoing | scope
         public bool CanCreate { get; set; }
         public string TargetTypeLabel { get; set; } = string.Empty; // "قسم" / "مكتب" / "موظف"
+        /// <summary>كل أنواع الإسناد المتاحة لي (حسب صلاحياتي)</summary>
+        public List<TaskTargetTypeDto> TargetTypes { get; set; } = [];
+        /// <summary>يظهر تبويب "كل مهام نطاقي"</summary>
+        public bool HasScope { get; set; }
         public List<AssignedTaskCardDto> Tasks { get; set; } = [];
     }
 }

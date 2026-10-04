@@ -1,4 +1,5 @@
 using Application.Interfaces;
+using Application.Common;
 using Domain.Entities;
 using Domain.Enums;
 
@@ -24,19 +25,21 @@ namespace Application.Features.WorkTasks
         }
 
         /// <summary>
-        /// من يرى بطاقة المهمة: SuperAdmin، أو الموظف المسنَدة إليه،
-        /// أو رؤساء الفرع/القسم/المكتب في نفس الفرع (تظهر لهم في داشبوردات الفرع وتوزيع المهام).
+        /// من يرى بطاقة المهمة: SuperAdmin، أو الموظف المسنَدة إليه، أو من يملك ViewWorkTasks
+        /// أو لوحة متابعة (فرع/قسم/مكتب) في نفس فرع المهمة — تظهر له في اللوحات وتوزيع المهام.
         /// </summary>
         public static async Task EnsureCanViewAsync(
-            IWorkTaskService workTaskService, User currentUser, WorkTask task)
+            IWorkTaskService workTaskService, Viewer viewer, WorkTask task)
         {
-            var role = currentUser.Role?.Name ?? "";
-            if (role == "SuperAdmin") return;
+            if (viewer.IsSuperAdmin) return;
 
-            if (await workTaskService.IsAssignedAsync(task.Id, currentUser.Id)) return;
+            if (await workTaskService.IsAssignedAsync(task.Id, viewer.Id)) return;
 
-            var isLeader = role is "BranchManager" or "Manager" or "OfficeManager";
-            if (isLeader && currentUser.BranchId == task.BranchId) return;
+            var overseesBranch = viewer.Has(AppPermissions.ViewWorkTasks)
+                || viewer.Has(AppPermissions.ViewBranchDashboard)
+                || viewer.Has(AppPermissions.ViewDepartmentDashboard)
+                || viewer.Has(AppPermissions.ViewOfficeDashboard);
+            if (overseesBranch && viewer.User.BranchId == task.BranchId) return;
 
             throw new UnauthorizedAccessException("لا تملك صلاحية عرض هذه المهمة");
         }

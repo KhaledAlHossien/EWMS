@@ -61,9 +61,33 @@ namespace Application.DTOs.Request
         public int PageSize { get; set; } = 20;
     }
 
+    /// <summary>تغيير حالة الطلب فقط (السحب والإفلات في لوحة الحالات)</summary>
+    public class ChangeMaintenanceStatusDto
+    {
+        public int StatusId { get; set; }
+    }
+
+    /// <summary>نقل طلب/مهمة إلى موظف آخر (رئيس القسم)</summary>
+    public class AssignMaintenanceDto
+    {
+        public int UserId { get; set; }
+    }
+
+    /// <summary>صورة التوقيع كـ Data URL (PNG/JPEG)، أو فارغة لحذف التوقيع</summary>
+    public class SignatureRequestDto
+    {
+        public string? Image { get; set; }
+    }
+
     // ==================== مهمة الصيانة ====================
     public class SaveMaintenanceTaskDto
     {
+        /// <summary>
+        /// الموظف الموجَّهة إليه المهمة (عند الإنشاء فقط): رئيس القسم يختار من موظفي قسمه.
+        /// فارغ = المهمة لمن سجّلها. بعد الإنشاء يُغيَّر الموظف بـ Assign/{id}.
+        /// </summary>
+        public int? AssigneeId { get; set; }
+
         public string TaskLocation { get; set; } = string.Empty;
         public string RequestingParty { get; set; } = string.Empty;
         public string RequiredWork { get; set; } = string.Empty;

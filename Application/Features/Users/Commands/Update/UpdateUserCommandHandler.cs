@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using AutoMapper;
@@ -15,6 +16,7 @@ namespace Application.Features.Users.Commands.Update
         private readonly IRolePermissionService _rolePermissionService;
         private readonly ICurrentUserService _currentUserService;
         private readonly IPasswordHasher _passwordHasher;
+        private readonly IUserPermissionService _permissions;
         private readonly IMapper _mapper;
 
         public UpdateUserCommandHandler(
@@ -26,6 +28,7 @@ namespace Application.Features.Users.Commands.Update
             IRolePermissionService rolePermissionService,
             ICurrentUserService currentUserService,
             IPasswordHasher passwordHasher,
+            IUserPermissionService permissions,
             IMapper mapper)
         {
             _userService = userService;
@@ -36,6 +39,7 @@ namespace Application.Features.Users.Commands.Update
             _rolePermissionService = rolePermissionService;
             _currentUserService = currentUserService;
             _passwordHasher = passwordHasher;
+            _permissions = permissions;
             _mapper = mapper;
         }
 
@@ -72,6 +76,12 @@ namespace Application.Features.Users.Commands.Update
             user.DepartmentId = placement.DepartmentId;
             user.OfficeId = placement.OfficeId;
             user.BranchId = placement.BranchId;
+            // تفعيل الحساب أو تعطيله صلاحية منفصلة عن تعديل البيانات (مدير النظام يملكها دائماً)
+            if (request.UserDto.IsActive != user.IsActive
+                && !_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
+                && !await _permissions.HasAsync(_currentUserService.UserId, AppPermissions.ToggleUserActive))
+                throw new UnauthorizedAccessException("لا تملك صلاحية تفعيل الحسابات أو تعطيلها");
+
             user.IsActive = request.UserDto.IsActive;
 
             if (!string.IsNullOrWhiteSpace(request.UserDto.Password))
