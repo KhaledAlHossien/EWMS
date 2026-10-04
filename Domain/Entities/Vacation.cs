@@ -51,6 +51,8 @@ namespace Domain.Entities
         public User? RejectedByUser { get; set; }
         public string? RejectionReason { get; set; }
         public DateTime? RejectedAt { get; set; }
+        // المرحلة التي رُفض فيها الطلب (PendingManager = الأولى، PendingBranchManager = النهائية) — لنموذج الطباعة
+        public VacationStatus? RejectedAtStage { get; set; }
 
         // ===== بيانات الإجازة =====
         public string VacReason { get; set; } = string.Empty;

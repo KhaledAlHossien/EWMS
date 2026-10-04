@@ -19,6 +19,12 @@ namespace Application.Features.Vacations
             _ => "غير معروفة"
         };
 
+        /// <summary>
+        /// تصحيح التاريخ الهجري في نموذج الطباعة بالأيام (تقويم أم القرى + هذا الفرق). نموذج المؤسسة الورقي
+        /// كتب 1448/4/12 لتاريخ 2026/9/22 بينما أم القرى تعطي 1448/4/11، فالفرق +1. عدّله إن اختلفت رؤية الهلال.
+        /// </summary>
+        public const int HijriDayOffset = 1;
+
         /// <summary>رقم الطلب للعرض والطباعة</summary>
         public static string RequestNumber(int id, DateTime createdAt) => $"VAC-{createdAt.Year}-{id:D5}";
 

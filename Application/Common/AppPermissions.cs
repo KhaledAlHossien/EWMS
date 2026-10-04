@@ -52,6 +52,7 @@ namespace Application.Common
             new("CancelVacation",          "إلغاء طلب إجازة"),
             new("ApproveVacationFirst",    "الموافقة الأولى على إجازات موظفي فرعه أو رفضها"),
             new("ApproveVacationFinal",    "الاعتماد النهائي لإجازات موظفي فرعه أو رفضها"),
+            new("PrintVacation",           "طباعة نموذج طلب الإجازة (للإجازات التي يستطيع عرضها)"),
 
             new("ViewVacationTypes",  "عرض أنواع الإجازات"),
             new("CreateVacationType", "إضافة نوع إجازة"),
