@@ -99,10 +99,11 @@ namespace Application.DTOs.Request
         public int UserId { get; set; }
     }
 
-    /// <summary>صورة التوقيع كـ Data URL (PNG/JPEG)، أو فارغة لحذف التوقيع</summary>
+    /// <summary>صورة التوقيع كـ Data URL (PNG/JPEG)، أو فارغة لإيقاف التوقيع — مع كلمة مرور المستخدم للتأكيد</summary>
     public class SignatureRequestDto
     {
         public string? Image { get; set; }
+        public string Password { get; set; } = string.Empty;
     }
 
     // ==================== مهمة الصيانة ====================
