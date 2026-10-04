@@ -11,6 +11,9 @@ namespace Application.DTOs.Response
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
+        public int? BranchId { get; set; }
+        public int? DepartmentId { get; set; }
+        public int? OfficeId { get; set; }
         public List<string> Permissions { get; set; } = new();
     }
 }

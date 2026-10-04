@@ -2,13 +2,14 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace API.Authorization
 {
+    /// <summary>تكفي واحدة من الصلاحيات المذكورة (صلاحية واحدة في الحالة المعتادة)</summary>
     public class PermissionRequirement : IAuthorizationRequirement
     {
-        public PermissionRequirement(string permissionName)
+        public PermissionRequirement(params string[] permissionNames)
         {
-            PermissionName = permissionName;
+            PermissionNames = permissionNames;
         }
 
-        public string PermissionName { get; }
+        public IReadOnlyList<string> PermissionNames { get; }
     }
 }

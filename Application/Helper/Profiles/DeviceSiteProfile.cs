@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.DTOs.Request;
 using Application.DTOs.Response;
 using AutoMapper;
@@ -16,12 +17,10 @@ namespace Application.Helper.Profiles
                     opt => opt.MapFrom(src => src.Device != null ? src.Device.Model : string.Empty))
                 .ForMember(dest => dest.SiteName,
                     opt => opt.MapFrom(src => src.Site != null ? src.Site.Name : string.Empty))
-                .ForMember(dest => dest.RegionId,
-                    opt => opt.MapFrom(src => src.Site != null ? src.Site.RegionId : 0))
-                .ForMember(dest => dest.RegionName,
-                    opt => opt.MapFrom(src => src.Site != null && src.Site.Region != null
-                        ? src.Site.Region.Name
-                        : string.Empty));
+                .ForMember(dest => dest.GovernorateCode,
+                    opt => opt.MapFrom(src => src.Site != null ? src.Site.GovernorateCode : string.Empty))
+                .ForMember(dest => dest.GovernorateName,
+                    opt => opt.MapFrom(src => src.Site != null ? Governorates.NameOf(src.Site.GovernorateCode) : string.Empty));
 
             CreateMap<CreateDeviceSiteRequestDto, DeviceSite>();
             CreateMap<UpdateDeviceSiteRequestDto, DeviceSite>();

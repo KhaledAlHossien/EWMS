@@ -70,6 +70,10 @@ namespace API.SystemBuild
                         policy.Requirements.Add(new PermissionRequirement(permission)));
                 }
 
+                // سياسات "أيّ من" (AppPermissions.AnyOf)
+                foreach (var (name, permissions) in AppPermissions.AnyOf)
+                    options.AddPolicy(name, policy => policy.Requirements.Add(new PermissionRequirement(permissions)));
+
                 // توثيق الأجهزة: صلاحية الدور أو الانتماء لقسم العمليات (DeviceInventory:OwnerDepartmentId)
                 options.AddPolicy("ViewDevices", policy =>
                     policy.Requirements.Add(new DeviceAccessRequirement(DeviceOperation.View)));

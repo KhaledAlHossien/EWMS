@@ -28,6 +28,8 @@ namespace Infrastructure
             services.AddScoped<IOfficeService, OfficeService>();
             services.AddScoped<IWorkTaskService, WorkTaskService>();
             services.AddScoped<IDashboardService, DashboardService>();
+            services.AddScoped<IUserPermissionService, UserPermissionService>();
+            services.AddScoped<IUserSignatureService, UserSignatureService>();
             services.AddScoped<IAssignedTaskService, AssignedTaskService>();
             services.AddScoped<IDeviceAccessService, DeviceAccessService>();
             services.AddScoped<IMapService, MapService>();
@@ -38,7 +40,6 @@ namespace Infrastructure
             services.AddScoped<IVacationService, VacationService>();
             services.AddScoped<IVacationTypeService, VacationTypeService>();
             services.AddScoped<INotificationService, NotificationService>();
-            services.AddScoped<IRegionService, RegionService>();
             services.AddScoped<ISiteService, SiteService>();
             services.AddScoped<IDeviceService, DeviceService>();
             services.AddScoped<IDeviceSiteService, DeviceSiteService>();

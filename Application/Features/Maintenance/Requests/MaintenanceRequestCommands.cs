@@ -1,7 +1,9 @@
+using Application.Common;
 using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using AutoMapper;
+using Domain.Entities;
 using Domain.Entities.Maintenance;
 using FluentValidation;
 using MediatR;
@@ -11,6 +13,12 @@ namespace Application.Features.Maintenance.Requests
     public record CreateMaintenanceRequestCommand(SaveMaintenanceRequestDto Dto) : IRequest<MaintenanceRequestResponseDto>;
     public record UpdateMaintenanceRequestCommand(int Id, SaveMaintenanceRequestDto Dto) : IRequest<MaintenanceRequestResponseDto>;
     public record DeleteMaintenanceRequestCommand(int Id) : IRequest<Unit>;
+
+    /// <summary>تغيير الحالة فقط (لوحة الحالات) — نفس نطاق التعديل</summary>
+    public record ChangeMaintenanceRequestStatusCommand(int Id, int StatusId) : IRequest<MaintenanceRequestResponseDto>;
+
+    /// <summary>نقل الطلب إلى فني آخر — رئيس القسم (داخل قسمه) أو السوبر ادمن</summary>
+    public record AssignMaintenanceRequestCommand(int Id, int UserId) : IRequest<MaintenanceRequestResponseDto>;
 
     // ════════════════════ التحقق من المدخلات ════════════════════
 
@@ -24,7 +32,8 @@ namespace Application.Features.Maintenance.Requests
 
             RuleFor(x => x.ClientPhone)
                 .MaximumLength(30).WithMessage("رقم الهاتف لا يتجاوز 30 خانة")
-                .Matches(@"^[0-9+\-\s()]*$").WithMessage("رقم الهاتف يحتوي على رموز غير صحيحة");
+                .Must(MaintenanceRules.IsValidPhone)
+                .WithMessage("رقم الهاتف غير صحيح — مثال: 0933123456 أو 0112345678 أو ‎+963933123456");
 
             RuleFor(x => x.DeviceTypeId).GreaterThan(0).WithMessage("يجب اختيار نوع الجهاز");
             RuleFor(x => x.DamageTypeId).GreaterThan(0).WithMessage("يجب اختيار نوع العطل");
@@ -55,12 +64,26 @@ namespace Application.Features.Maintenance.Requests
             RuleFor(x => x.Dto).SetValidator(new SaveMaintenanceRequestDtoValidator());
     }
 
+    public class ChangeMaintenanceRequestStatusCommandValidator : AbstractValidator<ChangeMaintenanceRequestStatusCommand>
+    {
+        public ChangeMaintenanceRequestStatusCommandValidator() =>
+            RuleFor(x => x.StatusId).GreaterThan(0).WithMessage("يجب اختيار حالة الطلب");
+    }
+
+    public class AssignMaintenanceRequestCommandValidator : AbstractValidator<AssignMaintenanceRequestCommand>
+    {
+        public AssignMaintenanceRequestCommandValidator() =>
+            RuleFor(x => x.UserId).GreaterThan(0).WithMessage("يجب اختيار الموظف");
+    }
+
     // ════════════════════ المعالج ════════════════════
 
     public class MaintenanceRequestCommandsHandler :
         IRequestHandler<CreateMaintenanceRequestCommand, MaintenanceRequestResponseDto>,
         IRequestHandler<UpdateMaintenanceRequestCommand, MaintenanceRequestResponseDto>,
-        IRequestHandler<DeleteMaintenanceRequestCommand, Unit>
+        IRequestHandler<DeleteMaintenanceRequestCommand, Unit>,
+        IRequestHandler<ChangeMaintenanceRequestStatusCommand, MaintenanceRequestResponseDto>,
+        IRequestHandler<AssignMaintenanceRequestCommand, MaintenanceRequestResponseDto>
     {
         private readonly IMaintenanceRequestService _requestService;
         private readonly IDeviceTypeService _deviceTypeService;
@@ -68,6 +91,8 @@ namespace Application.Features.Maintenance.Requests
         private readonly IDeviceCompanyService _companyService;
         private readonly IMaintenanceRequestStatusService _statusService;
         private readonly IUserService _userService;
+        private readonly INotificationService _notifications;
+        private readonly IUserPermissionService _permissions;
         private readonly IMapper _mapper;
 
         public MaintenanceRequestCommandsHandler(
@@ -77,19 +102,36 @@ namespace Application.Features.Maintenance.Requests
             IDeviceCompanyService companyService,
             IMaintenanceRequestStatusService statusService,
             IUserService userService,
+            INotificationService notifications,
+            IUserPermissionService permissions,
             IMapper mapper)
         {
+            _permissions = permissions;
             _requestService = requestService;
             _deviceTypeService = deviceTypeService;
             _damageTypeService = damageTypeService;
             _companyService = companyService;
             _statusService = statusService;
             _userService = userService;
+            _notifications = notifications;
             _mapper = mapper;
         }
 
         private async Task<MaintenanceRequest> LoadAsync(int id) =>
             await _requestService.GetByIdAsync(id) ?? throw new KeyNotFoundException("طلب الصيانة غير موجود");
+
+        private async Task<MaintenanceRequestResponseDto> ToDtoAsync(MaintenanceRequest entity) =>
+            MaintenanceRequestMapping.ToDto(_mapper, entity, await MaintenanceRules.RequestScopesAsync(_userService, _permissions));
+
+        private Task LogAsync(MaintenanceRequest request, User actor, MaintenanceActivityType type, string text) =>
+            _requestService.AddActivityAsync(new MaintenanceRequestActivity
+            {
+                MaintenanceRequestId = request.Id,
+                UserId = actor.Id,
+                Type = type,
+                Text = text,
+                CreatedAt = DateTime.UtcNow
+            });
 
         private async Task EnsureReferencesAsync(SaveMaintenanceRequestDto dto)
         {
@@ -107,7 +149,7 @@ namespace Application.Features.Maintenance.Requests
         private static void Trim(MaintenanceRequest r)
         {
             r.ClientName = r.ClientName.Trim();
-            r.ClientPhone = r.ClientPhone.Trim();
+            r.ClientPhone = MaintenanceRules.NormalizePhone(r.ClientPhone); // يُحفظ أرقاماً متصلة
             r.Model = r.Model.Trim();
             r.SerialNumber = r.SerialNumber.Trim();
             r.Accessories = r.Accessories.Trim();
@@ -128,7 +170,11 @@ namespace Application.Features.Maintenance.Requests
             entity.CreatedAt = entity.UpdatedAt = DateTime.UtcNow;
 
             var created = await _requestService.AddAsync(entity);
-            return _mapper.Map<MaintenanceRequestResponseDto>(await LoadAsync(created.Id));
+
+            await LogAsync(created, user, MaintenanceActivityType.Created, "سجّل الطلب");
+            await MaintenanceNotifier.RequestCreatedAsync(_notifications, _permissions, created, user);
+
+            return await ToDtoAsync(await LoadAsync(created.Id));
         }
 
         public async Task<MaintenanceRequestResponseDto> Handle(UpdateMaintenanceRequestCommand request, CancellationToken ct)
@@ -136,10 +182,18 @@ namespace Application.Features.Maintenance.Requests
             var user = await MaintenanceRules.CurrentUserAsync(_userService);
             var entity = await LoadAsync(request.Id);
 
-            MaintenanceRules.EnsureCanAccess(user, entity.UserId, entity.DepartmentId,
+            MaintenanceRules.Ensure(MaintenanceRules.In(await MaintenanceRules.BoundaryAsync(_userService, _permissions, "EditMaintenanceRequest"), entity),
                 "لا يمكنك تعديل طلب صيانة خارج نطاقك");
 
             await EnsureReferencesAsync(request.Dto);
+
+            // تغيير الحالة عبر نموذج التعديل يحتاج صلاحية تغيير الحالة أيضاً (دون تعديل بقية البيانات إن لم يملكها)
+            if (request.Dto.MaintenanceRequestStatusId != entity.MaintenanceRequestStatusId)
+                MaintenanceRules.Ensure(MaintenanceRules.In(await MaintenanceRules.BoundaryAsync(_userService, _permissions, AppPermissions.ChangeMaintenanceStatus), entity),
+                    "لا تملك صلاحية تغيير حالة الطلب — أبقِ الحالة كما هي");
+
+            var oldStatusId = entity.MaintenanceRequestStatusId;
+            var oldStatusName = entity.MaintenanceRequestStatus?.Name ?? "";
 
             // الفني والقسم وتاريخ الإنشاء لا تتغير (ليست في الـ DTO)
             _mapper.Map(request.Dto, entity);
@@ -147,7 +201,78 @@ namespace Application.Features.Maintenance.Requests
             entity.UpdatedAt = DateTime.UtcNow;
 
             await _requestService.UpdateAsync(entity);
-            return _mapper.Map<MaintenanceRequestResponseDto>(await LoadAsync(entity.Id));
+
+            var updated = await LoadAsync(entity.Id);
+            var statusChanged = oldStatusId != updated.MaintenanceRequestStatusId;
+            var what = statusChanged
+                ? $"غيّر الحالة من «{oldStatusName}» إلى «{updated.MaintenanceRequestStatus?.Name}»"
+                : "عدّل بيانات الطلب";
+
+            await LogAsync(updated, user,
+                statusChanged ? MaintenanceActivityType.StatusChanged : MaintenanceActivityType.Edited, what);
+
+            await MaintenanceNotifier.RequestChangedAsync(_notifications, _permissions, updated, user, what);
+
+            return await ToDtoAsync(updated);
+        }
+
+        public async Task<MaintenanceRequestResponseDto> Handle(ChangeMaintenanceRequestStatusCommand request, CancellationToken ct)
+        {
+            var user = await MaintenanceRules.CurrentUserAsync(_userService);
+            var entity = await LoadAsync(request.Id);
+
+            MaintenanceRules.Ensure(MaintenanceRules.In(await MaintenanceRules.BoundaryAsync(_userService, _permissions, AppPermissions.ChangeMaintenanceStatus), entity),
+                "لا تملك صلاحية تغيير حالة هذا الطلب");
+
+            if (entity.MaintenanceRequestStatusId == request.StatusId)
+                return await ToDtoAsync(entity);
+
+            if (!await _statusService.ExistsAsync(request.StatusId))
+                throw new KeyNotFoundException("حالة الطلب المحددة غير موجودة");
+
+            var oldStatusName = entity.MaintenanceRequestStatus?.Name ?? "";
+
+            entity.MaintenanceRequestStatusId = request.StatusId;
+            entity.UpdatedAt = DateTime.UtcNow;
+            await _requestService.UpdateAsync(entity);
+
+            var updated = await LoadAsync(entity.Id);
+            var what = $"غيّر الحالة من «{oldStatusName}» إلى «{updated.MaintenanceRequestStatus?.Name}»";
+
+            await LogAsync(updated, user, MaintenanceActivityType.StatusChanged, what);
+            await MaintenanceNotifier.RequestChangedAsync(_notifications, _permissions, updated, user, what);
+
+            return await ToDtoAsync(updated);
+        }
+
+        public async Task<MaintenanceRequestResponseDto> Handle(AssignMaintenanceRequestCommand request, CancellationToken ct)
+        {
+            var user = await MaintenanceRules.CurrentUserAsync(_userService);
+            var entity = await LoadAsync(request.Id);
+
+            var assign = await MaintenanceRules.BoundaryAsync(_userService, _permissions, "AssignMaintenanceRequest");
+            MaintenanceRules.Ensure(MaintenanceRules.In(assign, entity), "لا يمكنك نقل طلب صيانة خارج نطاقك");
+
+            var target = await MaintenanceRules.ResolveAssigneeAsync(_userService, assign, request.UserId);
+
+            if (target.Id == entity.UserId)
+                return await ToDtoAsync(entity);
+
+            var previousUserId = entity.UserId;
+            var previousName = entity.User?.FullName ?? "";
+
+            entity.UserId = target.Id;
+            entity.DepartmentId = target.DepartmentId;
+            entity.UpdatedAt = DateTime.UtcNow;
+            await _requestService.UpdateAsync(entity);
+
+            var updated = await LoadAsync(entity.Id);
+
+            await LogAsync(updated, user, MaintenanceActivityType.Reassigned,
+                $"نقل الطلب من {previousName} إلى {target.FullName}");
+            await MaintenanceNotifier.RequestReassignedAsync(_notifications, updated, user, previousUserId, target);
+
+            return await ToDtoAsync(updated);
         }
 
         public async Task<Unit> Handle(DeleteMaintenanceRequestCommand request, CancellationToken ct)
@@ -155,11 +280,25 @@ namespace Application.Features.Maintenance.Requests
             var user = await MaintenanceRules.CurrentUserAsync(_userService);
             var entity = await LoadAsync(request.Id);
 
-            MaintenanceRules.EnsureCanAccess(user, entity.UserId, entity.DepartmentId,
+            MaintenanceRules.Ensure(MaintenanceRules.In(await MaintenanceRules.BoundaryAsync(_userService, _permissions, "DeleteMaintenanceRequest"), entity),
                 "لا يمكنك حذف طلب صيانة خارج نطاقك");
 
             await _requestService.DeleteAsync(entity);
             return Unit.Value;
+        }
+    }
+
+    /// <summary>التحويل إلى DTO مع ما يستطيعه المستخدم الحالي على السجل</summary>
+    public static class MaintenanceRequestMapping
+    {
+        public static MaintenanceRequestResponseDto ToDto(IMapper mapper, MaintenanceRequest entity, MaintenanceRules.Scopes scopes)
+        {
+            var dto = mapper.Map<MaintenanceRequestResponseDto>(entity);
+            dto.CanEdit = MaintenanceRules.In(scopes.Edit, entity);
+            dto.CanDelete = MaintenanceRules.In(scopes.Delete, entity);
+            dto.CanAssign = MaintenanceRules.In(scopes.Assign, entity);
+            dto.CanChangeStatus = MaintenanceRules.In(scopes.Status, entity);
+            return dto;
         }
     }
 }

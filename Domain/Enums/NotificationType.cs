@@ -12,6 +12,9 @@
         WorkTaskAssigned = 8,                 // أُسندت للموظف مهمة عمل
         TaskAssigned = 9,                     // مهمة جديدة على لوحة المهام (للجهة المُسندة إليها)
         TaskStatusChanged = 10,               // تغيّرت حالة مهمة أسندتُها
-        TaskCommented = 11                    // تعليق جديد على مهمة
+        TaskCommented = 11,                   // تعليق جديد على مهمة
+        MaintenanceRequestCreated = 12,       // طلب صيانة جديد (لرئيس القسم)
+        MaintenanceAssigned = 13,             // نُقل طلب/مهمة صيانة إلى موظف آخر
+        MaintenanceStatusChanged = 14         // تغيّرت حالة طلب صيانة أو عُدّل
     }
 }

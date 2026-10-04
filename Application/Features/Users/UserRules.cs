@@ -7,8 +7,10 @@ namespace Application.Features.Users
     internal static class UserRules
     {
         /// <summary>
-        /// يتحقق من الفرع/القسم/المكتب المطلوبة حسب الدور (UserPlacement) ويعيدها بعد التنظيف:
-        /// ما لا يحتاجه الدور يُحذف (null) حتى لو أُرسل — مثلاً رئيس الفرع لا يُحفظ له قسم.
+        /// مكان الموظف يُحدَّد في نموذج الموظف نفسه، والدور قالب صلاحيات فقط (قرار المستخدم 2026-10-03).
+        /// كل الحقول اختيارية (فرع فقط، أو فرع + قسم، أو فرع + قسم + مكتب) ولا تعتمد على الدور،
+        /// والأعلى يُشتق من الأدق: المكتب يحدد قسمه، والقسم يحدد فرعه، ويُرفض أي تعارض.
+        /// مدير النظام (SuperAdmin) لا يتبع لأي وحدة.
         /// </summary>
         public static async Task<(int? BranchId, int? DepartmentId, int? OfficeId)> EnsureUserReferencesAsync(
             IBranchService branchService,
@@ -23,37 +25,36 @@ namespace Application.Features.Users
             var role = await roleService.GetByIdAsync(roleId)
                 ?? throw new KeyNotFoundException("الدور غير موجود");
 
-            var placement = UserPlacement.For(role.Name);
-
-            if (!placement.NeedsBranch)
+            if (role.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
                 return (null, null, null);
 
-            if (branchId is not > 0)
-                throw new ArgumentException("الفرع مطلوب لهذا الدور");
-            if (!await branchService.ExistsAsync(branchId.Value))
+            int? office = officeId is > 0 ? officeId : null;
+            int? department = departmentId is > 0 ? departmentId : null;
+            int? branch = branchId is > 0 ? branchId : null;
+
+            if (office != null)
+            {
+                var o = await officeService.GetByIdAsync(office.Value)
+                    ?? throw new KeyNotFoundException("المكتب غير موجود");
+                if (department != null && department != o.DepartmentId)
+                    throw new InvalidOperationException("المكتب لا يتبع القسم المحدد");
+                department = o.DepartmentId;
+            }
+
+            if (department != null)
+            {
+                var d = await departmentService.GetByIdAsync(department.Value)
+                    ?? throw new KeyNotFoundException("القسم غير موجود");
+                if (branch != null && branch != d.BranchId)
+                    throw new InvalidOperationException("القسم لا يتبع الفرع المحدد");
+                branch = d.BranchId;
+            }
+            else if (branch != null && !await branchService.ExistsAsync(branch.Value))
+            {
                 throw new KeyNotFoundException("الفرع غير موجود");
+            }
 
-            if (!placement.NeedsDepartment)
-                return (branchId, null, null);
-
-            if (departmentId is not > 0)
-                throw new ArgumentException("القسم مطلوب لهذا الدور");
-            var department = await departmentService.GetByIdAsync(departmentId.Value)
-                ?? throw new KeyNotFoundException("القسم غير موجود");
-            if (department.BranchId != branchId)
-                throw new InvalidOperationException("القسم لا يتبع الفرع المحدد");
-
-            if (!placement.NeedsOffice)
-                return (branchId, departmentId, null);
-
-            if (officeId is not > 0)
-                throw new ArgumentException("المكتب مطلوب لهذا الدور");
-            var office = await officeService.GetByIdAsync(officeId.Value)
-                ?? throw new KeyNotFoundException("المكتب غير موجود");
-            if (office.DepartmentId != departmentId)
-                throw new InvalidOperationException("المكتب لا يتبع القسم المحدد");
-
-            return (branchId, departmentId, officeId);
+            return (branch, department, office);
         }
 
         public static async Task EnsureCanManageUserAsync(
@@ -70,11 +71,11 @@ namespace Application.Features.Users
                 ?? throw new KeyNotFoundException("الدور غير موجود");
 
             if (role.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
-                throw new UnauthorizedAccessException("لا يمكن لرئيس الفرع منح دور SuperAdmin");
+                throw new UnauthorizedAccessException("لا يمكنك منح دور SuperAdmin");
 
             var rolePermissions = await rolePermissionService.GetByRoleAsync(roleId);
             if (rolePermissions.Any(rp => AppPermissions.IsBranchManagement(rp.Permission.Name)))
-                throw new UnauthorizedAccessException("لا يمكن لرئيس الفرع منح صلاحية إدارة الفروع");
+                throw new UnauthorizedAccessException("لا يمكنك منح صلاحية إدارة الفروع");
 
             if (currentUserService.BranchId != branchId)
                 throw new UnauthorizedAccessException("لا يمكنك إدارة مستخدم خارج فرعك");

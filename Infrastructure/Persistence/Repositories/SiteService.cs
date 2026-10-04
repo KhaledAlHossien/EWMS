@@ -17,24 +17,15 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<Site?> GetByIdAsync(int id)
         {
             return await _context.Sites
-                .Include(s => s.Region)
                 .FirstOrDefaultAsync(s => s.Id == id);
         }
 
         public async Task<List<Site>> GetAllAsync()
         {
             return await _context.Sites
-                .Include(s => s.Region)
                 .ToListAsync();
         }
 
-        public async Task<List<Site>> GetByRegionAsync(int regionId)
-        {
-            return await _context.Sites
-                .Include(s => s.Region)
-                .Where(s => s.RegionId == regionId)
-                .ToListAsync();
-        }
 
         public async Task<Site> AddAsync(Site site)
         {

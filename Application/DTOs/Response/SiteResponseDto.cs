@@ -7,7 +7,7 @@ namespace Application.DTOs.Response
         public string Description { get; set; } = string.Empty;
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
-        public int RegionId { get; set; }
-        public string RegionName { get; set; } = string.Empty;
+        public string GovernorateCode { get; set; } = string.Empty;
+        public string GovernorateName { get; set; } = string.Empty;
     }
 }

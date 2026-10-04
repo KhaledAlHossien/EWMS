@@ -28,6 +28,10 @@ namespace Application.Features.Roles.Commands.Delete
                 && !_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
                 throw new UnauthorizedAccessException("لا يمكن حذف دور SuperAdmin إلا من SuperAdmin");
 
+            // دور SuperAdmin لا يُحذف أبداً (مدير النظام يُعرَّف باسم دوره)
+            if (role.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("لا يمكن حذف دور SuperAdmin");
+
             if (await _roleService.IsRoleUsedAsync(role.Id))
                 throw new InvalidOperationException("لا يمكن حذف دور مرتبط بمستخدمين");
 

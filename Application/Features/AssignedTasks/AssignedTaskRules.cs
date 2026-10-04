@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Application.DTOs.Response;
+using Application.Common;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
@@ -7,23 +8,33 @@ using Domain.Enums;
 namespace Application.Features.AssignedTasks
 {
     /// <summary>
-    /// قواعد لوحة المهام (قرار المستخدم 2026-09-28):
-    /// - الإسناد نزولاً فقط: رئيس الفرع ← قسم من فرعه، رئيس القسم ← مكتب من قسمه، رئيس المكتب ← موظف من مكتبه.
-    /// - مهمة القسم يتولاها رئيس القسم، ومهمة المكتب رئيس المكتب، ومهمة الموظف الموظف نفسه ("الجهة المنفِّذة").
-    /// - المنفِّذ فقط يغيّر الحالة (السحب بين الأعمدة) ويفوّض أجزاء منها لجهة أدنى.
+    /// قواعد لوحة المهام — Role-Permission فقط (قرار المستخدم 2026-10-03)، وحدّ كل صلاحية ثابت:
+    /// - AssignTaskToDepartment: الإسناد لأقسام فرعي. AssignTaskToOffice: لمكاتب قسمي. AssignTaskToUser: لموظفي مكتبي.
+    /// - HandleUnitTasks: أتولى المهام المسندة لوحدتي نفسها (قسمي إن كنت أتبع للقسم مباشرة، أو مكتبي) —
+    ///   أغيّر حالتها وأفوّض أجزاء منها درجة واحدة نزولاً (مهمة قسم ← مكتب منه، مهمة مكتب ← موظف منه).
+    /// - مهمة الموظف يتولاها الموظف نفسه بلا صلاحية.
     /// - المُسنِد يعدّل المهمة (ما لم تُنجز) ويحذفها (ما دامت لم تبدأ ولا مهام فرعية لها).
-    /// - الاطلاع: SuperAdmin الكل، والرؤساء على مهام نطاقهم، والمُسنِد والمنفِّذ.
+    /// - الاطلاع: SuperAdmin الكل، والمُسنِد والمنفِّذ، ومن يملك صلاحية إسناد/تولٍّ على مهام الوحدة التي تعمل عليها صلاحيته.
     /// </summary>
     public static class AssignedTaskRules
     {
         public const string RelatedEntityType = "AssignedTask";
 
-        /// <summary>نوع الجهة التي يستطيع الدور الإسناد إليها (null = لا يُسند)</summary>
-        public static AssignedTaskTargetType? TargetTypeFor(string roleName) => roleName switch
+        /// <summary>أنواع الجهات التي يستطيع المستخدم الإسناد إليها (قد تكون أكثر من نوع)</summary>
+        public static List<AssignedTaskTargetType> TargetTypesFor(Viewer v)
         {
-            "BranchManager" => AssignedTaskTargetType.Department,
-            "Manager" => AssignedTaskTargetType.Office,
-            "OfficeManager" => AssignedTaskTargetType.User,
+            var types = new List<AssignedTaskTargetType>();
+            if (v.Has(AppPermissions.AssignTaskToDepartment) && v.User.BranchId != null) types.Add(AssignedTaskTargetType.Department);
+            if (v.Has(AppPermissions.AssignTaskToOffice) && v.User.DepartmentId != null) types.Add(AssignedTaskTargetType.Office);
+            if (v.Has(AppPermissions.AssignTaskToUser) && v.User.OfficeId != null) types.Add(AssignedTaskTargetType.User);
+            return types;
+        }
+
+        /// <summary>الجهة التي تُفوَّض إليها أجزاء مهمة (درجة واحدة نزولاً)، أو null إن لم يكن لها تفويض</summary>
+        public static AssignedTaskTargetType? DelegationTargetFor(AssignedTask t) => t.TargetType switch
+        {
+            AssignedTaskTargetType.Department => AssignedTaskTargetType.Office,
+            AssignedTaskTargetType.Office => AssignedTaskTargetType.User,
             _ => null
         };
 
@@ -36,74 +47,63 @@ namespace Application.Features.AssignedTasks
         };
 
         /// <summary>هل المستخدم هو الجهة المنفِّذة للمهمة؟</summary>
-        public static bool CanHandle(AssignedTask t, User user)
+        public static bool CanHandle(AssignedTask t, Viewer v) => t.TargetType switch
         {
-            var role = user.Role?.Name ?? "";
-            return t.TargetType switch
-            {
-                AssignedTaskTargetType.Department => role == "Manager" && user.DepartmentId == t.DepartmentId,
-                AssignedTaskTargetType.Office => role == "OfficeManager" && user.OfficeId == t.OfficeId,
-                AssignedTaskTargetType.User => t.AssigneeUserId == user.Id,
-                _ => false
-            };
-        }
+            AssignedTaskTargetType.Department => v.Has(AppPermissions.HandleUnitTasks) && OrganizationRole.IsInDepartmentItself(v.User, t.DepartmentId),
+            AssignedTaskTargetType.Office => v.Has(AppPermissions.HandleUnitTasks) && OrganizationRole.IsInOffice(v.User, t.OfficeId),
+            AssignedTaskTargetType.User => t.AssigneeUserId == v.Id,
+            _ => false
+        };
 
-        public static bool CanView(AssignedTask t, User user)
-        {
-            var role = user.Role?.Name ?? "";
-            return role == "SuperAdmin"
-                || t.CreatedByUserId == user.Id
-                || CanHandle(t, user)
-                || (role == "BranchManager" && user.BranchId == t.BranchId)
-                || (role == "Manager" && user.DepartmentId != null && user.DepartmentId == t.DepartmentId)
-                || (role == "OfficeManager" && user.OfficeId != null && user.OfficeId == t.OfficeId);
-        }
+        public static bool CanView(AssignedTask t, Viewer v) =>
+            v.IsSuperAdmin || t.CreatedByUserId == v.Id || CanHandle(t, v) || Scope(v).Compile()(t);
 
         /// <summary>الواردة: المهام التي أنا منفِّذها</summary>
-        public static Expression<Func<AssignedTask, bool>> Incoming(User user)
+        public static Expression<Func<AssignedTask, bool>> Incoming(Viewer v)
         {
-            var role = user.Role?.Name ?? "";
-            var userId = user.Id;
-            var departmentId = user.DepartmentId;
-            var officeId = user.OfficeId;
-            return role switch
-            {
-                "Manager" => t => (t.TargetType == AssignedTaskTargetType.Department && t.DepartmentId == departmentId)
-                                  || (t.TargetType == AssignedTaskTargetType.User && t.AssigneeUserId == userId),
-                "OfficeManager" => t => (t.TargetType == AssignedTaskTargetType.Office && t.OfficeId == officeId)
-                                        || (t.TargetType == AssignedTaskTargetType.User && t.AssigneeUserId == userId),
-                _ => t => t.TargetType == AssignedTaskTargetType.User && t.AssigneeUserId == userId
-            };
+            var userId = v.Id;
+            var handles = v.Has(AppPermissions.HandleUnitTasks);
+            var ownDepartment = v.User.OfficeId == null ? v.User.DepartmentId : null; // أتبع للقسم مباشرة
+            var ownOffice = v.User.OfficeId;
+            return t => (t.TargetType == AssignedTaskTargetType.User && t.AssigneeUserId == userId)
+                || (handles && ownDepartment != null && t.TargetType == AssignedTaskTargetType.Department && t.DepartmentId == ownDepartment)
+                || (handles && ownOffice != null && t.TargetType == AssignedTaskTargetType.Office && t.OfficeId == ownOffice);
         }
 
-        /// <summary>كل المهام ضمن نطاق المستخدم (للاطلاع والمتابعة)</summary>
-        public static Expression<Func<AssignedTask, bool>> Scope(User user)
+        /// <summary>كل المهام التي أتابعها بحكم صلاحياتي (للتبويب "كل مهام نطاقي")</summary>
+        public static Expression<Func<AssignedTask, bool>> Scope(Viewer v)
         {
-            var role = user.Role?.Name ?? "";
-            var branchId = user.BranchId;
-            var departmentId = user.DepartmentId;
-            var officeId = user.OfficeId;
-            return role switch
-            {
-                "SuperAdmin" => t => true,
-                "BranchManager" => t => t.BranchId == branchId,
-                "Manager" => t => t.DepartmentId == departmentId,
-                "OfficeManager" => t => t.OfficeId == officeId,
-                _ => Incoming(user)
-            };
+            if (v.IsSuperAdmin) return t => true;
+
+            var user = v.User;
+            var handles = v.Has(AppPermissions.HandleUnitTasks);
+            int? byBranch = v.Has(AppPermissions.AssignTaskToDepartment) ? user.BranchId : null;
+            int? byDepartment = v.Has(AppPermissions.AssignTaskToOffice) || (handles && user.OfficeId == null) ? user.DepartmentId : null;
+            int? byOffice = v.Has(AppPermissions.AssignTaskToUser) || handles ? user.OfficeId : null;
+            var userId = user.Id;
+
+            return t => t.CreatedByUserId == userId
+                || (t.TargetType == AssignedTaskTargetType.User && t.AssigneeUserId == userId)
+                || (byBranch != null && t.BranchId == byBranch)
+                || (byDepartment != null && t.DepartmentId == byDepartment)
+                || (byOffice != null && t.OfficeId == byOffice);
         }
+
+        /// <summary>هل يظهر تبويب "كل مهام نطاقي"؟</summary>
+        public static bool HasScope(Viewer v) =>
+            v.IsSuperAdmin || TargetTypesFor(v).Count > 0 || v.Has(AppPermissions.HandleUnitTasks);
 
         /// <summary>المستخدمون الذين يتولون المهمة (لإرسال الإشعارات)</summary>
-        public static async Task<List<int>> HandlerUserIdsAsync(IUserService userService, AssignedTask t)
+        public static async Task<List<int>> HandlerUserIdsAsync(IUserPermissionService permissions, AssignedTask t)
         {
             switch (t.TargetType)
             {
                 case AssignedTaskTargetType.Department when t.DepartmentId is int d:
-                    return (await userService.GetByDepartmentAsync(d))
-                        .Where(u => u.IsActive && u.Role?.Name == "Manager").Select(u => u.Id).ToList();
+                    return (await permissions.GetUsersWithPermissionAsync(AppPermissions.HandleUnitTasks, departmentId: d, exactUnit: true))
+                        .Select(u => u.Id).ToList();
                 case AssignedTaskTargetType.Office when t.OfficeId is int o:
-                    return (await userService.GetByOfficeAsync(o))
-                        .Where(u => u.IsActive && u.Role?.Name == "OfficeManager").Select(u => u.Id).ToList();
+                    return (await permissions.GetUsersWithPermissionAsync(AppPermissions.HandleUnitTasks, officeId: o))
+                        .Select(u => u.Id).ToList();
                 case AssignedTaskTargetType.User when t.AssigneeUserId is int u:
                     return [u];
                 default:
@@ -175,24 +175,21 @@ namespace Application.Features.AssignedTasks
         public static bool IsOverdue(AssignedTask t) =>
             t.Status != AssignedTaskStatus.Done && t.DueDate != null && t.DueDate.Value.Date < DateTime.Today;
 
-        public static AssignedTaskCardDto ToCard(AssignedTask t, User viewer) => Fill(new AssignedTaskCardDto(), t, viewer);
+        public static AssignedTaskCardDto ToCard(AssignedTask t, Viewer viewer) => Fill(new AssignedTaskCardDto(), t, viewer);
 
-        public static AssignedTaskDetailDto ToDetail(AssignedTask t, User viewer)
+        public static AssignedTaskDetailDto ToDetail(AssignedTask t, Viewer viewer)
         {
             var dto = Fill(new AssignedTaskDetailDto(), t, viewer);
             var isCreator = t.CreatedByUserId == viewer.Id;
             var handles = CanHandle(t, viewer);
-            var viewerTarget = TargetTypeFor(viewer.Role?.Name ?? "");
 
             dto.Description = t.Description;
             dto.StartedAt = t.StartedAt;
             dto.CanEdit = isCreator && t.Status != AssignedTaskStatus.Done;
             dto.CanDelete = isCreator && t.Status == AssignedTaskStatus.Todo && t.SubTasks.Count == 0;
             dto.CanComment = CanView(t, viewer);
-            // يفوّض من يتولى مهمة قسم (رئيس القسم ← مكاتبه) أو مهمة مكتب (رئيس المكتب ← موظفيه)
-            dto.CanDelegate = handles && t.Status != AssignedTaskStatus.Done
-                && ((t.TargetType == AssignedTaskTargetType.Department && viewerTarget == AssignedTaskTargetType.Office)
-                    || (t.TargetType == AssignedTaskTargetType.Office && viewerTarget == AssignedTaskTargetType.User));
+            // يفوّض من يتولى مهمة قسم (← مكاتبه) أو مهمة مكتب (← موظفيه)
+            dto.CanDelegate = handles && t.Status != AssignedTaskStatus.Done && DelegationTargetFor(t) != null;
             dto.SubTasks = t.SubTasks.OrderBy(s => s.CreatedAt).Select(s => ToCard(s, viewer)).ToList();
             dto.Activities = t.Activities.OrderBy(a => a.CreatedAt).Select(a => new AssignedTaskActivityDto
             {
@@ -205,7 +202,7 @@ namespace Application.Features.AssignedTasks
             return dto;
         }
 
-        private static T Fill<T>(T dto, AssignedTask t, User viewer) where T : AssignedTaskCardDto
+        private static T Fill<T>(T dto, AssignedTask t, Viewer viewer) where T : AssignedTaskCardDto
         {
             dto.Id = t.Id;
             dto.Title = t.Title;

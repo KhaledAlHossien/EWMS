@@ -1,7 +1,7 @@
 namespace Application.DTOs.Response
 {
     /// <summary>
-    /// خريطة فرع: طبقات بيانات حسب وظيفة الفرع. حالياً طبقة واحدة (المناطق والمواقع لتوثيق الأجهزة)
+    /// خريطة فرع: طبقات بيانات حسب وظيفة الفرع. حالياً طبقة واحدة (مواقع توثيق الأجهزة ومحافظاتها)
     /// تخص فرع قسم العمليات؛ لاحقاً يُضاف لكل فرع طبقته دون تغيير شكل الاستجابة الأساسي.
     /// </summary>
     public class BranchMapDto
@@ -23,31 +23,19 @@ namespace Application.DTOs.Response
 
     public class DevicesMapLayerDto
     {
-        public string Title { get; set; } = "المناطق والمواقع";
-        public List<MapRegionDto> Regions { get; set; } = [];
+        public string Title { get; set; } = "المواقع";
         public List<MapSiteDto> Sites { get; set; } = [];
-        public int RegionsWithoutCoordinates { get; set; }
         public int SitesWithoutCoordinates { get; set; }
     }
 
-    public class MapRegionDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public double? Latitude { get; set; }
-        public double? Longitude { get; set; }
-        public int SitesCount { get; set; }
-        public int InstallationsCount { get; set; }
-    }
 
     public class MapSiteDto
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public int RegionId { get; set; }
-        public string RegionName { get; set; } = string.Empty;
+        public string GovernorateCode { get; set; } = string.Empty;
+        public string GovernorateName { get; set; } = string.Empty;
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
         public int InstallationsCount { get; set; }

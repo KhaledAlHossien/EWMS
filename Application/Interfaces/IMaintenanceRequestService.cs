@@ -24,6 +24,13 @@ namespace Application.Interfaces
         Task<bool> UpdateAsync(MaintenanceRequest request);
         Task<bool> DeleteAsync(MaintenanceRequest request);
 
+        // السجل (من فعل ماذا ومتى)
+        Task AddActivityAsync(MaintenanceRequestActivity activity);
+        Task<List<MaintenanceRequestActivity>> GetActivitiesAsync(int requestId);
+
+        /// <summary>إحصائيات الطلبات ضمن النطاق (بدون أرقام المهام — تُملأ من خدمة المهام)</summary>
+        Task<MaintenanceStatsDto> GetStatsAsync(Expression<Func<MaintenanceRequest, bool>> scope);
+
         // حراسة الحذف (العلاقات Restrict)
         Task<bool> ExistsForUserAsync(int userId);
         Task<bool> ExistsForDepartmentAsync(int departmentId);

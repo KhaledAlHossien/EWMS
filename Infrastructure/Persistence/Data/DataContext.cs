@@ -24,7 +24,6 @@ namespace Infrastructure.Persistence.Data
         public DbSet<VacationType> VacationType { get; set; }
         public DbSet<UserToken> UserTokens { get; set; }
         public DbSet<Notification> Notifications { get; set; }
-        public DbSet<Region> Regions { get; set; }
         public DbSet<Site> Sites { get; set; }
         public DbSet<Device> Devices { get; set; }
         public DbSet<DeviceSite> DeviceSites { get; set; }
@@ -38,6 +37,8 @@ namespace Infrastructure.Persistence.Data
         public DbSet<MaintenanceRequestStatus> MaintenanceRequestStatuses { get; set; }
         public DbSet<MaintenanceRequest> MaintenanceRequests { get; set; }
         public DbSet<MaintenanceTask> MaintenanceTasks { get; set; }
+        public DbSet<MaintenanceRequestActivity> MaintenanceRequestActivities { get; set; }
+        public DbSet<UserSignature> UserSignatures { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -72,9 +73,12 @@ namespace Infrastructure.Persistence.Data
                 .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
                 .IsUnique();
 
-            builder.Entity<Region>()
-                .HasIndex(r => r.Name)
-                .IsUnique();
+            builder.Entity<Site>()
+                .Property(s => s.GovernorateCode)
+                .HasMaxLength(10);
+
+            builder.Entity<Site>()
+                .HasIndex(s => s.GovernorateCode);
 
             builder.Entity<Site>()
                 .HasIndex(s => s.Name)
@@ -115,6 +119,7 @@ namespace Infrastructure.Persistence.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ---------- User ----------
+
             // 3. User -> Role
             builder.Entity<User>()
                 .HasOne(u => u.Role)
@@ -158,13 +163,7 @@ namespace Infrastructure.Persistence.Data
                 .HasForeignKey(ut => ut.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ---------- Region / Site / Device ----------
-            // 7.1 Site -> Region
-            builder.Entity<Site>()
-                .HasOne(s => s.Region)
-                .WithMany()
-                .HasForeignKey(s => s.RegionId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // ---------- Site / Device ----------
 
             // 7.2 DeviceSite -> Device
             builder.Entity<DeviceSite>()
@@ -421,6 +420,12 @@ namespace Infrastructure.Persistence.Data
                     .HasForeignKey(v => v.RejectedByUserId)
                     .OnDelete(DeleteBehavior.Restrict);
 
+                // من وافق في المرحلة الأولى (لا يعتمد نفس الشخص المرحلتين، ويُبلَّغ بالقرار النهائي)
+                entity.HasOne(v => v.FirstApprovedByUser)
+                    .WithMany()
+                    .HasForeignKey(v => v.FirstApprovedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 // فهرس على Status لتسريع الاستعلامات
                 entity.HasIndex(v => v.Status);
 
@@ -431,6 +436,29 @@ namespace Infrastructure.Persistence.Data
                 entity.HasIndex(v => v.StartVac);
                 entity.HasIndex(v => new { v.UserId, v.StartVac, v.EndVac });
                 entity.HasIndex(v => new { v.UserId, v.IsPaid });
+            });
+
+            // ==================== الصيانة: سجل الطلب ====================
+            builder.Entity<MaintenanceRequestActivity>(entity =>
+            {
+                entity.Property(a => a.Text).HasMaxLength(500);
+                entity.Property(a => a.Type).HasConversion<int>();
+
+                // السجل جزء من الطلب: يُحذف معه
+                entity.HasOne(a => a.MaintenanceRequest).WithMany()
+                    .HasForeignKey(a => a.MaintenanceRequestId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(a => a.User).WithMany()
+                    .HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(a => new { a.MaintenanceRequestId, a.CreatedAt });
+            });
+
+            // ==================== توقيع المستخدم ====================
+            builder.Entity<UserSignature>(entity =>
+            {
+                entity.HasKey(s => s.UserId);
+                entity.HasOne(s => s.User).WithOne()
+                    .HasForeignKey<UserSignature>(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

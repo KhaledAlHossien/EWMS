@@ -10,8 +10,8 @@ namespace Application.DTOs.Response
 
         public int SiteId { get; set; }
         public string SiteName { get; set; } = string.Empty;
-        public int RegionId { get; set; }
-        public string RegionName { get; set; } = string.Empty;
+        public string GovernorateCode { get; set; } = string.Empty;
+        public string GovernorateName { get; set; } = string.Empty;
 
         public string Ip { get; set; } = string.Empty;
         public string SubnetMask { get; set; } = string.Empty;

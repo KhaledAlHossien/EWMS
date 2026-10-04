@@ -37,6 +37,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<DataContext>();
     await db.Database.MigrateAsync();
     await DbSeeder.SeedAsync(db);
+    await DbSeeder.BackfillSiteGovernoratesAsync(db);
 }
 
 app.Run();

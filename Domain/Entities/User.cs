@@ -17,8 +17,7 @@ namespace Domain.Entities
         public required int RoleId { get; set; }
         public Role Role { get; set; } = null!;
 
-        // التبعية التنظيمية حسب الدور (راجع Application/Features/Users/UserPlacement):
-        // SuperAdmin لا يتبع لشيء، BranchManager فرع فقط، Manager فرع + قسم، الموظف فرع + قسم + مكتب
+        // التبعية التنظيمية تأتي من الدور المرتبط بوحدة تنظيمية محددة.
         public int? DepartmentId { get; set; }
         public Department? Department { get; set; }
 

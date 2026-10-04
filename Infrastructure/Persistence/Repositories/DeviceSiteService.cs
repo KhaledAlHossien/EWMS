@@ -19,7 +19,6 @@ namespace Infrastructure.Persistence.Repositories
             return await _context.DeviceSites
                 .Include(ds => ds.Device)
                 .Include(ds => ds.Site)
-                    .ThenInclude(s => s.Region)
                 .FirstOrDefaultAsync(ds => ds.Id == id);
         }
 
@@ -28,7 +27,6 @@ namespace Infrastructure.Persistence.Repositories
             return await _context.DeviceSites
                 .Include(ds => ds.Device)
                 .Include(ds => ds.Site)
-                    .ThenInclude(s => s.Region)
                 .ToListAsync();
         }
 
@@ -37,7 +35,6 @@ namespace Infrastructure.Persistence.Repositories
             return await _context.DeviceSites
                 .Include(ds => ds.Device)
                 .Include(ds => ds.Site)
-                    .ThenInclude(s => s.Region)
                 .Where(ds => ds.SiteId == siteId)
                 .ToListAsync();
         }
@@ -47,7 +44,6 @@ namespace Infrastructure.Persistence.Repositories
             return await _context.DeviceSites
                 .Include(ds => ds.Device)
                 .Include(ds => ds.Site)
-                    .ThenInclude(s => s.Region)
                 .Where(ds => ds.DeviceId == deviceId)
                 .ToListAsync();
         }

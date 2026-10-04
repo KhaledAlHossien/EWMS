@@ -63,6 +63,7 @@ namespace API.Controllers
 
         // صلاحيتي على توثيق الأجهزة (بدون سياسة: يُرجع false/false لمن لا يملكها)
         [HttpGet("MyAccess")]
+        [Authorize(Policy = "ViewDevices")]
         public async Task<ActionResult<DeviceAccess>> MyAccess()
         {
             return Ok(await _mediator.Send(new GetMyDeviceAccessQuery()));

@@ -75,7 +75,7 @@ namespace Application.Features.Roles.Commands.Create
                     ?? throw new KeyNotFoundException($"الصلاحية رقم {permissionId} غير موجودة");
 
                 if (AppPermissions.IsBranchManagement(permission.Name))
-                    throw new UnauthorizedAccessException("لا يمكن لرئيس الفرع منح صلاحية إدارة الفروع");
+                    throw new UnauthorizedAccessException("لا يمكنك منح صلاحية إدارة الفروع");
             }
         }
 

@@ -20,10 +20,12 @@ namespace API.Controllers
         }
 
         [HttpGet("Branches")]
+        [Authorize(Policy = "ViewBranchMap")]
         public async Task<ActionResult<List<MapBranchOptionDto>>> Branches()
             => Ok(await _mediator.Send(new GetMapBranchesQuery()));
 
         [HttpGet("Branch/{branchId}")]
+        [Authorize(Policy = "ViewBranchMap")]
         public async Task<ActionResult<BranchMapDto>> Branch(int branchId)
             => Ok(await _mediator.Send(new GetBranchMapQuery(branchId)));
     }

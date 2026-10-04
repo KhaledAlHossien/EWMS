@@ -70,6 +70,9 @@ namespace Infrastructure.Persistence.Repositories
                 FullName = user.FullName,
                 Email = user.Email,
                 Role = user.Role.Name,
+                BranchId = user.BranchId,
+                DepartmentId = user.DepartmentId,
+                OfficeId = user.OfficeId,
                 Permissions = permissions
             };
         }
