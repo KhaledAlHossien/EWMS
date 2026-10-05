@@ -43,6 +43,7 @@ namespace Infrastructure.Persistence.Data
         public DbSet<MaintenanceRequest> MaintenanceRequests { get; set; }
         public DbSet<MaintenanceTask> MaintenanceTasks { get; set; }
         public DbSet<MaintenanceRequestActivity> MaintenanceRequestActivities { get; set; }
+        public DbSet<MaintenanceTransferRequest> MaintenanceTransferRequests { get; set; }
         public DbSet<UserSignature> UserSignatures { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -314,6 +315,7 @@ namespace Infrastructure.Persistence.Data
             {
                 entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
                 entity.Property(x => x.Color).HasMaxLength(7).IsRequired();
+                entity.Property(x => x.Stage).HasConversion<int>();
                 entity.HasIndex(x => x.Name).IsUnique();
             });
 
@@ -349,6 +351,9 @@ namespace Infrastructure.Persistence.Data
                 entity.HasOne(r => r.MaintenanceRequestStatus).WithMany().HasForeignKey(r => r.MaintenanceRequestStatusId).OnDelete(DeleteBehavior.Restrict);
                 // موقّع ورقة التسليم ونسخة توقيعه وقت التسليم
                 entity.HasOne(r => r.DeliverySigner).WithMany().HasForeignKey(r => r.DeliverySignerId).OnDelete(DeleteBehavior.Restrict);
+                // العميل الموظف — طلباته في «أجهزتي في الصيانة»
+                entity.HasOne(r => r.ClientUser).WithMany().HasForeignKey(r => r.ClientUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(r => new { r.ClientUserId, r.CreatedAt });
                 entity.HasOne(r => r.DeliverySignature).WithMany().HasForeignKey(r => r.DeliverySignatureId).OnDelete(DeleteBehavior.Restrict);
 
                 // ----- فهارس البحث -----
@@ -531,6 +536,23 @@ namespace Infrastructure.Persistence.Data
             });
 
             // ==================== الصيانة: سجل الطلب ====================
+            // طلبات التحويل: جزء من الطلب (تُحذف معه)، والمستخدمون Restrict (حماية حذف المستخدم في ExistsForUserAsync)
+            builder.Entity<MaintenanceTransferRequest>(entity =>
+            {
+                entity.Property(t => t.Reason).HasMaxLength(500).IsRequired();
+                entity.Property(t => t.DecisionNote).HasMaxLength(500);
+                entity.Property(t => t.Status).HasConversion<int>();
+                entity.HasOne(t => t.MaintenanceRequest).WithMany()
+                    .HasForeignKey(t => t.MaintenanceRequestId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(t => t.RequestedBy).WithMany().HasForeignKey(t => t.RequestedById).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(t => t.SuggestedUser).WithMany().HasForeignKey(t => t.SuggestedUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(t => t.DecidedBy).WithMany().HasForeignKey(t => t.DecidedById).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(t => t.NewUser).WithMany().HasForeignKey(t => t.NewUserId).OnDelete(DeleteBehavior.Restrict);
+                // طلب تحويل معلّق واحد على الأكثر لكل طلب صيانة
+                entity.HasIndex(t => t.MaintenanceRequestId).IsUnique().HasFilter("[Status] = 1");
+                entity.HasIndex(t => new { t.Status, t.CreatedAt });
+            });
+
             builder.Entity<MaintenanceRequestActivity>(entity =>
             {
                 entity.Property(a => a.Text).HasMaxLength(500);

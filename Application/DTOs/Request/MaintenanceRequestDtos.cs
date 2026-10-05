@@ -23,7 +23,8 @@ namespace Application.DTOs.Request
     {
         public string Name { get; set; } = string.Empty;
         public string Color { get; set; } = "#FFFFFF";
-        public bool IsDelivery { get; set; }
+        /// <summary>المرحلة الثابتة (MaintenanceStage): 1 جديد، 2 قيد العمل، 3 جاهز، 4 مُسلَّم، 5 غير قابل للصيانة</summary>
+        public int Stage { get; set; } = 2;
     }
 
     // ==================== جهاز الصيانة ====================
@@ -57,15 +58,21 @@ namespace Application.DTOs.Request
     // الجهاز يُختار من أجهزة الصيانة الموجودة (يُضاف أولاً من MaintenanceDevices إن كان جديداً).
     public class SaveMaintenanceRequestDto
     {
+        /// <summary>العميل موظف (من ClientLookup) أو null لعميل من خارج المؤسسة؛ اسم الموظف يُؤخذ من حسابه</summary>
+        public int? ClientUserId { get; set; }
         public string ClientName { get; set; } = string.Empty;
         public string ClientPhone { get; set; } = string.Empty;
         public int DeviceMaintenanceId { get; set; }
+        /// <summary>
+        /// الفني المسؤول عند الإنشاء فقط (null = من يسجّل الطلب). اختيار غيره يحتاج AssignMaintenanceRequest وموظفاً من قسمه.
+        /// يُتجاهل في التعديل — النقل بعد الإنشاء عبر Assign/{id} أو طلب تحويل.
+        /// </summary>
+        public int? AssigneeId { get; set; }
         public int DamageTypeId { get; set; }
         public string Accessories { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public int MaintenanceRequestStatusId { get; set; }
-        public DateTime? StartedAt { get; set; }
-        public DateTime? CompletedAt { get; set; }
+        // أوقات البدء والإنجاز تُسجَّل تلقائياً من مرحلة الحالة (لا تُرسل)
     }
 
     /// <summary>
@@ -92,6 +99,21 @@ namespace Application.DTOs.Request
     public class ChangeMaintenanceStatusDto
     {
         public int StatusId { get; set; }
+    }
+
+    /// <summary>الفني يطلب تحويل طلب مسند إليه: السبب إجباري، والزميل المقترح اختياري</summary>
+    public class RequestMaintenanceTransferDto
+    {
+        public string Reason { get; set; } = string.Empty;
+        public int? SuggestedUserId { get; set; }
+    }
+
+    /// <summary>قرار رئيس القسم: القبول ينقل الطلب إلى UserId (أو المقترح إن لم يُحدَّد)، والرفض مع ملاحظة</summary>
+    public class DecideMaintenanceTransferDto
+    {
+        public bool Approve { get; set; }
+        public int? UserId { get; set; }
+        public string? Note { get; set; }
     }
 
     /// <summary>نقل طلب/مهمة إلى موظف آخر (رئيس القسم)</summary>

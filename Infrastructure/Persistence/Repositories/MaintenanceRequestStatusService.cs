@@ -19,7 +19,8 @@ namespace Infrastructure.Persistence.Repositories
 
         // بترتيب الإضافة (مسار سير الطلب: جديد ← قيد الصيانة ← ...)
         public async Task<List<MaintenanceRequestStatus>> GetAllAsync() =>
-            await _context.MaintenanceRequestStatuses.OrderBy(x => x.Id).ToListAsync();
+            // بترتيب المراحل (جديد ← قيد العمل ← جاهز ← مُسلَّم ← غير قابل للصيانة) — أعمدة اللوحة وأول حالة «جديد» للطلب الجديد
+            await _context.MaintenanceRequestStatuses.OrderBy(x => x.Stage).ThenBy(x => x.Id).ToListAsync();
 
         public async Task<MaintenanceRequestStatus> AddAsync(MaintenanceRequestStatus status)
         {

@@ -20,6 +20,7 @@ namespace Infrastructure.Persistence.Repositories
         private IQueryable<MaintenanceRequest> WithDetails() => _context.MaintenanceRequests
             .Include(r => r.User)
             .Include(r => r.Department)
+            .Include(r => r.ClientUser).ThenInclude(u => u!.Department)
             .Include(r => r.DeviceMaintenance).ThenInclude(d => d.DeviceType)
             .Include(r => r.DeviceMaintenance).ThenInclude(d => d.DeviceCompany)
             .Include(r => r.DamageType)
@@ -130,6 +131,54 @@ namespace Infrastructure.Persistence.Repositories
             return (await _context.SaveChangesAsync()) > 0;
         }
 
+        public async Task<List<MaintenanceRequest>> GetForClientAsync(int clientUserId, int take) =>
+            await WithDetails().AsNoTracking()
+                .Where(r => r.ClientUserId == clientUserId)
+                .OrderByDescending(r => r.CreatedAt)
+                .Take(take)
+                .ToListAsync();
+
+        private IQueryable<MaintenanceTransferRequest> TransfersWithDetails() => _context.MaintenanceTransferRequests
+            .Include(t => t.MaintenanceRequest)
+            .Include(t => t.RequestedBy)
+            .Include(t => t.SuggestedUser)
+            .Include(t => t.DecidedBy)
+            .Include(t => t.NewUser);
+
+        public async Task AddTransferAsync(MaintenanceTransferRequest transfer)
+        {
+            await _context.MaintenanceTransferRequests.AddAsync(transfer);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is Microsoft.Data.SqlClient.SqlException { Number: 2601 or 2627 })
+            {
+                // الفهرس الفريد (طلب معلّق واحد لكل طلب صيانة) منع طلبين في اللحظة نفسها
+                throw new InvalidOperationException("يوجد طلب تحويل بانتظار قرار رئيس القسم لهذا الطلب");
+            }
+        }
+
+        public async Task UpdateTransferAsync(MaintenanceTransferRequest transfer)
+        {
+            if (_context.Entry(transfer).State == EntityState.Detached) _context.MaintenanceTransferRequests.Update(transfer);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<MaintenanceTransferRequest?> GetTransferAsync(int transferId) =>
+            await TransfersWithDetails().FirstOrDefaultAsync(t => t.Id == transferId);
+
+        public async Task<MaintenanceTransferRequest?> GetPendingTransferAsync(int requestId) =>
+            await TransfersWithDetails().AsNoTracking()
+                .FirstOrDefaultAsync(t => t.MaintenanceRequestId == requestId && t.Status == MaintenanceTransferStatus.Pending);
+
+        public async Task<List<MaintenanceTransferRequest>> GetPendingTransfersAsync(int? departmentId) =>
+            await TransfersWithDetails().AsNoTracking()
+                .Where(t => t.Status == MaintenanceTransferStatus.Pending
+                         && (departmentId == null || t.MaintenanceRequest.DepartmentId == departmentId))
+                .OrderBy(t => t.CreatedAt)
+                .ToListAsync();
+
         public async Task AddActivityAsync(MaintenanceRequestActivity activity)
         {
             await _context.MaintenanceRequestActivities.AddAsync(activity);
@@ -217,7 +266,9 @@ namespace Infrastructure.Persistence.Repositories
 
         // سجل الطلبات يرتبط بالموظف أيضاً (Restrict)
         public async Task<bool> ExistsForUserAsync(int userId) =>
-            await _context.MaintenanceRequests.AnyAsync(r => r.UserId == userId || r.DeliverySignerId == userId)
+            await _context.MaintenanceRequests.AnyAsync(r => r.UserId == userId || r.DeliverySignerId == userId || r.ClientUserId == userId)
+            || await _context.MaintenanceTransferRequests.AnyAsync(t =>
+                t.RequestedById == userId || t.SuggestedUserId == userId || t.DecidedById == userId || t.NewUserId == userId)
             || await _context.MaintenanceRequestActivities.AnyAsync(a => a.UserId == userId);
 
         public async Task<bool> ExistsForDepartmentAsync(int departmentId) =>
