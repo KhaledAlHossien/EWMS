@@ -23,6 +23,14 @@ namespace Application.Features.Vacations.Commands.Create
 
             RuleFor(x => x.VacationDto.VacReason)
                 .MaximumLength(500).WithMessage("السبب طويل جداً");
+
+            // المرفقات: حتى 3 ملفات، PDF أو JPG/PNG، كلٌّ حتى 5MB (VacationAttachmentRules)
+            RuleFor(x => x.Attachments.Count)
+                .LessThanOrEqualTo(VacationAttachmentRules.MaxFiles)
+                .WithMessage($"يمكن إرفاق {VacationAttachmentRules.MaxFiles} ملفات على الأكثر");
+            RuleForEach(x => x.Attachments)
+                .Must(f => VacationAttachmentRules.Problem(f) == null)
+                .WithMessage((_, f) => VacationAttachmentRules.Problem(f)!);
         }
     }
 }

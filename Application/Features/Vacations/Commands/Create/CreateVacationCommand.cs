@@ -12,11 +12,13 @@ namespace Application.Features.Vacations.Commands.Create
     {
         public CreateVacationRequestDto VacationDto { get; set; }
         public int UserId { get; set; }
+        public List<UploadedFileDto> Attachments { get; set; }
 
-        public CreateVacationCommand(CreateVacationRequestDto dto, int userId)
+        public CreateVacationCommand(CreateVacationRequestDto dto, int userId, List<UploadedFileDto>? attachments = null)
         {
             VacationDto = dto;
             UserId = userId;
+            Attachments = attachments ?? new();
         }
     }
 }

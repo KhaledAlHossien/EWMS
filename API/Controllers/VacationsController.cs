@@ -6,6 +6,7 @@ using Application.Features.Vacations.Commands.Create;
 using Application.Features.Vacations.Holidays;
 using Application.Features.Vacations.Queries.Print;
 using Application.Features.Vacations.Queries.ApprovalContext;
+using Application.Features.Vacations.Queries.Attachments;
 using Application.Features.Vacations.Queries.GetByUser;
 using Application.Features.Vacations.Query.GetAll;
 using Application.Features.Vacations.Query.GetById;
@@ -42,11 +43,30 @@ namespace API.Controllers
         // ترجع قائمة بعنصر واحد (بقي الشكل كما هو للتوافق مع الواجهة — كان الطلب يُقسَّم سابقاً عند التقديم)
         [HttpPost("Create")]
         [Authorize(Policy = "CreateVacation")]
+        [RequestSizeLimit(20 * 1024 * 1024)] // 3 مرفقات × 5MB + بيانات النموذج
         public async Task<ActionResult<List<VacationResponseDto>>> Create(
-            [FromForm] CreateVacationRequestDto dto)
+            [FromForm] CreateVacationRequestDto dto, [FromForm] List<IFormFile>? attachments)
         {
             var currentUserId = _userService.UserId;
-            return Ok(await _mediator.Send(new CreateVacationCommand(dto, currentUserId)));
+            var files = new List<UploadedFileDto>();
+            foreach (var file in attachments ?? [])
+            {
+                using var stream = new MemoryStream();
+                await file.CopyToAsync(stream);
+                files.Add(new UploadedFileDto(file.FileName, stream.ToArray()));
+            }
+            return Ok(await _mediator.Send(new CreateVacationCommand(dto, currentUserId, files)));
+        }
+
+        // ========== مرفق إجازة (عرض داخل الصفحة، أو تنزيل مع ?download=true) — لمن يرى الإجازة ==========
+        [HttpGet("Attachment/{id}")]
+        [Authorize(Policy = "AnyVacationView")]
+        public async Task<IActionResult> Attachment(int id, [FromQuery] bool download = false)
+        {
+            var file = await _mediator.Send(new GetVacationAttachmentQuery(id));
+            return download
+                ? File(file.Data, file.ContentType, file.FileName)
+                : File(file.Data, file.ContentType);
         }
 
         // ========== إلغاء إجازة (من صاحبها، قبل الاعتماد النهائي) ==========

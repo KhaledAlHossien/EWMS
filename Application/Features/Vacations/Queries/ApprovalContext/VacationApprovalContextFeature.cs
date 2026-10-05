@@ -56,6 +56,9 @@ namespace Application.Features.Vacations.Queries.ApprovalContext
                 result.DaysSinceLastVacation = last.EndVac.Date < today ? (today - last.EndVac.Date).Days : 0; // 0 = في إجازة الآن
             }
 
+            // 1ب) إجازات معتمدة لم تبدأ بعد
+            result.UpcomingApproved = (await _service.GetUpcomingApprovedAsync(vacation.UserId, today)).Select(Item).ToList();
+
             // 2) الشهر الجاري
             (result.MonthApprovedCount, result.MonthApprovedDays) =
                 await _service.GetApprovedInMonthAsync(vacation.UserId, today.Year, today.Month);
