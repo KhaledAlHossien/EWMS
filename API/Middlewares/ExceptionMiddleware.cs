@@ -56,7 +56,11 @@ namespace API.Middlewares
             // ✅ معالجة باقي الأخطاء
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
+                // «غير موجود» نتيجة متوقعة (مثلاً MaintenanceDevices/BySerial لجهاز جديد) — معلومة لا خطأ
+                if (ex is KeyNotFoundException)
+                    _logger.LogInformation("Not found: {Message}", ex.Message);
+                else
+                    _logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
 
                 context.Response.ContentType = "application/json";
 

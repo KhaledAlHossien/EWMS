@@ -27,6 +27,9 @@ namespace Application.Features.Maintenance.RequestStatuses
             RuleFor(x => x.Color)
                 .NotEmpty().WithMessage("لون الحالة مطلوب")
                 .Matches("^#[0-9A-Fa-f]{6}$").WithMessage("اللون يجب أن يكون بصيغة #RRGGBB");
+
+            RuleFor(x => x.Stage)
+                .Must(s => Enum.IsDefined(typeof(MaintenanceStage), s)).WithMessage("اختر مرحلة الحالة");
         }
     }
 

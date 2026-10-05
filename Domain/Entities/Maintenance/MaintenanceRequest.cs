@@ -12,6 +12,9 @@ namespace Domain.Entities.Maintenance
         public int? DepartmentId { get; set; }
         public Department? Department { get; set; }
 
+        // العميل: موظف في المؤسسة (ClientUserId) أو من خارجها (null) — الاسم والهاتف نسخة لحظة التسجيل في الحالتين
+        public int? ClientUserId { get; set; }
+        public User? ClientUser { get; set; }
         public string ClientName { get; set; } = string.Empty; //اسم العميل
         public string ClientPhone { get; set; } = string.Empty; //هاتف العميل
 
@@ -33,7 +36,7 @@ namespace Domain.Entities.Maintenance
         public DateTime? StartedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
 
-        // ===== ورقة التسليم الموقَّعة: تُثبَّت لحظة دخول الطلب حالة تسليم (IsDelivery) =====
+        // ===== ورقة التسليم الموقَّعة: تُثبَّت لحظة دخول الطلب مرحلة «مُسلَّم» (MaintenanceStage.Delivered) =====
         // الموقّع = صاحب SignMaintenanceReceipt في قسم الطلب (الأقدم)، والتوقيع = نسخته الحالية وقتها (null = بلا توقيع)
         public DateTime? DeliveredAt { get; set; }
         public int? DeliverySignerId { get; set; }

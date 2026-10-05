@@ -4,6 +4,7 @@ using Infrastructure.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20261005072432_Maintenance_Transfer_Requests")]
+    partial class Maintenance_Transfer_Requests
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -414,9 +417,6 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<int?>("ClientUserId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
 
@@ -467,8 +467,6 @@ namespace Infrastructure.Migrations
                     b.HasIndex("DeliverySignatureId");
 
                     b.HasIndex("DeliverySignerId");
-
-                    b.HasIndex("ClientUserId", "CreatedAt");
 
                     b.HasIndex("DepartmentId", "CreatedAt");
 
@@ -528,13 +526,13 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(7)
                         .HasColumnType("nvarchar(7)");
 
+                    b.Property<bool>("IsDelivery")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("Stage")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -1404,11 +1402,6 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Domain.Entities.Maintenance.MaintenanceRequest", b =>
                 {
-                    b.HasOne("Domain.Entities.User", "ClientUser")
-                        .WithMany()
-                        .HasForeignKey("ClientUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Domain.Entities.Maintenance.DamageType", "DamageType")
                         .WithMany()
                         .HasForeignKey("DamageTypeId")
@@ -1447,8 +1440,6 @@ namespace Infrastructure.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("ClientUser");
 
                     b.Navigation("DamageType");
 
