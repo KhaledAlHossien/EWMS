@@ -25,7 +25,7 @@ namespace Application.DTOs.Response
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Color { get; set; } = string.Empty;
-        public bool IsDelivery { get; set; }
+        public int Stage { get; set; }
     }
 
     public class DeviceMaintenanceResponseDto
@@ -53,12 +53,16 @@ namespace Application.DTOs.Response
         public bool CanDelete { get; set; }
         public bool CanAssign { get; set; }
         public bool CanChangeStatus { get; set; }
+        public bool CanRequestTransfer { get; set; }
 
         public int UserId { get; set; }
         public string TechnicianName { get; set; } = string.Empty;
         public int? DepartmentId { get; set; }
         public string DepartmentName { get; set; } = string.Empty;
 
+        public int? ClientUserId { get; set; }
+        /// <summary>قسم العميل الموظف حالياً (فارغ للعميل الخارجي)</summary>
+        public string ClientDepartmentName { get; set; } = string.Empty;
         public string ClientName { get; set; } = string.Empty;
         public string ClientPhone { get; set; } = string.Empty;
 
@@ -80,6 +84,9 @@ namespace Application.DTOs.Response
         public int MaintenanceRequestStatusId { get; set; }
         public string StatusName { get; set; } = string.Empty;
         public string StatusColor { get; set; } = string.Empty;
+        /// <summary>مرحلة الحالة الحالية، والطلب مُغلق في «مُسلَّم» و«غير قابل للصيانة» (لا تعديل ولا تغيير حالة ولا نقل)</summary>
+        public int StatusStage { get; set; }
+        public bool IsClosed { get; set; }
 
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
@@ -172,6 +179,55 @@ namespace Application.DTOs.Response
     }
 
     /// <summary>خيار في قائمة الفنيين (لفلتر البحث بالفني)</summary>
+    /// <summary>طلب تحويل طلب صيانة</summary>
+    public class MaintenanceTransferDto
+    {
+        public int Id { get; set; }
+        public int MaintenanceRequestId { get; set; }
+        public string RequestNumber { get; set; } = string.Empty;
+        public string ClientName { get; set; } = string.Empty;
+        public int RequestedById { get; set; }
+        public string RequestedByName { get; set; } = string.Empty;
+        public int? SuggestedUserId { get; set; }
+        public string? SuggestedUserName { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public int Status { get; set; }
+        public string StatusAr { get; set; } = string.Empty;
+        public string? DecidedByName { get; set; }
+        public string? NewUserName { get; set; }
+        public string? DecisionNote { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? DecidedAt { get; set; }
+    }
+
+    /// <summary>نتيجة البحث عن عميل موظف (مطابقة تامة) — بيانات دنيا فقط</summary>
+    public class MaintenanceClientDto
+    {
+        public int Id { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string DepartmentName { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+    }
+
+    /// <summary>طلب صيانة كما يراه العميل الموظف («أجهزتي في الصيانة») — بلا بيانات داخلية</summary>
+    public class MyMaintenanceRequestDto
+    {
+        public int Id { get; set; }
+        public string Number { get; set; } = string.Empty;
+        public string DeviceName { get; set; } = string.Empty;
+        public string DeviceTypeName { get; set; } = string.Empty;
+        public string DeviceCompanyName { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public string SerialNumber { get; set; } = string.Empty;
+        public string DamageTypeName { get; set; } = string.Empty;
+        public string StatusName { get; set; } = string.Empty;
+        public string StatusColor { get; set; } = string.Empty;
+        public string TechnicianName { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public DateTime? DeliveredAt { get; set; }
+    }
+
     public class TechnicianOptionDto
     {
         public int Id { get; set; }

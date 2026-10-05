@@ -1,6 +1,7 @@
 using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Features.Maintenance.Requests;
+using Application.Features.Maintenance.Transfers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -77,6 +78,46 @@ namespace API.Controllers
         [Authorize(Policy = "AssignMaintenanceRequest")]
         public async Task<ActionResult<MaintenanceRequestResponseDto>> Assign(int id, [FromBody] AssignMaintenanceDto dto)
             => Ok(await _mediator.Send(new AssignMaintenanceRequestCommand(id, dto.UserId)));
+
+        // ========== طلبات التحويل (الفني يطلب، ورئيس القسم يقرّر) ==========
+        [HttpPost("TransferRequest/{id}")]
+        [Authorize(Policy = "RequestMaintenanceTransfer")]
+        public async Task<ActionResult<MaintenanceTransferDto>> RequestTransfer(int id, [FromBody] RequestMaintenanceTransferDto dto)
+            => Ok(await _mediator.Send(new RequestMaintenanceTransferCommand(id, dto)));
+
+        [HttpPut("Transfer/{transferId}/Decide")]
+        [Authorize(Policy = "AssignMaintenanceRequest")]
+        public async Task<ActionResult<MaintenanceTransferDto>> DecideTransfer(int transferId, [FromBody] DecideMaintenanceTransferDto dto)
+            => Ok(await _mediator.Send(new DecideMaintenanceTransferCommand(transferId, dto)));
+
+        /// <summary>طلب التحويل المعلّق لطلب (204 إن لم يوجد)</summary>
+        [HttpGet("Transfer/{requestId}")]
+        [Authorize(Policy = "ViewMaintenanceRequests")]
+        public async Task<ActionResult<MaintenanceTransferDto?>> PendingTransfer(int requestId)
+            => Ok(await _mediator.Send(new GetPendingTransferQuery(requestId)));
+
+        [HttpGet("Transfers/Pending")]
+        [Authorize(Policy = "AssignMaintenanceRequest")]
+        public async Task<ActionResult<List<MaintenanceTransferDto>>> PendingTransfers()
+            => Ok(await _mediator.Send(new GetPendingTransfersForMeQuery()));
+
+        /// <summary>زملاء قسمي (لاقتراح من يُحوَّل إليه الطلب)</summary>
+        [HttpGet("Transfers/Colleagues")]
+        [Authorize(Policy = "RequestMaintenanceTransfer")]
+        public async Task<ActionResult<List<TechnicianOptionDto>>> TransferColleagues()
+            => Ok(await _mediator.Send(new GetTransferColleaguesQuery()));
+
+        // ========== العميل: موظف (مطابقة تامة) أو خارجي ==========
+        [HttpGet("ClientLookup")]
+        [Authorize(Policy = "AnyMaintenanceRequestWrite")]
+        public async Task<ActionResult<List<MaintenanceClientDto>>> ClientLookup([FromQuery] string query)
+            => Ok(await _mediator.Send(new FindMaintenanceClientQuery(query ?? string.Empty)));
+
+        /// <summary>«أجهزتي في الصيانة»: طلبات أنا عميلها</summary>
+        [HttpGet("Mine")]
+        [Authorize(Policy = "ViewMyMaintenanceRequests")]
+        public async Task<ActionResult<List<MyMaintenanceRequestDto>>> Mine()
+            => Ok(await _mediator.Send(new GetMyMaintenanceRequestsQuery()));
 
         [HttpPost("Create")]
         [Authorize(Policy = "CreateMaintenanceRequest")]

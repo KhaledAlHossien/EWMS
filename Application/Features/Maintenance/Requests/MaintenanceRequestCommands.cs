@@ -26,8 +26,9 @@ namespace Application.Features.Maintenance.Requests
     {
         public SaveMaintenanceRequestDtoValidator()
         {
+            // العميل الموظف يُؤخذ اسمه من حسابه؛ الاسم مطلوب للعميل الخارجي فقط
             RuleFor(x => x.ClientName)
-                .NotEmpty().WithMessage("اسم العميل مطلوب")
+                .NotEmpty().WithMessage("اسم العميل مطلوب").When(x => x.ClientUserId == null)
                 .MaximumLength(200).WithMessage("اسم العميل لا يتجاوز 200 حرف");
 
             RuleFor(x => x.ClientPhone)
@@ -36,16 +37,13 @@ namespace Application.Features.Maintenance.Requests
                 .WithMessage("رقم الهاتف غير صحيح — مثال: 0933123456 أو 0112345678 أو ‎+963933123456");
 
             RuleFor(x => x.DeviceMaintenanceId).GreaterThan(0).WithMessage("يجب اختيار الجهاز");
+            RuleFor(x => x.AssigneeId).GreaterThan(0).When(x => x.AssigneeId != null).WithMessage("الفني المسؤول غير صحيح");
             RuleFor(x => x.DamageTypeId).GreaterThan(0).WithMessage("يجب اختيار نوع العطل");
             RuleFor(x => x.MaintenanceRequestStatusId).GreaterThan(0).WithMessage("يجب اختيار حالة الطلب");
 
             RuleFor(x => x.Accessories).MaximumLength(500).WithMessage("الملحقات لا تتجاوز 500 حرف");
             RuleFor(x => x.Description).MaximumLength(2000).WithMessage("الوصف لا يتجاوز 2000 حرف");
 
-            RuleFor(x => x.CompletedAt)
-                .GreaterThanOrEqualTo(x => x.StartedAt!.Value)
-                .When(x => x.StartedAt != null && x.CompletedAt != null)
-                .WithMessage("تاريخ الإنجاز لا يمكن أن يسبق تاريخ البدء");
         }
     }
 
@@ -140,8 +138,51 @@ namespace Application.Features.Maintenance.Requests
                 throw new KeyNotFoundException("حالة الطلب المحددة غير موجودة");
         }
 
+        private Task NotifyClientStatusAsync(MaintenanceRequest r, User actor)
+        {
+            var number = MaintenanceRules.RequestNumber(r.Id, r.CreatedAt);
+            var (title, message) = r.MaintenanceRequestStatus?.Stage switch
+            {
+                MaintenanceStage.Ready => ("جهازك جاهز للاستلام", $"انتهت صيانة جهازك — الطلب {number}. يمكنك استلامه من قسم الصيانة"),
+                MaintenanceStage.NotRepairable => ("تعذّر إصلاح جهازك", $"الجهاز غير قابل للصيانة — الطلب {number}. راجع قسم الصيانة لاستلامه"),
+                MaintenanceStage.Delivered => ("سُلّم جهازك", $"سُلّم جهازك — الطلب {number}"),
+                _ => ("تحديث على جهازك في الصيانة", $"صارت حالة طلب الصيانة {number} لجهازك: {r.MaintenanceRequestStatus?.Name}")
+            };
+            return MaintenanceNotifier.ClientUpdateAsync(_notifications, r, actor, title, message);
+        }
+
+        /// <summary>دخل الطلب مرحلة نهائية: أي طلب تحويل معلّق لم يعد له معنى</summary>
+        private async Task ClosePendingTransferIfFinalAsync(MaintenanceRequest r, User actor)
+        {
+            if (!MaintenanceRules.IsClosed(r)) return;
+            if (await _requestService.GetPendingTransferAsync(r.Id) is { } pending
+                && await _requestService.GetTransferAsync(pending.Id) is { } transfer)
+            {
+                transfer.Status = MaintenanceTransferStatus.Closed;
+                transfer.DecidedById = actor.Id;
+                transfer.DecidedAt = DateTime.UtcNow;
+                transfer.DecisionNote = "أُغلق الطلب قبل البت في طلب التحويل";
+                await _requestService.UpdateTransferAsync(transfer);
+            }
+        }
+
         /// <summary>
-        /// عند دخول الطلب حالة تسليم (IsDelivery): يُثبَّت موقّع ورقة التسليم — صاحب SignMaintenanceReceipt في قسم الطلب
+        /// العميل موظف (ClientUserId): الاسم من حسابه، والهاتف المكتوب أو هاتفه المسجّل؛ وإلا عميل خارجي بالاسم والهاتف المكتوبين
+        /// </summary>
+        private async Task ApplyClientAsync(MaintenanceRequest entity, SaveMaintenanceRequestDto dto)
+        {
+            if (dto.ClientUserId is int clientId)
+            {
+                var client = await MaintenanceClients.ResolveAsync(_userService, clientId);
+                entity.ClientUserId = client.Id;
+                entity.ClientName = client.FullName;
+                if (string.IsNullOrWhiteSpace(dto.ClientPhone)) entity.ClientPhone = client.PhoneNumber ?? string.Empty;
+            }
+            else entity.ClientUserId = null;
+        }
+
+        /// <summary>
+        /// عند دخول الطلب مرحلة «مُسلَّم»: يُثبَّت موقّع ورقة التسليم — صاحب SignMaintenanceReceipt في قسم الطلب
         /// (الأقدم إن تعدّدوا) — ونسخة توقيعه الحالية، فلا تتغير الورقة إن تغيّر التوقيع أو الموقّع لاحقاً.
         /// كل دخول جديد لحالة تسليم (بعد إعادة الجهاز للصيانة مثلاً) يُثبِّت من جديد.
         /// </summary>
@@ -149,7 +190,7 @@ namespace Application.Features.Maintenance.Requests
         {
             if (entity.MaintenanceRequestStatusId == previousStatusId) return;
             var status = await _statusService.GetByIdAsync(entity.MaintenanceRequestStatusId);
-            if (status is not { IsDelivery: true }) return;
+            if (status is not { Stage: MaintenanceStage.Delivered }) return;
 
             var signer = entity.DepartmentId is int departmentId
                 ? (await _permissions.GetUsersWithPermissionAsync(AppPermissions.SignMaintenanceReceipt, departmentId: departmentId))
@@ -176,18 +217,35 @@ namespace Application.Features.Maintenance.Requests
             await EnsureReferencesAsync(request.Dto);
 
             var entity = _mapper.Map<MaintenanceRequest>(request.Dto);
+            await ApplyClientAsync(entity, request.Dto);
             Trim(entity);
 
-            // الفني = من سجّل الطلب، والقسم يُحفظ لحظة التسجيل ليراه رئيس القسم
-            entity.UserId = user.Id;
-            entity.DepartmentId = user.DepartmentId;
+            // الفني = من سجّل الطلب، أو موظف من قسمه يسنده إليه من يملك AssignMaintenanceRequest (قرار المستخدم 2026-10-05).
+            // القسم يُحفظ لحظة التسجيل (قسم الفني) ليراه رئيس القسم؛ المسجِّل يبقى في سجل الطلب فقط
+            User? assignee = null;
+            if (request.Dto.AssigneeId is int assigneeId && assigneeId != user.Id)
+                assignee = await MaintenanceRules.ResolveAssigneeAsync(_userService,
+                    await MaintenanceRules.BoundaryAsync(_userService, _permissions, "AssignMaintenanceRequest"), assigneeId);
+
+            entity.UserId = assignee?.Id ?? user.Id;
+            entity.DepartmentId = assignee?.DepartmentId ?? user.DepartmentId;
             entity.CreatedAt = entity.UpdatedAt = DateTime.UtcNow;
+            var initial = await _statusService.GetByIdAsync(entity.MaintenanceRequestStatusId)
+                ?? throw new KeyNotFoundException("حالة الطلب المحددة غير موجودة");
+            if (MaintenanceRules.IsFinal(initial.Stage))
+                throw new InvalidOperationException("لا يُسجَّل طلب جديد في حالة نهائية (مُسلَّم أو غير قابل للصيانة)");
+            MaintenanceRules.ApplyStageTimes(entity, initial.Stage);
             await StampDeliveryAsync(entity, null);
 
             var created = await _requestService.AddAsync(entity);
 
-            await LogAsync(created, user, MaintenanceActivityType.Created, "سجّل الطلب");
+            await LogAsync(created, user, MaintenanceActivityType.Created,
+                assignee == null ? "سجّل الطلب" : $"سجّل الطلب وأسنده إلى {assignee.FullName}");
             await MaintenanceNotifier.RequestCreatedAsync(_notifications, _permissions, created, user);
+            await MaintenanceNotifier.ClientUpdateAsync(_notifications, created, user, "استُلم جهازك للصيانة",
+                $"سُجّل طلب الصيانة {MaintenanceRules.RequestNumber(created.Id, created.CreatedAt)} لجهازك — الحالة: {(await LoadAsync(created.Id)).MaintenanceRequestStatus?.Name}");
+            if (assignee != null)
+                await MaintenanceNotifier.RequestReassignedAsync(_notifications, created, user, user.Id, assignee);
 
             return await ToDtoAsync(await LoadAsync(created.Id));
         }
@@ -207,13 +265,18 @@ namespace Application.Features.Maintenance.Requests
                 MaintenanceRules.Ensure(MaintenanceRules.In(await MaintenanceRules.BoundaryAsync(_userService, _permissions, AppPermissions.ChangeMaintenanceStatus), entity),
                     "لا تملك صلاحية تغيير حالة الطلب — أبقِ الحالة كما هي");
 
+            MaintenanceRules.EnsureOpen(entity);
+
             var oldStatusId = entity.MaintenanceRequestStatusId;
             var oldStatusName = entity.MaintenanceRequestStatus?.Name ?? "";
 
             // الفني والقسم وتاريخ الإنشاء لا تتغير (ليست في الـ DTO)
             _mapper.Map(request.Dto, entity);
+            await ApplyClientAsync(entity, request.Dto);
             Trim(entity);
             entity.UpdatedAt = DateTime.UtcNow;
+            if (entity.MaintenanceRequestStatusId != oldStatusId)
+                MaintenanceRules.ApplyStageTimes(entity, (await _statusService.GetByIdAsync(entity.MaintenanceRequestStatusId))!.Stage);
             await StampDeliveryAsync(entity, oldStatusId);
 
             await _requestService.UpdateAsync(entity);
@@ -228,6 +291,7 @@ namespace Application.Features.Maintenance.Requests
                 statusChanged ? MaintenanceActivityType.StatusChanged : MaintenanceActivityType.Edited, what);
 
             await MaintenanceNotifier.RequestChangedAsync(_notifications, _permissions, updated, user, what);
+            if (statusChanged) { await NotifyClientStatusAsync(updated, user); await ClosePendingTransferIfFinalAsync(updated, user); }
 
             return await ToDtoAsync(updated);
         }
@@ -243,14 +307,16 @@ namespace Application.Features.Maintenance.Requests
             if (entity.MaintenanceRequestStatusId == request.StatusId)
                 return await ToDtoAsync(entity);
 
-            if (!await _statusService.ExistsAsync(request.StatusId))
-                throw new KeyNotFoundException("حالة الطلب المحددة غير موجودة");
+            MaintenanceRules.EnsureOpen(entity);
+            var newStatus = await _statusService.GetByIdAsync(request.StatusId)
+                ?? throw new KeyNotFoundException("حالة الطلب المحددة غير موجودة");
 
             var oldStatusName = entity.MaintenanceRequestStatus?.Name ?? "";
 
             var previousStatusId = entity.MaintenanceRequestStatusId;
             entity.MaintenanceRequestStatusId = request.StatusId;
             entity.UpdatedAt = DateTime.UtcNow;
+            MaintenanceRules.ApplyStageTimes(entity, newStatus.Stage);
             await StampDeliveryAsync(entity, previousStatusId);
             await _requestService.UpdateAsync(entity);
 
@@ -259,6 +325,8 @@ namespace Application.Features.Maintenance.Requests
 
             await LogAsync(updated, user, MaintenanceActivityType.StatusChanged, what);
             await MaintenanceNotifier.RequestChangedAsync(_notifications, _permissions, updated, user, what);
+            await NotifyClientStatusAsync(updated, user);
+            await ClosePendingTransferIfFinalAsync(updated, user);
 
             return await ToDtoAsync(updated);
         }
@@ -270,6 +338,7 @@ namespace Application.Features.Maintenance.Requests
 
             var assign = await MaintenanceRules.BoundaryAsync(_userService, _permissions, "AssignMaintenanceRequest");
             MaintenanceRules.Ensure(MaintenanceRules.In(assign, entity), "لا يمكنك نقل طلب صيانة خارج نطاقك");
+            MaintenanceRules.EnsureOpen(entity);
 
             var target = await MaintenanceRules.ResolveAssigneeAsync(_userService, assign, request.UserId);
 
@@ -289,6 +358,18 @@ namespace Application.Features.Maintenance.Requests
             await LogAsync(updated, user, MaintenanceActivityType.Reassigned,
                 $"نقل الطلب من {previousName} إلى {target.FullName}");
             await MaintenanceNotifier.RequestReassignedAsync(_notifications, updated, user, previousUserId, target);
+
+            // طلب تحويل معلّق صار بلا معنى بعد النقل المباشر — يُغلق تلقائياً
+            if (await _requestService.GetPendingTransferAsync(updated.Id) is { } pending
+                && await _requestService.GetTransferAsync(pending.Id) is { } transfer)
+            {
+                transfer.Status = MaintenanceTransferStatus.Closed;
+                transfer.DecidedById = user.Id;
+                transfer.DecidedAt = DateTime.UtcNow;
+                transfer.NewUserId = target.Id;
+                transfer.DecisionNote = "نُقل الطلب مباشرة قبل البت في طلب التحويل";
+                await _requestService.UpdateTransferAsync(transfer);
+            }
 
             return await ToDtoAsync(updated);
         }
@@ -316,6 +397,12 @@ namespace Application.Features.Maintenance.Requests
             dto.CanDelete = MaintenanceRules.In(scopes.Delete, entity);
             dto.CanAssign = MaintenanceRules.In(scopes.Assign, entity);
             dto.CanChangeStatus = MaintenanceRules.In(scopes.Status, entity);
+            // طلب التحويل: الطلب مسند إليّ وأملك الصلاحية (وجود طلب معلّق يُفحص عند الإرسال)
+            dto.CanRequestTransfer = scopes.Transfer != null && entity.UserId == scopes.Transfer.OwnerId;
+
+            // الطلب المُغلق (مُسلَّم / غير قابل للصيانة): للقراءة فقط — الحذف يبقى لصاحب صلاحيته
+            dto.IsClosed = MaintenanceRules.IsClosed(entity);
+            if (dto.IsClosed) dto.CanEdit = dto.CanChangeStatus = dto.CanAssign = dto.CanRequestTransfer = false;
             return dto;
         }
     }

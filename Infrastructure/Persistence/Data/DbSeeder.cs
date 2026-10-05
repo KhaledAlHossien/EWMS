@@ -108,11 +108,11 @@ namespace Infrastructure.Persistence.Data
             if (!await context.MaintenanceRequestStatuses.AnyAsync())
             {
                 await context.MaintenanceRequestStatuses.AddRangeAsync(
-                    new MaintenanceRequestStatus { Name = "جديد", Color = "#3B82F6" },
-                    new MaintenanceRequestStatus { Name = "قيد الصيانة", Color = "#F59E0B" },
-                    new MaintenanceRequestStatus { Name = "تم الإصلاح", Color = "#10B981" },
-                    new MaintenanceRequestStatus { Name = "تم التسليم", Color = "#6B7280", IsDelivery = true },
-                    new MaintenanceRequestStatus { Name = "غير قابل للإصلاح", Color = "#EF4444" }
+                    new MaintenanceRequestStatus { Name = "جديد", Color = "#3B82F6", Stage = MaintenanceStage.New },
+                    new MaintenanceRequestStatus { Name = "قيد الصيانة", Color = "#F59E0B", Stage = MaintenanceStage.InProgress },
+                    new MaintenanceRequestStatus { Name = "تم الإصلاح", Color = "#10B981", Stage = MaintenanceStage.Ready },
+                    new MaintenanceRequestStatus { Name = "تم التسليم", Color = "#6B7280", Stage = MaintenanceStage.Delivered },
+                    new MaintenanceRequestStatus { Name = "غير قابل للإصلاح", Color = "#EF4444", Stage = MaintenanceStage.NotRepairable }
                 );
                 await context.SaveChangesAsync();
             }

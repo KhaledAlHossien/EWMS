@@ -33,14 +33,19 @@ namespace Application.Features.Maintenance
         }
 
         /// <summary>حدود المستخدم الحالي لعمليات طلبات الصيانة أو مهامها</summary>
-        public sealed record Scopes(Boundary? View, Boundary? Edit, Boundary? Delete, Boundary? Assign, Boundary? Status = null);
+        /// <summary>Transfer: من يملك طلب التحويل (OwnerId = أنا) — للطلبات المسندة إليّ فقط</summary>
+        public sealed record Scopes(Boundary? View, Boundary? Edit, Boundary? Delete, Boundary? Assign, Boundary? Status = null, Boundary? Transfer = null);
 
         public static async Task<Viewer> ViewerAsync(IUserService users, IUserPermissionService permissions) =>
             await Viewer.CurrentAsync(users, permissions);
 
-        public static async Task<Scopes> RequestScopesAsync(IUserService users, IUserPermissionService permissions) =>
-            ScopesFor(await ViewerAsync(users, permissions),
-                "ViewMaintenanceRequests", "EditMaintenanceRequest", "DeleteMaintenanceRequest", "AssignMaintenanceRequest", AppPermissions.ChangeMaintenanceStatus);
+        public static async Task<Scopes> RequestScopesAsync(IUserService users, IUserPermissionService permissions)
+        {
+            var viewer = await ViewerAsync(users, permissions);
+            return ScopesFor(viewer,
+                "ViewMaintenanceRequests", "EditMaintenanceRequest", "DeleteMaintenanceRequest", "AssignMaintenanceRequest", AppPermissions.ChangeMaintenanceStatus)
+                with { Transfer = viewer.Has("RequestMaintenanceTransfer") ? new Boundary(viewer.Id, null, false) : null };
+        }
 
         public static async Task<Scopes> TaskScopesAsync(IUserService users, IUserPermissionService permissions) =>
             ScopesFor(await ViewerAsync(users, permissions),
@@ -158,5 +163,34 @@ namespace Application.Features.Maintenance
 
         /// <summary>رقم الطلب المعروض للعميل وفي الواجهات: MR-2026-00125 (يُشتق من المعرّف وسنة الإنشاء)</summary>
         public static string RequestNumber(int id, DateTime createdAt) => $"MR-{createdAt.Year}-{id:D5}";
+
+        /// <summary>«مُسلَّم» و«غير قابل للصيانة»: الطلب مُغلق — لا تعديل ولا تغيير حالة ولا نقل (قرار المستخدم 2026-10-05)</summary>
+        public static bool IsFinal(MaintenanceStage stage) => stage is MaintenanceStage.Delivered or MaintenanceStage.NotRepairable;
+
+        public static bool IsClosed(MaintenanceRequest r) => r.MaintenanceRequestStatus != null && IsFinal(r.MaintenanceRequestStatus.Stage);
+
+        public static void EnsureOpen(MaintenanceRequest r)
+        {
+            if (IsClosed(r))
+                throw new InvalidOperationException("الطلب مُغلق (مُسلَّم أو غير قابل للصيانة) — لا يمكن تعديله، وإن عاد الجهاز يُسجَّل طلب جديد");
+        }
+
+        /// <summary>
+        /// أوقات المرحلة تلقائياً (بتوقيت الخادم المحلي كما كانت تُدخل يدوياً): «قيد العمل» يسجّل البدء أول مرة ويمسح الإنجاز
+        /// (رجوع للعمل)، «جاهز»/«غير قابل للصيانة»/«مُسلَّم» تسجّل الإنجاز إن لم يُسجَّل، والرجوع إلى «جديد» يمسحهما.
+        /// </summary>
+        public static void ApplyStageTimes(MaintenanceRequest r, MaintenanceStage to)
+        {
+            var now = DateTime.Now;
+            switch (to)
+            {
+                case MaintenanceStage.New:
+                    r.StartedAt = null; r.CompletedAt = null; break;
+                case MaintenanceStage.InProgress:
+                    r.StartedAt ??= now; r.CompletedAt = null; break;
+                default:
+                    r.StartedAt ??= now; r.CompletedAt ??= now; break;
+            }
+        }
     }
 }

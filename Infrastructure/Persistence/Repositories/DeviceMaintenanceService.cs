@@ -2,6 +2,7 @@ using Application.DTOs.Request;
 using Application.Interfaces;
 using Domain.Entities.Maintenance;
 using Infrastructure.Persistence.Data;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories
@@ -73,7 +74,7 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<DeviceMaintenance> AddAsync(DeviceMaintenance device)
         {
             var result = await _context.DeviceMaintenances.AddAsync(device);
-            await _context.SaveChangesAsync();
+            await SaveAsync();
             return result.Entity;
         }
 
@@ -83,7 +84,24 @@ namespace Infrastructure.Persistence.Repositories
             if (_context.Entry(device).State == EntityState.Detached)
                 _context.DeviceMaintenances.Update(device);
 
-            return (await _context.SaveChangesAsync()) > 0;
+            return await SaveAsync() > 0;
+        }
+
+        /// <summary>
+        /// الفحص المسبق (ExistsBySerialAsync) لا يمنع إضافتين في اللحظة نفسها — الفهرس الفريد يمنعها،
+        /// فنحوّل خطأه (2601/2627) إلى رسالة واضحة بدل خطأ خادم 500
+        /// </summary>
+        private async Task<int> SaveAsync()
+        {
+            try
+            {
+                return await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 } sql
+                                               && sql.Message.Contains("IX_DeviceMaintenances_SerialNumber"))
+            {
+                throw new InvalidOperationException("يوجد جهاز بنفس الرقم التسلسلي مسبقاً — اختره بدل إضافته من جديد");
+            }
         }
 
         public async Task<bool> DeleteAsync(DeviceMaintenance device)

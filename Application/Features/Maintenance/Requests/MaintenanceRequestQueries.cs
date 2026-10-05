@@ -31,6 +31,10 @@ namespace Application.Features.Maintenance.Requests
     /// وللسوبر ادمن موظفو القسم المحدد (أو كل من له قسم).
     /// </summary>
     public record GetMaintenanceAssigneesQuery(int? DepartmentId) : IRequest<List<TechnicianOptionDto>>;
+    /// <summary>عميل موظف بمطابقة تامة للاسم الكامل أو الرقم الذاتي (MaintenanceClients) — فارغ = عميل خارجي</summary>
+    public record FindMaintenanceClientQuery(string Query) : IRequest<List<MaintenanceClientDto>>;
+    /// <summary>طلبات الصيانة التي أنا عميلها</summary>
+    public record GetMyMaintenanceRequestsQuery : IRequest<List<MyMaintenanceRequestDto>>;
 
     public class MaintenanceRequestQueriesHandler :
         IRequestHandler<SearchMaintenanceRequestsQuery, PagedResultDto<MaintenanceRequestResponseDto>>,
@@ -39,8 +43,37 @@ namespace Application.Features.Maintenance.Requests
         IRequestHandler<GetMaintenanceRequestActivitiesQuery, List<MaintenanceActivityDto>>,
         IRequestHandler<GetMaintenanceRequestPrintQuery, MaintenancePrintDto>,
         IRequestHandler<GetMaintenanceStatsQuery, MaintenanceStatsDto>,
-        IRequestHandler<GetMaintenanceAssigneesQuery, List<TechnicianOptionDto>>
+        IRequestHandler<GetMaintenanceAssigneesQuery, List<TechnicianOptionDto>>,
+        IRequestHandler<FindMaintenanceClientQuery, List<MaintenanceClientDto>>,
+        IRequestHandler<GetMyMaintenanceRequestsQuery, List<MyMaintenanceRequestDto>>
     {
+        public async Task<List<MaintenanceClientDto>> Handle(FindMaintenanceClientQuery request, CancellationToken ct) =>
+            (await MaintenanceClients.FindAsync(_userService, request.Query))
+                .Select(u => new MaintenanceClientDto { Id = u.Id, FullName = u.FullName, DepartmentName = u.Department?.Name ?? "", Phone = u.PhoneNumber })
+                .ToList();
+
+        public async Task<List<MyMaintenanceRequestDto>> Handle(GetMyMaintenanceRequestsQuery request, CancellationToken ct)
+        {
+            var me = await MaintenanceRules.CurrentUserAsync(_userService);
+            return (await _requestService.GetForClientAsync(me.Id, 100)).Select(r => new MyMaintenanceRequestDto
+            {
+                Id = r.Id,
+                Number = MaintenanceRules.RequestNumber(r.Id, r.CreatedAt),
+                DeviceName = r.DeviceMaintenance?.Name ?? "",
+                DeviceTypeName = r.DeviceMaintenance?.DeviceType?.Name ?? "",
+                DeviceCompanyName = r.DeviceMaintenance?.DeviceCompany?.Name ?? "",
+                Model = r.DeviceMaintenance?.Model ?? "",
+                SerialNumber = r.DeviceMaintenance?.SerialNumber ?? "",
+                DamageTypeName = r.DamageType?.Name ?? "",
+                StatusName = r.MaintenanceRequestStatus?.Name ?? "",
+                StatusColor = r.MaintenanceRequestStatus?.Color ?? "",
+                TechnicianName = r.User?.FullName ?? "",
+                CreatedAt = r.CreatedAt,
+                CompletedAt = r.CompletedAt,
+                DeliveredAt = r.DeliveredAt
+            }).ToList();
+        }
+
         private readonly IMaintenanceRequestService _requestService;
         private readonly IMaintenanceTaskService _taskService;
         private readonly IUserSignatureService _signatureService;

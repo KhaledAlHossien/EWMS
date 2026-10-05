@@ -15,6 +15,8 @@
         TaskCommented = 11,                   // تعليق جديد على مهمة
         MaintenanceRequestCreated = 12,       // طلب صيانة جديد (لرئيس القسم)
         MaintenanceAssigned = 13,             // نُقل طلب/مهمة صيانة إلى موظف آخر
-        MaintenanceStatusChanged = 14         // تغيّرت حالة طلب صيانة أو عُدّل
+        MaintenanceStatusChanged = 14,        // تغيّرت حالة طلب صيانة أو عُدّل
+        MaintenanceTransferRequested = 15,    // طلب فني تحويل طلب صيانة (لرئيس القسم)
+        MaintenanceTransferDecided = 16       // قرار رئيس القسم على طلب التحويل (للفني)
     }
 }

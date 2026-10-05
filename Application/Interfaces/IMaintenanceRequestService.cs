@@ -28,6 +28,18 @@ namespace Application.Interfaces
         Task AddActivityAsync(MaintenanceRequestActivity activity);
         Task<List<MaintenanceRequestActivity>> GetActivitiesAsync(int requestId);
 
+        /// <summary>طلبات عميل موظف (الأحدث أولاً) — «أجهزتي في الصيانة»</summary>
+        Task<List<MaintenanceRequest>> GetForClientAsync(int clientUserId, int take);
+
+        // طلبات التحويل
+        Task AddTransferAsync(MaintenanceTransferRequest transfer);
+        Task UpdateTransferAsync(MaintenanceTransferRequest transfer);
+        /// <summary>مع الطلب والمستخدمين</summary>
+        Task<MaintenanceTransferRequest?> GetTransferAsync(int transferId);
+        Task<MaintenanceTransferRequest?> GetPendingTransferAsync(int requestId);
+        /// <summary>المعلّقة لطلبات قسم (null = كل الأقسام)، الأقدم أولاً</summary>
+        Task<List<MaintenanceTransferRequest>> GetPendingTransfersAsync(int? departmentId);
+
         /// <summary>إحصائيات الطلبات ضمن النطاق (بدون أرقام المهام — تُملأ من خدمة المهام)</summary>
         Task<MaintenanceStatsDto> GetStatsAsync(Expression<Func<MaintenanceRequest, bool>> scope);
 

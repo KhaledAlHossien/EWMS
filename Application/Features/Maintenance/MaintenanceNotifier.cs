@@ -104,5 +104,52 @@ namespace Application.Features.Maintenance
                 "نُقلت مهمة صيانة عنك",
                 $"نقل {actor.FullName} مهمة الصيانة في {task.TaskLocation} إلى {newUser.FullName}");
         }
+
+        // ════════ العميل الموظف (قرار المستخدم 2026-10-05): عند التسجيل ومع كل تغيير حالة ════════
+        public const string ClientEntity = "MyMaintenanceRequest";
+
+        public static async Task ClientUpdateAsync(
+            INotificationService notifications, MaintenanceRequest request, User actor, string title, string message)
+        {
+            if (request.ClientUserId is not int clientId) return;
+            await SendAsync(notifications, [clientId], actor.Id,
+                NotificationType.MaintenanceStatusChanged, ClientEntity, request.Id, title, message);
+        }
+
+        // ════════ طلبات التحويل (قرار المستخدم 2026-10-05) ════════
+
+        /// <summary>الفني طلب تحويل طلب مسند إليه ← من يملك نقل طلبات قسم الطلب</summary>
+        public static async Task TransferRequestedAsync(
+            INotificationService notifications, IUserPermissionService permissions, MaintenanceRequest request, User actor, string reason)
+        {
+            await SendAsync(notifications, await ManagerIdsAsync(permissions, request.DepartmentId), actor.Id,
+                NotificationType.MaintenanceTransferRequested, MaintenanceRules.RequestEntity, request.Id,
+                "طلب تحويل طلب صيانة",
+                $"يطلب {actor.FullName} تحويل الطلب {Label(request)} إلى موظف آخر — السبب: {reason}");
+        }
+
+        /// <summary>القبول: الفني الطالب يعرف النتيجة، والموظف الجديد يُبلَّغ بالإسناد</summary>
+        public static async Task TransferApprovedAsync(
+            INotificationService notifications, MaintenanceRequest request, User actor, int requesterId, User newUser)
+        {
+            await SendAsync(notifications, [requesterId], actor.Id,
+                NotificationType.MaintenanceTransferDecided, MaintenanceRules.RequestEntity, request.Id,
+                "قُبل طلب التحويل",
+                $"وافق {actor.FullName} على تحويل الطلب {Label(request)} إلى {newUser.FullName}");
+
+            await SendAsync(notifications, [newUser.Id], actor.Id,
+                NotificationType.MaintenanceAssigned, MaintenanceRules.RequestEntity, request.Id,
+                "أُسند إليك طلب صيانة",
+                $"أسند إليك {actor.FullName} طلب الصيانة {Label(request)} (تحويل)");
+        }
+
+        public static async Task TransferRejectedAsync(
+            INotificationService notifications, MaintenanceRequest request, User actor, int requesterId, string? note)
+        {
+            await SendAsync(notifications, [requesterId], actor.Id,
+                NotificationType.MaintenanceTransferDecided, MaintenanceRules.RequestEntity, request.Id,
+                "رُفض طلب التحويل",
+                $"رفض {actor.FullName} تحويل الطلب {Label(request)}" + (string.IsNullOrWhiteSpace(note) ? "" : $" — {note}"));
+        }
     }
 }
