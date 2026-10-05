@@ -49,6 +49,9 @@ namespace Domain.Entities
         public int UnpaidDays { get; set; }
         public ICollection<VacationSegment> Segments { get; set; } = new List<VacationSegment>();
 
+        // مرفقات الطلب (عند التقديم فقط)
+        public ICollection<VacationAttachment> Attachments { get; set; } = new List<VacationAttachment>();
+
         // ===== معلومات الرفض =====
         public int? RejectedByUserId { get; set; }
         public User? RejectedByUser { get; set; }

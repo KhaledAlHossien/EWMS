@@ -46,9 +46,15 @@ namespace Application.Interfaces
         Task<Dictionary<(int Year, int Month), int>> GetApprovedPaidDaysByMonthAsync(
             int userId, DateTime start, DateTime end, int? excludeVacationId = null);
 
+        /// <summary>مرفق مع إجازته ومحتواه (للعرض/التنزيل بعد التحقق من حق عرض الإجازة)</summary>
+        Task<VacationAttachment?> GetAttachmentAsync(int attachmentId);
+
         // ==================== «سجل الموظف» قبل القرار ====================
         /// <summary>آخر إجازة معتمدة بدأت حتى تاريخ معيّن</summary>
         Task<Vacation?> GetLastTakenAsync(int userId, DateTime upTo);
+
+        /// <summary>الإجازات المعتمدة التي تبدأ بعد تاريخ معيّن (الأقرب أولاً)</summary>
+        Task<List<Vacation>> GetUpcomingApprovedAsync(int userId, DateTime after);
 
         /// <summary>الإجازات المعتمدة وأيام العمل فيها خلال شهر (من أجزاء الإجازات المعتمدة)</summary>
         Task<(int Count, int Days)> GetApprovedInMonthAsync(int userId, int year, int month);

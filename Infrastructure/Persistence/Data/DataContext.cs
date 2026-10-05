@@ -24,6 +24,8 @@ namespace Infrastructure.Persistence.Data
         public DbSet<VacationType> VacationType { get; set; }
         public DbSet<VacationSegment> VacationSegments { get; set; }
         public DbSet<PublicHoliday> PublicHolidays { get; set; }
+        public DbSet<VacationAttachment> VacationAttachments { get; set; }
+        public DbSet<VacationAttachmentContent> VacationAttachmentContents { get; set; }
         public DbSet<UserToken> UserTokens { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<Site> Sites { get; set; }
@@ -498,6 +500,26 @@ namespace Infrastructure.Persistence.Data
                     .OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasIndex(s => new { s.VacationId, s.StartDate });
+            });
+
+            // ==================== مرفقات الإجازة: البيانات الوصفية + المحتوى في جدول مستقل ====================
+            builder.Entity<VacationAttachment>(entity =>
+            {
+                entity.Property(a => a.FileName).HasMaxLength(200).IsRequired();
+                entity.Property(a => a.ContentType).HasMaxLength(100).IsRequired();
+                entity.HasOne(a => a.Vacation)
+                    .WithMany(v => v.Attachments)
+                    .HasForeignKey(a => a.VacationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(a => a.Content)
+                    .WithOne()
+                    .HasForeignKey<VacationAttachmentContent>(c => c.AttachmentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+            builder.Entity<VacationAttachmentContent>(entity =>
+            {
+                entity.HasKey(c => c.AttachmentId);
+                entity.Property(c => c.Data).IsRequired();
             });
 
             // ==================== العطل الرسمية ====================

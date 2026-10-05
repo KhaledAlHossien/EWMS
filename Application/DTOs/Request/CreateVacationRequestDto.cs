@@ -11,4 +11,7 @@ namespace Application.DTOs.Request
         public DateTime StartVac { get; set; }
         public DateTime EndVac { get; set; }
     }
+
+    /// <summary>ملف مرفوع (يُحوَّل في الـ Controller من IFormFile كي لا تعتمد طبقة Application على ASP.NET)</summary>
+    public record UploadedFileDto(string FileName, byte[] Data);
 }

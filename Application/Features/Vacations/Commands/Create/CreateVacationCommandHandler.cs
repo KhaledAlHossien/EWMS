@@ -100,6 +100,17 @@ namespace Application.Features.Vacations.Commands.Create
                 UpdatedAt = DateTime.UtcNow
             };
 
+            // المرفقات تُحفظ مع الطلب في نفس العملية (النوع من محتوى الملف، والمدقّق رفض ما سواه)
+            foreach (var file in request.Attachments)
+                vacation.Attachments.Add(new VacationAttachment
+                {
+                    FileName = VacationAttachmentRules.SafeFileName(file.FileName),
+                    ContentType = VacationAttachmentRules.DetectContentType(file.Data)!,
+                    Size = file.Data.Length,
+                    UploadedAt = DateTime.UtcNow,
+                    Content = new VacationAttachmentContent { Data = file.Data }
+                });
+
             await _vacationService.AddAsync(vacation);
 
             // إشعار من ينتظر قراره (صاحب الموافقة الأولى، أو الاعتماد النهائي إن تجاوزها)

@@ -53,6 +53,7 @@ namespace Application.Helper.Profiles
                     o => o.MapFrom(s => s.Segments.OrderBy(x => x.StartDate)));
 
             CreateMap<VacationSegment, VacationSegmentDto>();
+            CreateMap<VacationAttachment, VacationAttachmentDto>();
         }
 
         private static string TranslateStatus(VacationStatus status)
