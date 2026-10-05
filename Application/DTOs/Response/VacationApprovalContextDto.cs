@@ -9,6 +9,8 @@ namespace Application.DTOs.Response
         // 1) آخر إجازة معتمدة بدأت حتى اليوم
         public VacationContextItemDto? LastVacation { get; set; }
         public int? DaysSinceLastVacation { get; set; }
+        /// <summary>إجازات معتمدة لم تبدأ بعد، الأقرب أولاً (كي لا يظن المعتمِد أن الموظف بلا إجازات)</summary>
+        public List<VacationContextItemDto> UpcomingApproved { get; set; } = new();
 
         // 2) الشهر الجاري: الإجازات المعتمدة وأيام العمل فيها
         public int MonthApprovedCount { get; set; }

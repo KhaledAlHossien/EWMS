@@ -30,6 +30,7 @@ namespace Infrastructure.Persistence.Repositories
         {
             return await _context.Vacation
                 .Include(v => v.VacationType)
+                .Include(v => v.Attachments)
                 .Include(v => v.User)
                 .Include(v => v.Department)
                 .Include(v => v.Branch)
@@ -44,6 +45,7 @@ namespace Infrastructure.Persistence.Repositories
         {
             return await _context.Vacation
                 .Include(v => v.VacationType)
+                .Include(v => v.Attachments)
                 .Include(v => v.User)
                 .Include(v => v.Department)
                 .Include(v => v.Branch)
@@ -57,6 +59,7 @@ namespace Infrastructure.Persistence.Repositories
         {
             return await _context.Vacation
                 .Include(v => v.VacationType)
+                .Include(v => v.Attachments)
                 .Include(v => v.Department)
                 .Include(v => v.Branch)
                 .Where(v => v.UserId == userId)
@@ -70,6 +73,7 @@ namespace Infrastructure.Persistence.Repositories
         {
             return await _context.Vacation
                 .Include(v => v.VacationType)
+                .Include(v => v.Attachments)
                 .Include(v => v.User)
                 .Include(v => v.Department)
                 .Include(v => v.Branch)
@@ -82,6 +86,7 @@ namespace Infrastructure.Persistence.Repositories
         {
             return await _context.Vacation
                 .Include(v => v.VacationType)
+                .Include(v => v.Attachments)
                 .Include(v => v.User)
                 .Include(v => v.Department)
                 .Include(v => v.Branch)
@@ -94,6 +99,7 @@ namespace Infrastructure.Persistence.Repositories
         {
             return await _context.Vacation
                 .Include(v => v.VacationType)
+                .Include(v => v.Attachments)
                 .Include(v => v.User)
                 .Include(v => v.Department)
                 .Include(v => v.Branch)
@@ -109,6 +115,7 @@ namespace Infrastructure.Persistence.Repositories
         {
             var query = _context.Vacation
                 .Include(v => v.VacationType)
+                .Include(v => v.Attachments)
                 .Include(v => v.User)
                 .Include(v => v.Department)
                 .Include(v => v.Branch)
@@ -134,6 +141,7 @@ namespace Infrastructure.Persistence.Repositories
         {
             return await _context.Vacation
                 .Include(v => v.VacationType)
+                .Include(v => v.Attachments)
                 .Include(v => v.User)
                 .Include(v => v.Department)
                 .Include(v => v.Branch)
@@ -147,6 +155,7 @@ namespace Infrastructure.Persistence.Repositories
         {
             return await _context.Vacation
                 .Include(v => v.VacationType)
+                .Include(v => v.Attachments)
                 .Include(v => v.User)
                 .Include(v => v.Department)
                 .Include(v => v.Branch)
@@ -226,6 +235,14 @@ IF @r < 0 THROW 50001, N'vacation lock timeout', 1;", $"vacation-user-{userId}")
                      v.Status == VacationStatus.PendingBranchManager));  // ⬅️
         }
 
+        // ==================== المرفقات ====================
+
+        public async Task<VacationAttachment?> GetAttachmentAsync(int attachmentId) =>
+            await _context.VacationAttachments.AsNoTracking()
+                .Include(a => a.Vacation)
+                .Include(a => a.Content)
+                .FirstOrDefaultAsync(a => a.Id == attachmentId);
+
         // ==================== «سجل الموظف» قبل القرار ====================
 
         private static readonly VacationStatus[] ActiveStatuses =
@@ -237,6 +254,13 @@ IF @r < 0 THROW 50001, N'vacation lock timeout', 1;", $"vacation-user-{userId}")
                 .Where(v => v.UserId == userId && v.Status == VacationStatus.Approved && v.StartVac <= upTo)
                 .OrderByDescending(v => v.StartVac)
                 .FirstOrDefaultAsync();
+
+        public async Task<List<Vacation>> GetUpcomingApprovedAsync(int userId, DateTime after) =>
+            await _context.Vacation.AsNoTracking()
+                .Include(v => v.VacationType)
+                .Where(v => v.UserId == userId && v.Status == VacationStatus.Approved && v.StartVac > after)
+                .OrderBy(v => v.StartVac)
+                .ToListAsync();
 
         public async Task<(int Count, int Days)> GetApprovedInMonthAsync(int userId, int year, int month)
         {

@@ -178,7 +178,7 @@ namespace Infrastructure
                             System.Text.Json.JsonSerializer.Serialize(new
                             {
                                 statusCode = 403,
-                                message = "You don't have permission to access this resource"
+                                message = "ليس لديك صلاحية لهذا الإجراء"
                             }));
                     }
                 };

@@ -23,10 +23,8 @@ namespace Infrastructure.Persistence.Repositories
             .Include(r => r.DeviceMaintenance).ThenInclude(d => d.DeviceType)
             .Include(r => r.DeviceMaintenance).ThenInclude(d => d.DeviceCompany)
             .Include(r => r.DamageType)
-            .Include(r => r.DeviceCompany)
             .Include(r => r.MaintenanceRequestStatus)
             .Include(r => r.DeliverySigner);
-            .Include(r => r.MaintenanceRequestStatus);
 
         public async Task<MaintenanceRequest?> GetByIdAsync(int id) =>
             await WithDetails().FirstOrDefaultAsync(r => r.Id == id);
