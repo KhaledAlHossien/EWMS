@@ -1,17 +1,14 @@
 using Application.DTOs.Request;
 using Application.DTOs.Response;
-using Application.Features.Devices.Queries.GetBySite;
-using Application.Features.Sites.Commands.Create;
-using Application.Features.Sites.Commands.Delete;
-using Application.Features.Sites.Commands.Update;
-using Application.Features.Sites.Queries.GetAll;
-using Application.Features.Sites.Queries.GetById;
+using Application.Features.DeviceInventory;
+using Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
 {
+    /// <summary>مواقع توثيق الأجهزة — القراءة لمن يملك أي صلاحية أجهزة (AnyDeviceView)</summary>
     [ApiController]
     [Route("api/Sites")]
     [Authorize]
@@ -24,19 +21,27 @@ namespace API.Controllers
             _mediator = mediator;
         }
 
+        /// <summary>كل المواقع مع عدد تركيباتها (كلها، والتي تعمل)</summary>
+        [HttpGet("GetAll")]
+        [Authorize(Policy = "AnyDeviceView")]
+        public async Task<ActionResult<List<SiteResponseDto>>> GetAll()
+            => Ok(await _mediator.Send(new GetAllSitesQuery()));
+
+        [HttpGet("Get/{id}")]
+        [Authorize(Policy = "AnyDeviceView")]
+        public async Task<ActionResult<SiteResponseDto>> GetById(int id)
+            => Ok(await _mediator.Send(new GetSiteByIdQuery(id)));
+
         [HttpPost("Create")]
         [Authorize(Policy = "CreateDevice")]
-        public async Task<ActionResult<SiteResponseDto>> Create([FromForm] CreateSiteRequestDto dto)
-        {
-            return Ok(await _mediator.Send(new CreateSiteCommand(dto)));
-        }
+        public async Task<ActionResult<SiteResponseDto>> Create([FromBody] SiteRequestDto dto)
+            => Ok(await _mediator.Send(new CreateSiteCommand(dto)));
 
+        /// <summary>يُرسل rowVersion كما وصل — يُرفض الحفظ إن عدّل غيرك الموقع منذ فتحته</summary>
         [HttpPut("Update/{id}")]
         [Authorize(Policy = "EditDevice")]
-        public async Task<ActionResult<SiteResponseDto>> Update(int id, [FromForm] UpdateSiteRequestDto dto)
-        {
-            return Ok(await _mediator.Send(new UpdateSiteCommand(id, dto)));
-        }
+        public async Task<ActionResult<SiteResponseDto>> Update(int id, [FromBody] SiteRequestDto dto)
+            => Ok(await _mediator.Send(new UpdateSiteCommand(id, dto)));
 
         [HttpDelete("Delete/{id}")]
         [Authorize(Policy = "DeleteDevice")]
@@ -46,25 +51,10 @@ namespace API.Controllers
             return Ok(new { message = "تم حذف الموقع بنجاح" });
         }
 
-        [HttpGet("Get/{id}")]
-        [Authorize(Policy = "ViewDevices")]
-        public async Task<ActionResult<SiteResponseDto>> GetById(int id)
-        {
-            return Ok(await _mediator.Send(new GetSiteByIdQuery(id)));
-        }
-
-        [HttpGet("GetAll")]
-        [Authorize(Policy = "ViewDevices")]
-        public async Task<ActionResult<List<SiteResponseDto>>> GetAll()
-        {
-            return Ok(await _mediator.Send(new GetAllSitesQuery()));
-        }
-
-        [HttpGet("{id}/Devices")]
-        [Authorize(Policy = "ViewDevices")]
-        public async Task<ActionResult<List<DeviceResponseDto>>> GetDevices(int id)
-        {
-            return Ok(await _mediator.Send(new GetDevicesBySiteQuery(id)));
-        }
+        /// <summary>سجل تغييرات الموقع (الأحدث أولاً)</summary>
+        [HttpGet("History/{id}")]
+        [Authorize(Policy = "AnyDeviceView")]
+        public async Task<ActionResult<PagedResultDto<DeviceInventoryLogDto>>> History(int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+            => Ok(await _mediator.Send(new GetDeviceInventoryHistoryQuery(DeviceInventoryEntity.Site, id, page, pageSize)));
     }
 }

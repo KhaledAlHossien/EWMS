@@ -14,43 +14,48 @@ namespace Infrastructure.Persistence.Repositories
             _context = context;
         }
 
-        public async Task<Device?> GetByIdAsync(int id)
-        {
-            return await _context.Devices.FirstOrDefaultAsync(d => d.Id == id);
-        }
+        private IQueryable<DeviceWithCount> WithCounts(IQueryable<Device> devices) => devices.AsNoTracking().Select(d => new DeviceWithCount(
+            d, _context.DeviceSites.Count(ds => ds.DeviceId == d.Id)));
 
-        public async Task<List<Device>> GetAllAsync()
-        {
-            return await _context.Devices.ToListAsync();
-        }
+        public async Task<Device?> GetByIdAsync(int id) => await _context.Devices.FirstOrDefaultAsync(d => d.Id == id);
+
+        public async Task<DeviceWithCount?> GetWithCountAsync(int id) =>
+            await WithCounts(_context.Devices.Where(d => d.Id == id)).FirstOrDefaultAsync();
+
+        public async Task<List<DeviceWithCount>> GetAllWithCountsAsync() =>
+            await WithCounts(_context.Devices.OrderBy(d => d.Name).ThenBy(d => d.Model)).ToListAsync();
+
+        public async Task<Device?> FindAsync(string name, string model) =>
+            await _context.Devices.AsNoTracking().FirstOrDefaultAsync(d => d.Name == name && d.Model == model);
 
         public async Task<Device> AddAsync(Device device)
         {
-            var result = await _context.Devices.AddAsync(device);
-            await _context.SaveChangesAsync();
-            return result.Entity;
+            await _context.Devices.AddAsync(device);
+            await SaveAsync();
+            return device;
         }
 
-        public async Task<bool> UpdateAsync(Device device)
+        public async Task UpdateAsync(Device device, byte[]? rowVersion)
         {
-            _context.Devices.Update(device);
-            return (await _context.SaveChangesAsync()) > 0;
+            if (rowVersion is { Length: > 0 })
+                _context.Entry(device).Property(d => d.RowVersion).OriginalValue = rowVersion;
+            await SaveAsync();
         }
 
-        public async Task<bool> DeleteAsync(Device device)
+        public async Task DeleteAsync(Device device)
         {
             _context.Devices.Remove(device);
-            return (await _context.SaveChangesAsync()) > 0;
+            await SaveAsync();
         }
 
-        public async Task<bool> ExistsAsync(int id)
-        {
-            return await _context.Devices.AnyAsync(d => d.Id == id);
-        }
+        public async Task<bool> ExistsAsync(int id) => await _context.Devices.AnyAsync(d => d.Id == id);
 
-        public async Task<bool> HasSiteLinksAsync(int deviceId)
-        {
-            return await _context.DeviceSites.AnyAsync(ds => ds.DeviceId == deviceId);
-        }
+        public async Task<bool> ExistsByNameAndModelAsync(string name, string model, int? excludeId = null) =>
+            await _context.Devices.AnyAsync(d => d.Name == name && d.Model == model && d.Id != excludeId);
+
+        public async Task<bool> HasSiteLinksAsync(int deviceId) =>
+            await _context.DeviceSites.AnyAsync(ds => ds.DeviceId == deviceId);
+
+        private Task SaveAsync() => DeviceInventorySave.SaveAsync(_context, "يوجد جهاز بنفس الاسم والموديل في الكتالوج");
     }
 }
