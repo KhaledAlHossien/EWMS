@@ -175,6 +175,21 @@ namespace Infrastructure.Persistence.Data
         }
 
         /// <summary>
+        /// كلمات سر الأجهزة المحفوظة نصاً قبل التشفير (2026-10-05): تُشفَّر مرة واحدة عند التشغيل.
+        /// المشفّرة (enc:v1:) تُتخطّى، فالتشغيل المتكرر لا يغيّر شيئاً.
+        /// </summary>
+        public static async Task EncryptDevicePasswordsAsync(DataContext context, Application.Interfaces.IDevicePasswordProtector protector)
+        {
+            var plain = await context.DeviceSites.Where(ds => ds.Pass != "" && !ds.Pass.StartsWith("enc:v1:")).ToListAsync();
+            if (plain.Count == 0) return;
+
+            foreach (var installation in plain)
+                installation.Pass = protector.Protect(installation.Pass);
+
+            await context.SaveChangesAsync();
+        }
+
+        /// <summary>
         /// إجازات معتمدة قبل 2026-10-04 (قبل الأجزاء): يُنشأ لكل منها جزء لكل شهر بحالة دفعها القديمة
         /// وأيامها التقويمية كما حُسبت وقتها، كي يبقى الحد الشهري صحيحاً. مرة واحدة (من لا أجزاء له فقط).
         /// </summary>

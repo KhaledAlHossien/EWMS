@@ -88,11 +88,12 @@ namespace Application.Common
             new("EditWorkTask",   "تعديل مهمة عمل وإسنادها"),
             new("DeleteWorkTask", "حذف مهمة عمل"),
 
-            // توثيق الأجهزة (مناطق / مواقع / أجهزة / تركيبات) — مع قاعدة القسم المالك في IDeviceAccessService
-            new("ViewDevices",  "عرض المناطق والمواقع والأجهزة"),
-            new("CreateDevice", "إضافة مناطق ومواقع وأجهزة"),
-            new("EditDevice",   "تعديل المناطق والمواقع والأجهزة"),
-            new("DeleteDevice", "حذف المناطق والمواقع والأجهزة"),
+            // توثيق الأجهزة (مواقع / كتالوج أجهزة / تركيبات) — العرض متاح أيضاً لمن يملك الإضافة أو التعديل أو الحذف (AnyOf)
+            new("ViewDevices",  "عرض مواقع الأجهزة والكتالوج والتركيبات وسجلها (بلا كلمات السر)"),
+            new("CreateDevice", "إضافة مواقع وأجهزة وتركيبات واستيرادها من Excel"),
+            new("EditDevice",   "تعديل المواقع والأجهزة والتركيبات"),
+            new("DeleteDevice", "حذف المواقع والأجهزة والتركيبات"),
+            new("RevealDevicePasswords", "إظهار كلمات سر الأجهزة ونسخها (يُسجَّل كل إظهار)"),
 
             new("ViewMaintenanceTasks",  "عرض مهام الصيانة"),
             new("CreateMaintenanceTask", "إضافة مهمة صيانة"),
@@ -138,10 +139,6 @@ namespace Application.Common
             new("DeleteMaintenanceLookup", "حذف أنواع الأجهزة والشركات والأعطال وحالات الطلب"),
         ];
 
-        /// <summary>سياساتها ليست فحص صلاحية دور فقط: تُفحص في IDeviceAccessService (الدور أو القسم المالك)</summary>
-        public static readonly IReadOnlySet<string> DeviceInventory =
-            new HashSet<string> { "ViewDevices", "CreateDevice", "EditDevice", "DeleteDevice" };
-
         /// <summary>
         /// صلاحيات تغيّر بنية الفروع — لا يمنحها إلا السوبر ادمن (منع تصعيد الصلاحيات:
         /// من يدير المستخدمين أو الأدوار داخل فرعه لا يستطيع منح نفسه أو غيره التحكم بالفروع).
@@ -163,6 +160,8 @@ namespace Application.Common
             ["AnyMaintenanceAssign"] = ["AssignMaintenanceRequest", "AssignMaintenanceTask"],
             ["AnyMaintenanceRequestWrite"] = ["CreateMaintenanceRequest", "EditMaintenanceRequest"],
             ["AnyWorkTaskView"] = ["ViewMyWorkTasks", "ViewWorkTasks", "ViewBranchDashboard", "ViewDepartmentDashboard", "ViewOfficeDashboard"],
+            // توثيق الأجهزة: من يضيف أو يعدّل أو يحذف يرى ما يعمل عليه
+            ["AnyDeviceView"] = ["ViewDevices", "CreateDevice", "EditDevice", "DeleteDevice"],
         };
 
         // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة

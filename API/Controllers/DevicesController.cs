@@ -1,18 +1,14 @@
 using Application.DTOs.Request;
 using Application.DTOs.Response;
-using Application.Features.Devices.Commands.Create;
-using Application.Features.Devices.Commands.Delete;
-using Application.Features.Devices.Commands.Update;
-using Application.Features.Devices.Queries.GetAll;
-using Application.Features.Devices.Queries.GetById;
-using Application.Features.Devices.Queries.GetMyAccess;
-using Application.Interfaces;
+using Application.Features.DeviceInventory;
+using Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
 {
+    /// <summary>كتالوج الأجهزة (نوع/موديل قابل للتركيب عدة مرات — الاسم + الموديل فريدان معاً)</summary>
     [ApiController]
     [Route("api/Devices")]
     [Authorize]
@@ -25,19 +21,26 @@ namespace API.Controllers
             _mediator = mediator;
         }
 
+        /// <summary>كل الأجهزة مع عدد تركيبات كل منها</summary>
+        [HttpGet("GetAll")]
+        [Authorize(Policy = "AnyDeviceView")]
+        public async Task<ActionResult<List<DeviceResponseDto>>> GetAll()
+            => Ok(await _mediator.Send(new GetAllDevicesQuery()));
+
+        [HttpGet("Get/{id}")]
+        [Authorize(Policy = "AnyDeviceView")]
+        public async Task<ActionResult<DeviceResponseDto>> GetById(int id)
+            => Ok(await _mediator.Send(new GetDeviceByIdQuery(id)));
+
         [HttpPost("Create")]
         [Authorize(Policy = "CreateDevice")]
-        public async Task<ActionResult<DeviceResponseDto>> Create([FromForm] CreateDeviceRequestDto dto)
-        {
-            return Ok(await _mediator.Send(new CreateDeviceCommand(dto)));
-        }
+        public async Task<ActionResult<DeviceResponseDto>> Create([FromBody] DeviceRequestDto dto)
+            => Ok(await _mediator.Send(new CreateDeviceCommand(dto)));
 
         [HttpPut("Update/{id}")]
         [Authorize(Policy = "EditDevice")]
-        public async Task<ActionResult<DeviceResponseDto>> Update(int id, [FromForm] UpdateDeviceRequestDto dto)
-        {
-            return Ok(await _mediator.Send(new UpdateDeviceCommand(id, dto)));
-        }
+        public async Task<ActionResult<DeviceResponseDto>> Update(int id, [FromBody] DeviceRequestDto dto)
+            => Ok(await _mediator.Send(new UpdateDeviceCommand(id, dto)));
 
         [HttpDelete("Delete/{id}")]
         [Authorize(Policy = "DeleteDevice")]
@@ -47,26 +50,9 @@ namespace API.Controllers
             return Ok(new { message = "تم حذف الجهاز بنجاح" });
         }
 
-        [HttpGet("Get/{id}")]
-        [Authorize(Policy = "ViewDevices")]
-        public async Task<ActionResult<DeviceResponseDto>> GetById(int id)
-        {
-            return Ok(await _mediator.Send(new GetDeviceByIdQuery(id)));
-        }
-
-        [HttpGet("GetAll")]
-        [Authorize(Policy = "ViewDevices")]
-        public async Task<ActionResult<List<DeviceResponseDto>>> GetAll()
-        {
-            return Ok(await _mediator.Send(new GetAllDevicesQuery()));
-        }
-
-        // صلاحيتي على توثيق الأجهزة (بدون سياسة: يُرجع false/false لمن لا يملكها)
-        [HttpGet("MyAccess")]
-        [Authorize(Policy = "ViewDevices")]
-        public async Task<ActionResult<DeviceAccess>> MyAccess()
-        {
-            return Ok(await _mediator.Send(new GetMyDeviceAccessQuery()));
-        }
+        [HttpGet("History/{id}")]
+        [Authorize(Policy = "AnyDeviceView")]
+        public async Task<ActionResult<PagedResultDto<DeviceInventoryLogDto>>> History(int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+            => Ok(await _mediator.Send(new GetDeviceInventoryHistoryQuery(DeviceInventoryEntity.Device, id, page, pageSize)));
     }
 }
