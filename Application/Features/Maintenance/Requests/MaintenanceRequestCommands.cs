@@ -88,6 +88,7 @@ namespace Application.Features.Maintenance.Requests
         private readonly INotificationService _notifications;
         private readonly IUserPermissionService _permissions;
         private readonly IUserSignatureService _signatures;
+        private readonly ISparePartService _spareParts;
         private readonly IMapper _mapper;
 
         public MaintenanceRequestCommandsHandler(
@@ -99,10 +100,12 @@ namespace Application.Features.Maintenance.Requests
             INotificationService notifications,
             IUserPermissionService permissions,
             IUserSignatureService signatures,
+            ISparePartService spareParts,
             IMapper mapper)
         {
             _permissions = permissions;
             _signatures = signatures;
+            _spareParts = spareParts;
             _requestService = requestService;
             _deviceService = deviceService;
             _damageTypeService = damageTypeService;
@@ -381,6 +384,10 @@ namespace Application.Features.Maintenance.Requests
 
             MaintenanceRules.Ensure(MaintenanceRules.In(await MaintenanceRules.BoundaryAsync(_userService, _permissions, "DeleteMaintenanceRequest"), entity),
                 "لا يمكنك حذف طلب صيانة خارج نطاقك");
+
+            // حركات المخزون (صرف وإرجاع) سجل لا يُحذف ويشير إلى الطلب — فلا يُحذف طلب صُرفت عليه قطع
+            if (await _spareParts.HasRequestPartsAsync(entity.Id))
+                throw new InvalidOperationException("لا يمكن حذف طلب صُرفت عليه قطع غيار — سجل المخزون يشير إليه");
 
             await _requestService.DeleteAsync(entity);
             return Unit.Value;

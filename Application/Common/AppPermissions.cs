@@ -128,6 +128,16 @@ namespace Application.Common
             new("EditMaintenanceDevice",   "تعديل بيانات جهاز صيانة"),
             new("DeleteMaintenanceDevice", "حذف جهاز صيانة (إن لم تكن له طلبات)"),
 
+            // مخزون قطع الغيار: مخزون لكل قسم — كل صلاحية حدّها قطع قسمه (مدير النظام: كل الأقسام)
+            new("ViewSpareParts",        "عرض قطع غيار مخزون قسمه وحركاتها"),
+            new("CreateSparePart",       "إضافة قطعة غيار إلى مخزون قسمه"),
+            new("EditSparePart",         "تعديل بيانات قطعة غيار في مخزون قسمه"),
+            new("DeleteSparePart",       "حذف قطعة غيار من مخزون قسمه (إن لم تكن لها حركات)"),
+            new("ReceiveSpareParts",     "إدخال قطع غيار إلى مخزون قسمه (ويصله تنبيه نزول القطعة تحت حدها الأدنى)"),
+            new("AdjustSparePartStock",  "تسوية رصيد قطعة غيار في مخزون قسمه (جرد أو تالف)"),
+            new("IssueSparePart",        "صرف قطع غيار على طلبات الصيانة وإعادتها (طلباته، وطلبات قسمه لمن يملك الاطلاع على القسم)"),
+            new("ViewSparePartReports",  "تقارير قطع غيار قسمه: أكثر القطع صرفاً وتكلفة الأجهزة"),
+
             new("ViewMaintenanceLookups", "عرض أنواع الأجهزة والشركات والأعطال وحالات الطلب"),
             new("CreateMaintenanceLookup", "إضافة أنواع الأجهزة والشركات والأعطال وحالات الطلب"),
             new("EditMaintenanceLookup",   "تعديل أنواع الأجهزة والشركات والأعطال وحالات الطلب"),
@@ -186,5 +196,7 @@ namespace Application.Common
         public const string ViewMyWorkTasks = "ViewMyWorkTasks";
         public const string ViewNotifications = "ViewNotifications";
         public const string SignMaintenanceReceipt = "SignMaintenanceReceipt";
+        public const string IssueSparePart = "IssueSparePart";
+        public const string ReceiveSpareParts = "ReceiveSpareParts";
     }
 }

@@ -44,6 +44,11 @@ namespace Infrastructure.Persistence.Data
         public DbSet<MaintenanceTask> MaintenanceTasks { get; set; }
         public DbSet<MaintenanceRequestActivity> MaintenanceRequestActivities { get; set; }
         public DbSet<MaintenanceTransferRequest> MaintenanceTransferRequests { get; set; }
+        public DbSet<SparePart> SpareParts { get; set; }
+        public DbSet<SparePartDeviceType> SparePartDeviceTypes { get; set; }
+        public DbSet<SparePartDeviceCompany> SparePartDeviceCompanies { get; set; }
+        public DbSet<SparePartMovement> SparePartMovements { get; set; }
+        public DbSet<MaintenanceRequestPart> MaintenanceRequestParts { get; set; }
         public DbSet<UserSignature> UserSignatures { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -294,6 +299,7 @@ namespace Infrastructure.Persistence.Data
             builder.Entity<DeviceType>(entity =>
             {
                 entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.ReplacementCostThreshold).HasPrecision(18, 2);
                 entity.HasIndex(x => x.Name).IsUnique();
             });
 
@@ -551,6 +557,71 @@ namespace Infrastructure.Persistence.Data
                 // طلب تحويل معلّق واحد على الأكثر لكل طلب صيانة
                 entity.HasIndex(t => t.MaintenanceRequestId).IsUnique().HasFilter("[Status] = 1");
                 entity.HasIndex(t => new { t.Status, t.CreatedAt });
+            });
+
+            // ==================== الصيانة: مخزون قطع الغيار ====================
+            // مخزون لكل قسم؛ الكمية والمتوسط يتغيّران بالحركات فقط. الحركات والقطع المصروفة Restrict
+            // (لا تُحذف قطعة لها حركات، ولا طلب صُرفت عليه قطع، ولا مستخدم أو قسم له سجل مخزون)
+            builder.Entity<SparePart>(entity =>
+            {
+                entity.Property(p => p.Name).HasMaxLength(200).IsRequired();
+                entity.Property(p => p.PartNumber).HasMaxLength(100);
+                entity.Property(p => p.Unit).HasMaxLength(30).IsRequired();
+                entity.Property(p => p.Description).HasMaxLength(1000);
+                entity.Property(p => p.Quantity).HasPrecision(18, 2);
+                entity.Property(p => p.MinQuantity).HasPrecision(18, 2);
+                entity.Property(p => p.AverageCost).HasPrecision(18, 2);
+
+                entity.HasOne(p => p.Department).WithMany().HasForeignKey(p => p.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+
+                // اسم القطعة فريد داخل مخزون القسم
+                entity.HasIndex(p => new { p.DepartmentId, p.Name }).IsUnique();
+                entity.HasIndex(p => p.PartNumber);
+                entity.ToTable(t => t.HasCheckConstraint("CK_SpareParts_Quantity", "[Quantity] >= 0"));
+            });
+
+            // التوافق جزء من القطعة، وحذف نوع/شركة يزيل التوافق فقط
+            builder.Entity<SparePartDeviceType>(entity =>
+            {
+                entity.HasKey(x => new { x.SparePartId, x.DeviceTypeId });
+                entity.HasOne(x => x.SparePart).WithMany(p => p.DeviceTypes).HasForeignKey(x => x.SparePartId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(x => x.DeviceType).WithMany().HasForeignKey(x => x.DeviceTypeId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<SparePartDeviceCompany>(entity =>
+            {
+                entity.HasKey(x => new { x.SparePartId, x.DeviceCompanyId });
+                entity.HasOne(x => x.SparePart).WithMany(p => p.DeviceCompanies).HasForeignKey(x => x.SparePartId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(x => x.DeviceCompany).WithMany().HasForeignKey(x => x.DeviceCompanyId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<SparePartMovement>(entity =>
+            {
+                entity.Property(m => m.Type).HasConversion<int>();
+                entity.Property(m => m.Quantity).HasPrecision(18, 2);
+                entity.Property(m => m.UnitCost).HasPrecision(18, 2);
+                entity.Property(m => m.BalanceAfter).HasPrecision(18, 2);
+                entity.Property(m => m.Note).HasMaxLength(500);
+
+                entity.HasOne(m => m.SparePart).WithMany().HasForeignKey(m => m.SparePartId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(m => m.MaintenanceRequest).WithMany().HasForeignKey(m => m.MaintenanceRequestId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(m => m.User).WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(m => new { m.SparePartId, m.CreatedAt });
+                entity.HasIndex(m => new { m.Type, m.Date });
+            });
+
+            builder.Entity<MaintenanceRequestPart>(entity =>
+            {
+                entity.Property(p => p.Quantity).HasPrecision(18, 2);
+                entity.Property(p => p.UnitCost).HasPrecision(18, 2);
+
+                entity.HasOne(p => p.MaintenanceRequest).WithMany().HasForeignKey(p => p.MaintenanceRequestId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(p => p.SparePart).WithMany().HasForeignKey(p => p.SparePartId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(p => p.IssuedBy).WithMany().HasForeignKey(p => p.IssuedById).OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(p => p.MaintenanceRequestId);
+                entity.HasIndex(p => new { p.SparePartId, p.IssuedAt });
             });
 
             builder.Entity<MaintenanceRequestActivity>(entity =>

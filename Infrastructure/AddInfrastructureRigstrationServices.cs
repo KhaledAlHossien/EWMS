@@ -53,6 +53,7 @@ namespace Infrastructure
             services.AddScoped<IDeviceMaintenanceService, DeviceMaintenanceService>();
             services.AddScoped<IMaintenanceRequestService, MaintenanceRequestService>();
             services.AddScoped<IMaintenanceTaskService, MaintenanceTaskService>();
+            services.AddScoped<ISparePartService, SparePartService>();
 
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();
