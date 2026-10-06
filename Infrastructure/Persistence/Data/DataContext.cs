@@ -51,6 +51,7 @@ namespace Infrastructure.Persistence.Data
         public DbSet<SparePartMovement> SparePartMovements { get; set; }
         public DbSet<MaintenanceRequestPart> MaintenanceRequestParts { get; set; }
         public DbSet<UserSignature> UserSignatures { get; set; }
+        public DbSet<ToDoList> ToDoLists { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -460,9 +461,11 @@ namespace Infrastructure.Persistence.Data
                 // فتكتب قاعدة البيانات الافتراضي بدلها (كانت الإجازة غير المدفوعة تُحفظ مدفوعة —
                 // أصلحته migration Fix_Vacation_Bool_Defaults). القيمة الافتراضية من مُهيّئ الـ Entity.
 
+                // لا HasDefaultValue على الـ enum أيضاً (نفس فخ الـ bool): 0 هو الافتراضي في C# فيعتبره EF "غير محددة"
+                // ويحذفه من INSERT فتكتب القاعدة حالة افتراضية بصمت. الحالة تُضبط دائماً من مُهيّئ الـ Entity
+                // ومن CreateVacationCommandHandler (أزالته migration Vacation_Status_Remove_Default).
                 entity.Property(v => v.Status)
-                    .HasConversion<int>()   // خزّنه كـ int
-                    .HasDefaultValue(VacationStatus.PendingManager);
+                    .HasConversion<int>();   // خزّنه كـ int
 
                 entity.Property(v => v.RejectionReason)
                     .HasMaxLength(500);
@@ -677,6 +680,19 @@ namespace Infrastructure.Persistence.Data
                     .HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(a => new { a.MaintenanceRequestId, a.CreatedAt });
+            });
+
+            // ==================== قوائم المهام الشخصية ====================
+            // قائمة شخصية: تُحذف مع صاحبها (مثل الإشعارات)، واسمها فريد داخل قوائمه
+            builder.Entity<ToDoList>(entity =>
+            {
+                entity.Property(l => l.Name).HasMaxLength(200).IsRequired();
+                entity.Property(l => l.Description).HasMaxLength(2000);
+
+                entity.HasOne(l => l.User).WithMany()
+                    .HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(l => new { l.UserId, l.Name }).IsUnique();
             });
 
             // ==================== توقيع المستخدم ====================
