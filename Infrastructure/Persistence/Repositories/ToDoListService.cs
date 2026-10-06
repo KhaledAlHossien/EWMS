@@ -1,0 +1,59 @@
+using Application.Interfaces;
+using Domain.Entities;
+using Infrastructure.Persistence.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace Infrastructure.Persistence.Repositories
+{
+    public class ToDoListService : IToDoListService
+    {
+        private readonly DataContext _context;
+
+        public ToDoListService(DataContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<ToDoList?> GetByIdAsync(int id) =>
+            await _context.ToDoLists.Include(l => l.User).FirstOrDefaultAsync(l => l.Id == id);
+
+        public async Task<List<ToDoList>> GetAllAsync(int? ownerId)
+        {
+            var query = _context.ToDoLists.AsQueryable();
+
+            if (ownerId is int id)
+                query = query.Where(l => l.UserId == id);
+
+            return await query
+                .Include(l => l.User)
+                .OrderByDescending(l => l.Id)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        public async Task<ToDoList> AddAsync(ToDoList list)
+        {
+            var result = await _context.ToDoLists.AddAsync(list);
+            await _context.SaveChangesAsync();
+            return result.Entity;
+        }
+
+        public async Task<bool> UpdateAsync(ToDoList list)
+        {
+            // القائمة محمَّلة ومتتبَّعة مع صاحبها — Update() كان سيعلّم المستخدم كمعدَّل أيضاً
+            if (_context.Entry(list).State == EntityState.Detached)
+                _context.ToDoLists.Update(list);
+
+            return (await _context.SaveChangesAsync()) > 0;
+        }
+
+        public async Task<bool> DeleteAsync(ToDoList list)
+        {
+            _context.ToDoLists.Remove(list);
+            return (await _context.SaveChangesAsync()) > 0;
+        }
+
+        public async Task<bool> ExistsByNameAsync(int ownerId, string name, int? excludeId = null) =>
+            await _context.ToDoLists.AnyAsync(l => l.UserId == ownerId && l.Name == name && l.Id != excludeId);
+    }
+}

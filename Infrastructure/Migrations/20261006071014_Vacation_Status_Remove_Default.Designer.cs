@@ -4,6 +4,7 @@ using Infrastructure.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20261006071014_Vacation_Status_Remove_Default")]
+    partial class Vacation_Status_Remove_Default
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -36,12 +39,6 @@ namespace Infrastructure.Migrations
                     b.Property<int>("BranchId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("ClaimedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("ClaimedByUserId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
 
@@ -62,22 +59,13 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime?>("DueDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DueSoonNotifiedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<int?>("OfficeId")
                         .HasColumnType("int");
-
-                    b.Property<DateTime?>("OverdueNotifiedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<int?>("ParentTaskId")
                         .HasColumnType("int");
 
                     b.Property<int>("Priority")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ReturnCount")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("StartedAt")
@@ -101,8 +89,6 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("BranchId");
 
-                    b.HasIndex("ClaimedByUserId");
-
                     b.HasIndex("ParentTaskId");
 
                     b.HasIndex("AssigneeUserId", "Status");
@@ -112,8 +98,6 @@ namespace Infrastructure.Migrations
                     b.HasIndex("DepartmentId", "Status");
 
                     b.HasIndex("OfficeId", "Status");
-
-                    b.HasIndex("Status", "DueDate");
 
                     b.ToTable("AssignedTasks");
                 });
@@ -156,269 +140,6 @@ namespace Infrastructure.Migrations
                     b.HasIndex("AssignedTaskId", "CreatedAt");
 
                     b.ToTable("AssignedTaskActivities");
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskAttachment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AssignedTaskId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<int>("Size")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UploadedByUserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssignedTaskId");
-
-                    b.HasIndex("UploadedByUserId");
-
-                    b.ToTable("AssignedTaskAttachments");
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskAttachmentContent", b =>
-                {
-                    b.Property<int>("AttachmentId")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("Data")
-                        .IsRequired()
-                        .HasColumnType("varbinary(max)");
-
-                    b.HasKey("AttachmentId");
-
-                    b.ToTable("AssignedTaskAttachmentContents");
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskChecklistItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AssignedTaskId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DoneAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDone")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssignedTaskId", "SortOrder");
-
-                    b.ToTable("AssignedTaskChecklistItems");
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskLink", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AssignedTaskId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("CreatedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("EntityId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("EntityType")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.HasIndex("EntityType", "EntityId");
-
-                    b.HasIndex("AssignedTaskId", "EntityType", "EntityId")
-                        .IsUnique();
-
-                    b.ToTable("AssignedTaskLinks");
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskRecurrence", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("DayOfMonth")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("DayOfWeek")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("DueAfterDays")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Frequency")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LastError")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime?>("LastRunAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("LastTaskId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("NextRunDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("OwnerUserId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("TargetId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TargetType")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TemplateId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerUserId");
-
-                    b.HasIndex("TemplateId");
-
-                    b.HasIndex("IsActive", "NextRunDate");
-
-                    b.ToTable("AssignedTaskRecurrences");
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskTemplate", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("DefaultDueDays")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("OwnerUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Priority")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerUserId", "Name")
-                        .IsUnique();
-
-                    b.ToTable("AssignedTaskTemplates");
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskTemplateItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TemplateId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TemplateId", "SortOrder");
-
-                    b.ToTable("AssignedTaskTemplateItems");
                 });
 
             modelBuilder.Entity("Domain.Entities.Branch", b =>
@@ -1936,11 +1657,6 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Domain.Entities.User", "ClaimedByUser")
-                        .WithMany()
-                        .HasForeignKey("ClaimedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Domain.Entities.User", "CreatedByUser")
                         .WithMany()
                         .HasForeignKey("CreatedByUserId")
@@ -1965,8 +1681,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("AssigneeUser");
 
                     b.Navigation("Branch");
-
-                    b.Navigation("ClaimedByUser");
 
                     b.Navigation("CreatedByUser");
 
@@ -1994,105 +1708,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("AssignedTask");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskAttachment", b =>
-                {
-                    b.HasOne("Domain.Entities.AssignedTask", "AssignedTask")
-                        .WithMany("Attachments")
-                        .HasForeignKey("AssignedTaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Domain.Entities.User", "UploadedByUser")
-                        .WithMany()
-                        .HasForeignKey("UploadedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("AssignedTask");
-
-                    b.Navigation("UploadedByUser");
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskAttachmentContent", b =>
-                {
-                    b.HasOne("Domain.Entities.AssignedTaskAttachment", null)
-                        .WithOne("Content")
-                        .HasForeignKey("Domain.Entities.AssignedTaskAttachmentContent", "AttachmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskChecklistItem", b =>
-                {
-                    b.HasOne("Domain.Entities.AssignedTask", "AssignedTask")
-                        .WithMany("ChecklistItems")
-                        .HasForeignKey("AssignedTaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AssignedTask");
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskLink", b =>
-                {
-                    b.HasOne("Domain.Entities.AssignedTask", "AssignedTask")
-                        .WithMany("Links")
-                        .HasForeignKey("AssignedTaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Domain.Entities.User", "CreatedByUser")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("AssignedTask");
-
-                    b.Navigation("CreatedByUser");
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskRecurrence", b =>
-                {
-                    b.HasOne("Domain.Entities.User", "OwnerUser")
-                        .WithMany()
-                        .HasForeignKey("OwnerUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Domain.Entities.AssignedTaskTemplate", "Template")
-                        .WithMany()
-                        .HasForeignKey("TemplateId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("OwnerUser");
-
-                    b.Navigation("Template");
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskTemplate", b =>
-                {
-                    b.HasOne("Domain.Entities.User", "OwnerUser")
-                        .WithMany()
-                        .HasForeignKey("OwnerUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("OwnerUser");
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskTemplateItem", b =>
-                {
-                    b.HasOne("Domain.Entities.AssignedTaskTemplate", "Template")
-                        .WithMany("Items")
-                        .HasForeignKey("TemplateId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Template");
                 });
 
             modelBuilder.Entity("Domain.Entities.Department", b =>
@@ -2638,24 +2253,7 @@ namespace Infrastructure.Migrations
                 {
                     b.Navigation("Activities");
 
-                    b.Navigation("Attachments");
-
-                    b.Navigation("ChecklistItems");
-
-                    b.Navigation("Links");
-
                     b.Navigation("SubTasks");
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskAttachment", b =>
-                {
-                    b.Navigation("Content")
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Domain.Entities.AssignedTaskTemplate", b =>
-                {
-                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Domain.Entities.Maintenance.SparePart", b =>
