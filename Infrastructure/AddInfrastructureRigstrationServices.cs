@@ -57,6 +57,7 @@ namespace Infrastructure
             services.AddScoped<IDeviceMaintenanceService, DeviceMaintenanceService>();
             services.AddScoped<IMaintenanceRequestService, MaintenanceRequestService>();
             services.AddScoped<IMaintenanceTaskService, MaintenanceTaskService>();
+            services.AddScoped<IToDoListService, ToDoListService>();
             services.AddScoped<ISparePartService, SparePartService>();
 
             services.AddScoped<ICurrentUserService, CurrentUserService>();
