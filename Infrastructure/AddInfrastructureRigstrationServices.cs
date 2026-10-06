@@ -31,7 +31,6 @@ namespace Infrastructure
             services.AddScoped<IUserPermissionService, UserPermissionService>();
             services.AddScoped<IUserSignatureService, UserSignatureService>();
             services.AddScoped<IAssignedTaskService, AssignedTaskService>();
-            services.AddScoped<IDeviceAccessService, DeviceAccessService>();
             services.AddScoped<IMapService, MapService>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IRoleService, RoleService>();
@@ -43,6 +42,9 @@ namespace Infrastructure
             services.AddScoped<ISiteService, SiteService>();
             services.AddScoped<IDeviceService, DeviceService>();
             services.AddScoped<IDeviceSiteService, DeviceSiteService>();
+            services.AddScoped<IDeviceInventoryLogService, DeviceInventoryLogService>();
+            services.AddSingleton<IDevicePasswordProtector, Infrastructure.Security.DevicePasswordProtector>();
+            services.AddSingleton<IDeviceSpreadsheet, Infrastructure.Files.DeviceSpreadsheet>();
 
             // الصيانة
             services.AddScoped<IDeviceTypeService, DeviceTypeService>();

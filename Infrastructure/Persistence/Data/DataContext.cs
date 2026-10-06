@@ -31,6 +31,7 @@ namespace Infrastructure.Persistence.Data
         public DbSet<Site> Sites { get; set; }
         public DbSet<Device> Devices { get; set; }
         public DbSet<DeviceSite> DeviceSites { get; set; }
+        public DbSet<DeviceInventoryLog> DeviceInventoryLogs { get; set; }
         public DbSet<WorkTask> WorkTasks { get; set; }
         public DbSet<UserWorkTask> UserWorkTasks { get; set; }
         public DbSet<AssignedTask> AssignedTasks { get; set; }
@@ -96,25 +97,65 @@ namespace Infrastructure.Persistence.Data
                 .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
                 .IsUnique();
 
-            builder.Entity<Site>()
-                .Property(s => s.GovernorateCode)
-                .HasMaxLength(10);
+            // ==================== توثيق الأجهزة ====================
+            builder.Entity<Site>(entity =>
+            {
+                entity.Property(s => s.Name).HasMaxLength(100).IsRequired();
+                entity.Property(s => s.Description).HasMaxLength(500);
+                entity.Property(s => s.GovernorateCode).HasMaxLength(10);
+                entity.Property(s => s.ContactName).HasMaxLength(100);
+                entity.Property(s => s.ContactPhone).HasMaxLength(20);
+                entity.Property(s => s.ResponsibleParty).HasMaxLength(150);
+                entity.Property(s => s.RowVersion).IsRowVersion();
+                entity.HasIndex(s => s.GovernorateCode);
+                entity.HasIndex(s => s.Name).IsUnique();
+            });
 
-            builder.Entity<Site>()
-                .HasIndex(s => s.GovernorateCode);
-
-            builder.Entity<Site>()
-                .HasIndex(s => s.Name)
-                .IsUnique();
+            // الجهاز في الكتالوج: الاسم + الموديل فريدان معاً
+            builder.Entity<Device>(entity =>
+            {
+                entity.Property(d => d.Name).HasMaxLength(100).IsRequired();
+                entity.Property(d => d.Model).HasMaxLength(100);
+                entity.Property(d => d.Description).HasMaxLength(500);
+                entity.Property(d => d.Category).HasMaxLength(50);
+                entity.Property(d => d.Manufacturer).HasMaxLength(100);
+                entity.Property(d => d.RowVersion).IsRowVersion();
+                entity.HasIndex(d => new { d.Name, d.Model }).IsUnique();
+            });
 
             // لا فهرس فريد على (DeviceId, SiteId): نفس الجهاز قد يُركَّب أكثر من مرة في نفس الموقع
-            builder.Entity<DeviceSite>()
-                .Property(ds => ds.InstallLocation)
-                .HasMaxLength(300);
+            builder.Entity<DeviceSite>(entity =>
+            {
+                entity.Property(ds => ds.Ip).HasMaxLength(15);
+                entity.Property(ds => ds.SubnetMask).HasMaxLength(15);
+                entity.Property(ds => ds.Gateway).HasMaxLength(15);
+                entity.Property(ds => ds.UserName).HasMaxLength(100);
+                entity.Property(ds => ds.Pass).HasMaxLength(2000);   // مشفّرة (أطول من الأصل)
+                entity.Property(ds => ds.Note).HasMaxLength(1000);
+                entity.Property(ds => ds.SN).HasMaxLength(100);
+                entity.Property(ds => ds.InstallLocation).HasMaxLength(300);
+                entity.Property(ds => ds.MacAddress).HasMaxLength(17);
+                entity.Property(ds => ds.Port).HasMaxLength(50);
+                entity.Property(ds => ds.Firmware).HasMaxLength(100);
+                entity.Property(ds => ds.Status).HasConversion<int>();
+                entity.Property(ds => ds.RowVersion).IsRowVersion();
+                // البحث بالـ IP والرقم التسلسلي، وتنبيه تكرار الـ IP داخل الموقع
+                entity.HasIndex(ds => new { ds.SiteId, ds.Ip });
+                entity.HasIndex(ds => ds.Ip);
+                entity.HasIndex(ds => ds.SN);
+                entity.HasIndex(ds => ds.Status);
+            });
 
-            builder.Entity<DeviceSite>()
-                .Property(ds => ds.SN)
-                .HasMaxLength(100);
+            builder.Entity<DeviceInventoryLog>(entity =>
+            {
+                entity.Property(l => l.EntityType).HasConversion<int>();
+                entity.Property(l => l.Action).HasConversion<int>();
+                entity.Property(l => l.Title).HasMaxLength(300);
+                entity.Property(l => l.Details).HasMaxLength(4000);
+                entity.HasOne(l => l.User).WithMany().HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(l => new { l.EntityType, l.EntityId, l.CreatedAt });
+                entity.HasIndex(l => new { l.UserId, l.CreatedAt });
+            });
 
             // ==================== تكوين العلاقات ====================
 

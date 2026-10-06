@@ -39,6 +39,7 @@ using (var scope = app.Services.CreateScope())
     await DbSeeder.SeedAsync(db);
     await DbSeeder.BackfillSiteGovernoratesAsync(db);
     await DbSeeder.BackfillVacationSegmentsAsync(db);
+    await DbSeeder.EncryptDevicePasswordsAsync(db, scope.ServiceProvider.GetRequiredService<Application.Interfaces.IDevicePasswordProtector>());
 }
 
 app.Run();
