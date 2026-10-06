@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Entities.Maintenance;
@@ -114,6 +115,33 @@ namespace Application.Features.Maintenance
             if (request.ClientUserId is not int clientId) return;
             await SendAsync(notifications, [clientId], actor.Id,
                 NotificationType.MaintenanceStatusChanged, ClientEntity, request.Id, title, message);
+        }
+
+        // ════════ مخزون قطع الغيار (قرار المستخدم 2026-10-05) ════════
+        public const string SparePartEntity = "SparePart";
+
+        /// <summary>نزلت القطعة تحت حدها الأدنى ← من يملك إدخال المخزون في قسمها</summary>
+        public static async Task LowStockAsync(
+            INotificationService notifications, IUserPermissionService permissions, SparePart part, decimal balance, User actor)
+        {
+            var recipients = (await permissions.GetUsersWithPermissionAsync(AppPermissions.ReceiveSpareParts, departmentId: part.DepartmentId))
+                .Select(u => u.Id);
+
+            await SendAsync(notifications, recipients, actor.Id,
+                NotificationType.SparePartLowStock, SparePartEntity, part.Id,
+                "قطعة غيار تحت الحد الأدنى",
+                $"رصيد «{part.Name}» صار {balance:0.##} {part.Unit} (الحد الأدنى {part.MinQuantity:0.##})");
+        }
+
+        /// <summary>بلغت تكلفة قطع الجهاز حد الاستبدال لنوعه ← من يدير طلبات قسم الطلب</summary>
+        public static async Task DeviceCostThresholdAsync(
+            INotificationService notifications, IUserPermissionService permissions, MaintenanceRequest request,
+            decimal cost, decimal threshold, User actor)
+        {
+            await SendAsync(notifications, await ManagerIdsAsync(permissions, request.DepartmentId), actor.Id,
+                NotificationType.DeviceRepairCostThreshold, MaintenanceRules.RequestEntity, request.Id,
+                "إصلاح الجهاز صار أغلى من استبداله",
+                $"بلغت تكلفة قطع الجهاز {request.DeviceMaintenance?.SerialNumber} على مدى عمره {cost:0.##} ل.س (حد الاستبدال {threshold:0.##}) — الطلب {Label(request)}");
         }
 
         // ════════ طلبات التحويل (قرار المستخدم 2026-10-05) ════════

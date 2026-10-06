@@ -7,7 +7,9 @@ namespace Domain.Entities.Maintenance
         Reassigned = 3,     // نقل الطلب إلى فني آخر
         Edited = 4,         // تعديل بيانات الطلب
         TransferRequested = 5, // طلب الفني تحويل الطلب إلى موظف آخر
-        TransferRejected = 6   // رفض رئيس القسم طلب التحويل (القبول يُسجَّل Reassigned)
+        TransferRejected = 6,  // رفض رئيس القسم طلب التحويل (القبول يُسجَّل Reassigned)
+        PartIssued = 7,        // صُرفت قطعة غيار على الطلب
+        PartReturned = 8       // أُعيدت قطعة من الطلب إلى المخزون
     }
 
     /// <summary>سجل طلب الصيانة: من فعل ماذا ومتى (يُحذف مع الطلب)</summary>

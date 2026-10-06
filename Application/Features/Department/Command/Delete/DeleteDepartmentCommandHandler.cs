@@ -10,19 +10,22 @@ namespace Application.Features.Department.Command.Delete
         private readonly IAssignedTaskService _assignedTaskService;
         private readonly IMaintenanceRequestService _maintenanceRequestService;
         private readonly IMaintenanceTaskService _maintenanceTaskService;
+        private readonly ISparePartService _sparePartService;
 
         public DeleteDepartmentCommandHandler(
             IDepartmentService departmentService,
             ICurrentUserService currentUserService,
             IAssignedTaskService assignedTaskService,
             IMaintenanceRequestService maintenanceRequestService,
-            IMaintenanceTaskService maintenanceTaskService)
+            IMaintenanceTaskService maintenanceTaskService,
+            ISparePartService sparePartService)
         {
             _departmentService = departmentService;
             _currentUserService = currentUserService;
             _assignedTaskService = assignedTaskService;
             _maintenanceRequestService = maintenanceRequestService;
             _maintenanceTaskService = maintenanceTaskService;
+            _sparePartService = sparePartService;
         }
 
         public async Task<bool> Handle(DeleteDepartmentCommand request, CancellationToken cancellationToken)
@@ -49,6 +52,9 @@ namespace Application.Features.Department.Command.Delete
             if (await _maintenanceRequestService.ExistsForDepartmentAsync(request.Id)
                 || await _maintenanceTaskService.ExistsForDepartmentAsync(request.Id))
                 throw new InvalidOperationException("لا يمكن حذف قسم له طلبات أو مهام صيانة مسجّلة");
+
+            if (await _sparePartService.ExistsForDepartmentAsync(request.Id))
+                throw new InvalidOperationException("لا يمكن حذف قسم له مخزون قطع غيار");
 
             return await _departmentService.DeleteAsync(department);
         }

@@ -11,6 +11,7 @@ namespace Application.Features.Users.Commands.Delete
         private readonly IMaintenanceRequestService _maintenanceRequestService;
         private readonly IMaintenanceTaskService _maintenanceTaskService;
         private readonly IVacationService _vacationService;
+        private readonly ISparePartService _sparePartService;
 
         public DeleteUserCommandHandler(
             IUserService userService,
@@ -18,8 +19,10 @@ namespace Application.Features.Users.Commands.Delete
             IAssignedTaskService assignedTaskService,
             IMaintenanceRequestService maintenanceRequestService,
             IMaintenanceTaskService maintenanceTaskService,
-            IVacationService vacationService)
+            IVacationService vacationService,
+            ISparePartService sparePartService)
         {
+            _sparePartService = sparePartService;
             _userService = userService;
             _currentUserService = currentUserService;
             _assignedTaskService = assignedTaskService;
@@ -48,6 +51,9 @@ namespace Application.Features.Users.Commands.Delete
             if (await _maintenanceRequestService.ExistsForUserAsync(user.Id)
                 || await _maintenanceTaskService.ExistsForUserAsync(user.Id))
                 throw new InvalidOperationException("لا يمكن حذف موظف له طلبات أو مهام صيانة مسجّلة — عطّل حسابه بدلاً من ذلك");
+
+            if (await _sparePartService.ExistsForUserAsync(user.Id))
+                throw new InvalidOperationException("لا يمكن حذف موظف له حركات على مخزون قطع الغيار — عطّل حسابه بدلاً من ذلك");
 
 
             return await _userService.DeleteAsync(user);

@@ -17,6 +17,8 @@
         MaintenanceAssigned = 13,             // نُقل طلب/مهمة صيانة إلى موظف آخر
         MaintenanceStatusChanged = 14,        // تغيّرت حالة طلب صيانة أو عُدّل
         MaintenanceTransferRequested = 15,    // طلب فني تحويل طلب صيانة (لرئيس القسم)
-        MaintenanceTransferDecided = 16       // قرار رئيس القسم على طلب التحويل (للفني)
+        MaintenanceTransferDecided = 16,      // قرار رئيس القسم على طلب التحويل (للفني)
+        SparePartLowStock = 17,               // نزلت قطعة غيار تحت حدها الأدنى (لمن يُدخل المخزون في القسم)
+        DeviceRepairCostThreshold = 18        // بلغت تكلفة قطع جهاز حد الاستبدال (لرئيس القسم)
     }
 }
