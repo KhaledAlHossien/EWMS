@@ -9,7 +9,7 @@ namespace API.Controllers
 {
     /// <summary>
     /// قوائم المهام الشخصية. الصلاحية تفتح العملية، والحدّ ثابت: قوائم المستخدم نفسه فقط
-    /// (والسوبر ادمن على الكل) — يُفحص داخل المعالج.
+    /// (والسوبر ادمن على الكل) — يُفحص داخل المعالج. البنود (إضافة/تعديل/ترتيب/حذف) بصلاحية EditToDoList.
     /// </summary>
     [ApiController]
     [Route("api/ToDoLists")]
@@ -43,6 +43,36 @@ namespace API.Controllers
         [Authorize(Policy = "EditToDoList")]
         public async Task<ActionResult<ToDoListResponseDto>> Update(int id, [FromBody] ToDoListRequestDto dto)
             => Ok(await _mediator.Send(new UpdateToDoListCommand(id, dto)));
+
+        // ════════ البنود (قرار المستخدم 2026-10-08): عنوان + منجز + ترتيب — كلها EditToDoList على قوائمي فقط ════════
+        /// <summary>يضيف بنداً في آخر القائمة — يُرجع القائمة بعد التحديث</summary>
+        [HttpPost("Items/{listId}")]
+        [Authorize(Policy = "EditToDoList")]
+        public async Task<ActionResult<ToDoListResponseDto>> AddItem(int listId, [FromBody] AddToDoItemRequestDto dto)
+            => Ok(await _mediator.Send(new AddToDoItemCommand(listId, dto)));
+
+        /// <summary>تعديل العنوان و/أو تعليم البند منجزاً أو لا</summary>
+        [HttpPut("Item/{itemId}")]
+        [Authorize(Policy = "EditToDoList")]
+        public async Task<ActionResult<ToDoListResponseDto>> UpdateItem(int itemId, [FromBody] UpdateToDoItemRequestDto dto)
+            => Ok(await _mediator.Send(new UpdateToDoItemCommand(itemId, dto)));
+
+        [HttpDelete("Item/{itemId}")]
+        [Authorize(Policy = "EditToDoList")]
+        public async Task<ActionResult<ToDoListResponseDto>> DeleteItem(int itemId)
+            => Ok(await _mediator.Send(new DeleteToDoItemCommand(itemId)));
+
+        /// <summary>الترتيب الجديد: كل أرقام بنود القائمة مرتبة كما تريد</summary>
+        [HttpPut("Reorder/{listId}")]
+        [Authorize(Policy = "EditToDoList")]
+        public async Task<ActionResult<ToDoListResponseDto>> Reorder(int listId, [FromBody] ReorderToDoItemsRequestDto dto)
+            => Ok(await _mediator.Send(new ReorderToDoItemsCommand(listId, dto.ItemIds)));
+
+        /// <summary>حذف كل البنود المنجزة من القائمة</summary>
+        [HttpDelete("ClearDone/{listId}")]
+        [Authorize(Policy = "EditToDoList")]
+        public async Task<ActionResult<ToDoListResponseDto>> ClearDone(int listId)
+            => Ok(await _mediator.Send(new ClearDoneToDoItemsCommand(listId)));
 
         [HttpDelete("Delete/{id}")]
         [Authorize(Policy = "DeleteToDoList")]
