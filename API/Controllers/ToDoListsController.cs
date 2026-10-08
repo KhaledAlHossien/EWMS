@@ -45,13 +45,47 @@ namespace API.Controllers
             => Ok(await _mediator.Send(new UpdateToDoListCommand(id, dto)));
 
         // ════════ البنود (قرار المستخدم 2026-10-08): عنوان + منجز + ترتيب — كلها EditToDoList على قوائمي فقط ════════
-        /// <summary>يضيف بنداً في آخر القائمة — يُرجع القائمة بعد التحديث</summary>
+        /// <summary>«مهامي اليوم»: بنودي غير المنجزة المتأخرة والمستحقة اليوم من كل قوائمي</summary>
+        [HttpGet("Today")]
+        [Authorize(Policy = "ViewToDoLists")]
+        public async Task<ActionResult<ToDoTodayDto>> Today() => Ok(await _mediator.Send(new GetToDoTodayQuery()));
+
+        /// <summary>تثبيت القائمة أو إلغاء تثبيتها (المثبّتة أولاً)</summary>
+        [HttpPut("Pin/{id}")]
+        [Authorize(Policy = "EditToDoList")]
+        public async Task<ActionResult<ToDoListResponseDto>> Pin(int id, [FromBody] SetToDoFlagRequestDto dto)
+            => Ok(await _mediator.Send(new SetToDoListPinnedCommand(id, dto.Value)));
+
+        /// <summary>أرشفة القائمة (تُخفى ولا تُعدَّل بنودها ولا تذكيرات) أو إعادتها</summary>
+        [HttpPut("Archive/{id}")]
+        [Authorize(Policy = "EditToDoList")]
+        public async Task<ActionResult<ToDoListResponseDto>> Archive(int id, [FromBody] SetToDoFlagRequestDto dto)
+            => Ok(await _mediator.Send(new SetToDoListArchivedCommand(id, dto.Value)));
+
+        /// <summary>نسخة من القائمة ببنودها غير منجزة وبلا مواعيد</summary>
+        [HttpPost("Duplicate/{id}")]
+        [Authorize(Policy = "CreateToDoList")]
+        public async Task<ActionResult<ToDoListResponseDto>> Duplicate(int id) => Ok(await _mediator.Send(new DuplicateToDoListCommand(id)));
+
+        /// <summary>إضافة عدة بنود دفعة واحدة (حتى 100): كل عنوان بند</summary>
+        [HttpPost("Items/{listId}/Bulk")]
+        [Authorize(Policy = "EditToDoList")]
+        public async Task<ActionResult<ToDoListResponseDto>> BulkAddItems(int listId, [FromBody] BulkAddToDoItemsRequestDto dto)
+            => Ok(await _mediator.Send(new BulkAddToDoItemsCommand(listId, dto.Titles)));
+
+        /// <summary>إضافة مهمة من لوحة المهام إلى القائمة كبند مرتبط بها (تحتاج حقك في عرض المهمة)</summary>
+        [HttpPost("Items/{listId}/FromTask")]
+        [Authorize(Policy = "EditToDoList")]
+        public async Task<ActionResult<ToDoListResponseDto>> AddTask(int listId, [FromBody] AddTaskToToDoListRequestDto dto)
+            => Ok(await _mediator.Send(new AddTaskToToDoListCommand(listId, dto.TaskId)));
+
+        /// <summary>يضيف بنداً في آخر القائمة (بموعد/ملاحظة/أهمية/تكرار اختيارية) — يُرجع القائمة بعد التحديث</summary>
         [HttpPost("Items/{listId}")]
         [Authorize(Policy = "EditToDoList")]
         public async Task<ActionResult<ToDoListResponseDto>> AddItem(int listId, [FromBody] AddToDoItemRequestDto dto)
             => Ok(await _mediator.Send(new AddToDoItemCommand(listId, dto)));
 
-        /// <summary>تعديل العنوان و/أو تعليم البند منجزاً أو لا</summary>
+        /// <summary>تعديل العنوان والملاحظة والأهمية والموعد والتكرار، أو تعليم البند منجزاً (المتكرر يتقدّم موعده بدل أن يبقى منجزاً)</summary>
         [HttpPut("Item/{itemId}")]
         [Authorize(Policy = "EditToDoList")]
         public async Task<ActionResult<ToDoListResponseDto>> UpdateItem(int itemId, [FromBody] UpdateToDoItemRequestDto dto)
