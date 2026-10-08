@@ -330,7 +330,6 @@ namespace Infrastructure.Persistence.Repositories
             report.DeviceCosts = costs.Where(c => devices.ContainsKey(c.DeviceId)).Select(c =>
             {
                 var device = devices[c.DeviceId];
-                var threshold = device.DeviceType?.ReplacementCostThreshold;
                 return new DeviceCostDto
                 {
                     DeviceMaintenanceId = c.DeviceId,
@@ -339,8 +338,6 @@ namespace Infrastructure.Persistence.Repositories
                     DeviceTypeName = device.DeviceType?.Name ?? string.Empty,
                     RequestsCount = c.Requests,
                     Cost = c.Cost,
-                    Threshold = threshold,
-                    OverThreshold = threshold is decimal t && t > 0 && c.Cost >= t
                 };
             }).ToList();
 

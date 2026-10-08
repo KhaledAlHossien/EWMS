@@ -4,7 +4,6 @@ namespace Application.DTOs.Response
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
-        public decimal? ReplacementCostThreshold { get; set; }
     }
 
     public class DeviceCompanyResponseDto

@@ -27,6 +27,9 @@ namespace Application.DTOs.Response
         public string? BranchOpinion { get; set; }
         public string? SignerName { get; set; }
         public string? SignerSignature { get; set; }                   // صورة التوقيع (data URL) إن رفعها
+
+        /// <summary>توقيع مقدّم الطلب كما كان لحظة التقديم (data URL)، أو null → خانة فارغة</summary>
+        public string? RequesterSignature { get; set; }
     }
 
     public class VacationPrintTypeDto

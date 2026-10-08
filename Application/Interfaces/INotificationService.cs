@@ -9,6 +9,8 @@ namespace Application.Interfaces
 
         Task<Notification?> GetByIdAsync(int id);
         Task<List<Notification>> GetByUserIdAsync(int userId, bool unreadOnly = false);
+        /// <summary>صفحة من إشعارات مستخدم (الأحدث أولاً) مع العدد الكلي</summary>
+        Task<(List<Notification> Items, int Total)> GetPageByUserIdAsync(int userId, bool unreadOnly, int page, int pageSize);
         Task<int> GetUnreadCountAsync(int userId);
 
         Task<bool> MarkAsReadAsync(Notification notification);

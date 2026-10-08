@@ -133,17 +133,6 @@ namespace Application.Features.Maintenance
                 $"رصيد «{part.Name}» صار {balance:0.##} {part.Unit} (الحد الأدنى {part.MinQuantity:0.##})");
         }
 
-        /// <summary>بلغت تكلفة قطع الجهاز حد الاستبدال لنوعه ← من يدير طلبات قسم الطلب</summary>
-        public static async Task DeviceCostThresholdAsync(
-            INotificationService notifications, IUserPermissionService permissions, MaintenanceRequest request,
-            decimal cost, decimal threshold, User actor)
-        {
-            await SendAsync(notifications, await ManagerIdsAsync(permissions, request.DepartmentId), actor.Id,
-                NotificationType.DeviceRepairCostThreshold, MaintenanceRules.RequestEntity, request.Id,
-                "إصلاح الجهاز صار أغلى من استبداله",
-                $"بلغت تكلفة قطع الجهاز {request.DeviceMaintenance?.SerialNumber} على مدى عمره {cost:0.##} ل.س (حد الاستبدال {threshold:0.##}) — الطلب {Label(request)}");
-        }
-
         // ════════ طلبات التحويل (قرار المستخدم 2026-10-05) ════════
 
         /// <summary>الفني طلب تحويل طلب مسند إليه ← من يملك نقل طلبات قسم الطلب</summary>

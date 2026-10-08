@@ -423,7 +423,6 @@ namespace Application.Features.Maintenance.SpareParts
         {
             var parts = await _service.GetRequestPartsAsync(r.Id);
             var lifetime = await _service.GetDeviceCostAsync(r.DeviceMaintenanceId);
-            var threshold = r.DeviceMaintenance?.DeviceType?.ReplacementCostThreshold;
 
             return new RequestPartsDto
             {
@@ -442,8 +441,6 @@ namespace Application.Features.Maintenance.SpareParts
                 }).ToList(),
                 Total = Math.Round(parts.Sum(p => p.Quantity * p.UnitCost), 2),
                 DeviceLifetimeCost = Math.Round(lifetime, 2),
-                ReplacementCostThreshold = threshold,
-                OverThreshold = threshold is decimal t && t > 0 && lifetime >= t,
                 CanIssue = await CanIssueAsync(r)
             };
         }
@@ -477,7 +474,6 @@ namespace Application.Features.Maintenance.SpareParts
             if (part.DepartmentId != r.DepartmentId)
                 throw new InvalidOperationException("القطعة ليست من مخزون قسم الطلب");
 
-            var costBefore = await _service.GetDeviceCostAsync(r.DeviceMaintenanceId);
             var (issued, change) = await _service.IssueAsync(r.Id, part.Id, request.Dto.Quantity, viewer.Id);
 
             await LogAsync(r, viewer.User, MaintenanceActivityType.PartIssued,
@@ -485,12 +481,6 @@ namespace Application.Features.Maintenance.SpareParts
 
             if (SparePartRules.CrossedBelowMinimum(part, change))
                 await MaintenanceNotifier.LowStockAsync(_notifications, _permissions, part, change.After, viewer.User);
-
-            // تكلفة الجهاز على مدى عمره بلغت حد الاستبدال لنوعه الآن (أول مرة فقط)
-            var costAfter = costBefore + issued.Quantity * issued.UnitCost;
-            if (r.DeviceMaintenance?.DeviceType?.ReplacementCostThreshold is decimal threshold && threshold > 0
-                && costBefore < threshold && costAfter >= threshold)
-                await MaintenanceNotifier.DeviceCostThresholdAsync(_notifications, _permissions, r, costAfter, threshold, viewer.User);
 
             return await RequestPartsAsync(r);
         }
