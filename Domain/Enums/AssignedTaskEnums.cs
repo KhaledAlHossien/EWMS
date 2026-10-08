@@ -42,3 +42,21 @@ namespace Domain.Enums
         Released = 9           // تخلّى عن توليها
     }
 }
+
+namespace Domain.Enums
+{
+    public enum TaskRecurrenceFrequency
+    {
+        Daily = 1,
+        Weekly = 2,
+        Monthly = 3
+    }
+
+    /// <summary>السجلات التي يمكن ربط مهمة بها</summary>
+    public enum TaskLinkType
+    {
+        MaintenanceRequest = 1,
+        Vacation = 2,
+        Site = 3
+    }
+}

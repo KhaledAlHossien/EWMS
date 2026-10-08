@@ -13,6 +13,8 @@ namespace Application.DTOs.Request
         public int TargetId { get; set; }
         /// <summary>Department | Office | User — مطلوب إن كان للمستخدم أكثر من نوع إسناد (يُتجاهل في التفويض: نوعه من المهمة الأصل)</summary>
         public string? TargetType { get; set; }
+        /// <summary>بنود تحقق تُنشأ مع المهمة (من قالب أو يدوياً)</summary>
+        public List<string>? ChecklistItems { get; set; }
         public int? ParentTaskId { get; set; }
     }
 

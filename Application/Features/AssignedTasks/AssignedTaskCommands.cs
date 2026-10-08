@@ -26,6 +26,12 @@ namespace Application.Features.AssignedTasks
             RuleFor(x => x.Dto.Description).MaximumLength(4000).WithMessage("الوصف لا يتجاوز 4000 حرف");
             RuleFor(x => x.Dto.Priority).InclusiveBetween(1, 4).WithMessage("الأولوية غير صحيحة");
             RuleFor(x => x.Dto.TargetId).GreaterThan(0).WithMessage("اختر الجهة المُسندة إليها المهمة");
+            RuleFor(x => x.Dto.ChecklistItems).Must(l => l == null || l.Count <= AssignedTaskRules.MaxChecklistItems)
+                .WithMessage($"بنود التحقق لا تتجاوز {AssignedTaskRules.MaxChecklistItems} بنداً");
+            RuleForEach(x => x.Dto.ChecklistItems).MaximumLength(200).WithMessage("البند لا يتجاوز 200 حرف");
+            RuleFor(x => x.Dto.ChecklistItems).Must(l => l == null || l.Count <= AssignedTaskRules.MaxChecklistItems)
+                .WithMessage($"بنود التحقق لا تتجاوز {AssignedTaskRules.MaxChecklistItems} بنداً");
+            RuleForEach(x => x.Dto.ChecklistItems).MaximumLength(200).WithMessage("البند لا يتجاوز 200 حرف");
             RuleFor(x => x.Dto.DueDate).Must(d => d == null || d.Value.Date >= DateTime.Today)
                 .WithMessage("تاريخ التسليم لا يمكن أن يكون في الماضي");
         }
@@ -100,7 +106,7 @@ namespace Application.Features.AssignedTasks
             var viewer = await CurrentAsync();
             var dto = request.Dto;
             var created = await _creator.CreateAsync(viewer, new NewTaskSpec(
-                dto.Title, dto.Description, dto.Priority, dto.DueDate, dto.TargetType, dto.TargetId, dto.ParentTaskId));
+                dto.Title, dto.Description, dto.Priority, dto.DueDate, dto.TargetType, dto.TargetId, dto.ParentTaskId, dto.ChecklistItems));
             return AssignedTaskRules.ToDetail(created, viewer);
         }
 
@@ -179,6 +185,7 @@ namespace Application.Features.AssignedTasks
             var now = DateTime.UtcNow;
             task.Status = to;
             task.UpdatedAt = now;
+            if (returned) task.ReturnCount++;
             if (to == AssignedTaskStatus.InProgress) task.StartedAt ??= now;
             task.CompletedAt = to == AssignedTaskStatus.Done ? now : null;
 
