@@ -94,7 +94,9 @@ namespace Application.Features.ToDoLists
             var viewer = await ViewerAsync();
             var ownerId = viewer.IsSuperAdmin ? request.OwnerId : viewer.Id;
 
-            return _mapper.Map<List<ToDoListResponseDto>>(await _service.GetAllAsync(ownerId));
+            var lists = _mapper.Map<List<ToDoListResponseDto>>(await _service.GetAllAsync(ownerId));
+            foreach (var l in lists) l.Items = [];      // القائمة الرئيسية بالأعداد فقط، والبنود في Get/{id}
+            return lists;
         }
 
         public async Task<ToDoListResponseDto> Handle(GetToDoListByIdQuery request, CancellationToken ct)
