@@ -28,8 +28,9 @@ namespace Application
             // FluentValidation
             services.AddValidatorsFromAssembly(applicationAssembly);
 
-            // لوحة المهام: إنشاء المهام في مكان واحد
+            // لوحة المهام: إنشاء المهام (يدوياً ومن التكرار) وربطها بالسجلات
             services.AddScoped<Application.Features.AssignedTasks.AssignedTaskCreator>();
+            services.AddScoped<Application.Features.AssignedTasks.TaskLinkResolver>();
 
             return services;
         }

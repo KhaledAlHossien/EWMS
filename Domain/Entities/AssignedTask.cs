@@ -39,6 +39,10 @@ namespace Domain.Entities
         public ICollection<AssignedTaskActivity> Activities { get; set; } = new List<AssignedTaskActivity>();
         public ICollection<AssignedTaskAttachment> Attachments { get; set; } = new List<AssignedTaskAttachment>();
         public ICollection<AssignedTaskChecklistItem> ChecklistItems { get; set; } = new List<AssignedTaskChecklistItem>();
+        public ICollection<AssignedTaskLink> Links { get; set; } = new List<AssignedTaskLink>();
+
+        /// <summary>كم مرة أعادها المُسنِد من المراجعة إلى التنفيذ (لإحصائيات الجودة)</summary>
+        public int ReturnCount { get; set; }
 
         // ===== «أتولّى هذه المهمة»: من يعمل عليها فعلاً من الجهة المنفِّذة (معلومة للعرض، لا تقيّد غيره من المنفِّذين) =====
         public int? ClaimedByUserId { get; set; }
