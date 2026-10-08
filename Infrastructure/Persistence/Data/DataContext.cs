@@ -59,6 +59,7 @@ namespace Infrastructure.Persistence.Data
         public DbSet<MaintenanceRequestPart> MaintenanceRequestParts { get; set; }
         public DbSet<UserSignature> UserSignatures { get; set; }
         public DbSet<ToDoList> ToDoLists { get; set; }
+        public DbSet<ToDoItem> ToDoItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -766,6 +767,15 @@ namespace Infrastructure.Persistence.Data
                     .HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Cascade);
 
                 entity.HasIndex(l => new { l.UserId, l.Name }).IsUnique();
+            });
+
+            // بند القائمة: جزء منها (يُحذف معها)
+            builder.Entity<ToDoItem>(entity =>
+            {
+                entity.Property(i => i.Title).HasMaxLength(200).IsRequired();
+                entity.HasOne(i => i.ToDoList).WithMany(l => l.Items)
+                    .HasForeignKey(i => i.ToDoListId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(i => new { i.ToDoListId, i.SortOrder });
             });
 
             // ==================== توقيع المستخدم ====================
