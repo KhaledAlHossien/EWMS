@@ -415,7 +415,6 @@ namespace Infrastructure.Persistence.Data
             builder.Entity<DeviceType>(entity =>
             {
                 entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
-                entity.Property(x => x.ReplacementCostThreshold).HasPrecision(18, 2);
                 entity.HasIndex(x => x.Name).IsUnique();
             });
 
@@ -600,6 +599,10 @@ namespace Infrastructure.Persistence.Data
                 entity.HasOne(v => v.RejectedSignature)
                     .WithMany()
                     .HasForeignKey(v => v.RejectedSignatureId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(v => v.RequestSignature)
+                    .WithMany()
+                    .HasForeignKey(v => v.RequestSignatureId)
                     .OnDelete(DeleteBehavior.Restrict);
 
                 // قراران متزامنان على نفس الطلب → الثاني يفشل (DbUpdateConcurrencyException)

@@ -23,6 +23,7 @@ namespace Application.Features.Vacations.Commands.Create
         private readonly IUserService _userService;
         private readonly IUserPermissionService _permissions;
         private readonly INotificationService _notificationService;
+        private readonly IUserSignatureService _signatures;
         private readonly IMapper _mapper;
 
         public CreateVacationCommandHandler(
@@ -32,6 +33,7 @@ namespace Application.Features.Vacations.Commands.Create
             IUserService userService,
             IUserPermissionService permissions,
             INotificationService notificationService,
+            IUserSignatureService signatures,
             IMapper mapper)
         {
             _vacationService = vacationService;
@@ -40,6 +42,7 @@ namespace Application.Features.Vacations.Commands.Create
             _userService = userService;
             _permissions = permissions;
             _notificationService = notificationService;
+            _signatures = signatures;
             _mapper = mapper;
         }
 
@@ -96,6 +99,8 @@ namespace Application.Features.Vacations.Commands.Create
                 EndVac = end,
                 VacDayCount = workingDays,
                 Status = initialStatus,
+                // توقيع مقدّم الطلب وقتها (بلا توقيع = صندوق فارغ في الطباعة)
+                RequestSignatureId = await _signatures.GetCurrentIdAsync(request.UserId),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };

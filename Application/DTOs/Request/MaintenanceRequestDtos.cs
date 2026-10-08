@@ -5,9 +5,6 @@ namespace Application.DTOs.Request
     public class DeviceTypeRequestDto
     {
         public string Name { get; set; } = string.Empty;
-
-        /// <summary>حد «إصلاحه أغلى من استبداله» لتكلفة قطع الجهاز على مدى عمره (اختياري)</summary>
-        public decimal? ReplacementCostThreshold { get; set; }
     }
 
     public class DeviceCompanyRequestDto

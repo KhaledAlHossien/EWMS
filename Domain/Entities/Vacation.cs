@@ -39,6 +39,10 @@ namespace Domain.Entities
         public int? FinalApprovedSignatureId { get; set; }
         public UserSignature? FinalApprovedSignature { get; set; }
 
+        // توقيع مقدّم الطلب كما كان لحظة التقديم (null = لم يكن له توقيع، أو إجازة قدّمت قبل هذه الميزة: تُطبع الخانة فارغة)
+        public int? RequestSignatureId { get; set; }
+        public UserSignature? RequestSignature { get; set; }
+
         // ===== حالة سير العمل (جديد) =====
         public VacationStatus Status { get; set; } = VacationStatus.PendingManager;
 

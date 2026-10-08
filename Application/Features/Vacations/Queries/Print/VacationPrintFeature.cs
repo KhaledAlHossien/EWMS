@@ -69,6 +69,9 @@ namespace Application.Features.Vacations.Queries.Print
                     .ToList()
             };
 
+            // توقيع مقدّم الطلب المحفوظ وقت التقديم (لا الحالي): الإجازات القديمة بلا نسخة → فارغ
+            result.RequesterSignature = await _signatures.GetImageAsync(vacation.RequestSignatureId);
+
             var (opinion, signer, signatureId) = BranchDecision(vacation);
             result.BranchOpinion = opinion;
             if (signer != null)

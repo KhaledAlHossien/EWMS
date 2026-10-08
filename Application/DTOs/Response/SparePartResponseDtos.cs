@@ -73,9 +73,6 @@ namespace Application.DTOs.Response
 
         /// <summary>تكلفة قطع الجهاز في كل طلباته</summary>
         public decimal DeviceLifetimeCost { get; set; }
-        public decimal? ReplacementCostThreshold { get; set; }
-        /// <summary>بلغت تكلفة الجهاز حد الاستبدال لنوعه</summary>
-        public bool OverThreshold { get; set; }
 
         /// <summary>يملك الصرف على هذا الطلب الآن (الصلاحية، النطاق، والطلب مفتوح وله قسم)</summary>
         public bool CanIssue { get; set; }
@@ -98,8 +95,6 @@ namespace Application.DTOs.Response
         public string DeviceTypeName { get; set; } = string.Empty;
         public int RequestsCount { get; set; }
         public decimal Cost { get; set; }
-        public decimal? Threshold { get; set; }
-        public bool OverThreshold { get; set; }
     }
 
     public class SparePartReportDto
