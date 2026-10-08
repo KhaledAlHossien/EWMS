@@ -39,6 +39,10 @@ namespace Infrastructure.Persistence.Data
         public DbSet<AssignedTaskAttachment> AssignedTaskAttachments { get; set; }
         public DbSet<AssignedTaskAttachmentContent> AssignedTaskAttachmentContents { get; set; }
         public DbSet<AssignedTaskChecklistItem> AssignedTaskChecklistItems { get; set; }
+        public DbSet<AssignedTaskTemplate> AssignedTaskTemplates { get; set; }
+        public DbSet<AssignedTaskTemplateItem> AssignedTaskTemplateItems { get; set; }
+        public DbSet<AssignedTaskRecurrence> AssignedTaskRecurrences { get; set; }
+        public DbSet<AssignedTaskLink> AssignedTaskLinks { get; set; }
         public DbSet<DeviceType> DeviceTypes { get; set; }
         public DbSet<DeviceCompany> DeviceCompanies { get; set; }
         public DbSet<DamageType> DamageTypes { get; set; }
@@ -350,6 +354,44 @@ namespace Infrastructure.Persistence.Data
                 entity.Property(i => i.Text).HasMaxLength(200).IsRequired();
                 entity.HasOne(i => i.AssignedTask).WithMany(t => t.ChecklistItems).HasForeignKey(i => i.AssignedTaskId).OnDelete(DeleteBehavior.Cascade);
                 entity.HasIndex(i => new { i.AssignedTaskId, i.SortOrder });
+            });
+
+            // قوالب المهام والمهام الدورية والروابط: القالب والرابط جزء من مالكهما، والمستخدم Restrict (حراسة حذف المستخدم)
+            builder.Entity<AssignedTaskTemplate>(entity =>
+            {
+                entity.Property(t => t.Name).HasMaxLength(100).IsRequired();
+                entity.Property(t => t.Title).HasMaxLength(200).IsRequired();
+                entity.Property(t => t.Description).HasMaxLength(4000);
+                entity.Property(t => t.Priority).HasConversion<int>();
+                entity.HasOne(t => t.OwnerUser).WithMany().HasForeignKey(t => t.OwnerUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(t => new { t.OwnerUserId, t.Name }).IsUnique();
+            });
+
+            builder.Entity<AssignedTaskTemplateItem>(entity =>
+            {
+                entity.Property(i => i.Text).HasMaxLength(200).IsRequired();
+                entity.HasOne(i => i.Template).WithMany(t => t.Items).HasForeignKey(i => i.TemplateId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(i => new { i.TemplateId, i.SortOrder });
+            });
+
+            builder.Entity<AssignedTaskRecurrence>(entity =>
+            {
+                entity.Property(r => r.TargetType).HasConversion<int>();
+                entity.Property(r => r.Frequency).HasConversion<int>();
+                entity.Property(r => r.LastError).HasMaxLength(500);
+                entity.HasOne(r => r.OwnerUser).WithMany().HasForeignKey(r => r.OwnerUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.Template).WithMany().HasForeignKey(r => r.TemplateId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(r => new { r.IsActive, r.NextRunDate });
+                entity.HasIndex(r => r.OwnerUserId);
+            });
+
+            builder.Entity<AssignedTaskLink>(entity =>
+            {
+                entity.Property(l => l.EntityType).HasConversion<int>();
+                entity.HasOne(l => l.AssignedTask).WithMany(t => t.Links).HasForeignKey(l => l.AssignedTaskId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(l => l.CreatedByUser).WithMany().HasForeignKey(l => l.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(l => new { l.AssignedTaskId, l.EntityType, l.EntityId }).IsUnique();
+                entity.HasIndex(l => new { l.EntityType, l.EntityId });
             });
 
             builder.Entity<AssignedTaskActivity>(entity =>

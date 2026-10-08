@@ -4,7 +4,7 @@ using Application.Interfaces;
 namespace API.Background
 {
     /// <summary>
-    /// يفحص مواعيد المهام دورياً ويرسل التذكيرات (انظر AssignedTaskReminders). أول فحص بعد 20 ثانية من الإقلاع،
+    /// ينشئ المهام الدورية المستحقة (AssignedTaskRecurrenceRunner) ثم يفحص مواعيد المهام ويرسل التذكيرات (AssignedTaskReminders). أول فحص بعد 20 ثانية من الإقلاع،
     /// ثم كل TaskReminders:IntervalMinutes دقيقة (الافتراضي 10). أي خطأ يُسجَّل ويُعاد الفحص في الدورة التالية دون إيقاف الخادم.
     /// </summary>
     public class TaskReminderWorker : BackgroundService
@@ -26,6 +26,23 @@ namespace API.Background
 
             while (!stoppingToken.IsCancellationRequested)
             {
+                try
+                {
+                    // المهام الدورية أولاً: ما أُنشئ اليوم يدخل فحص التذكيرات في الدورة نفسها
+                    using var recurring = _scopes.CreateScope();
+                    var made = await AssignedTaskRecurrenceRunner.RunAsync(
+                        recurring.ServiceProvider.GetRequiredService<IAssignedTaskPlanningService>(),
+                        recurring.ServiceProvider.GetRequiredService<AssignedTaskCreator>(),
+                        recurring.ServiceProvider.GetRequiredService<IUserPermissionService>(),
+                        recurring.ServiceProvider.GetRequiredService<INotificationService>(),
+                        DateTime.Now);
+                    if (made > 0) _logger.LogInformation("أُنشئت {Count} مهام من المهام الدورية", made);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "تعذّر تنفيذ المهام الدورية — تُعاد المحاولة في الدورة التالية");
+                }
+
                 try
                 {
                     using var scope = _scopes.CreateScope();

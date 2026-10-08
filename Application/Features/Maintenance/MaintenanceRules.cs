@@ -61,6 +61,9 @@ namespace Application.Features.Maintenance
         private static Scopes ScopesFor(Viewer v, string view, string edit, string delete, string assign, string? status = null) =>
             new(RecordBoundary(v, view), RecordBoundary(v, edit), RecordBoundary(v, delete), AssignBoundary(v, assign), status == null ? null : RecordBoundary(v, status));
 
+        /// <summary>حدّ عرض سجلات الصيانة (لربط المهام بالطلبات)</summary>
+        public static Boundary? ViewBoundary(Viewer v, string permission) => RecordBoundary(v, permission);
+
         // عرض/تعديل/حذف: سجلاتي + قسمي لمن يملك ViewDepartmentMaintenance
         private static Boundary? RecordBoundary(Viewer v, string permission)
         {

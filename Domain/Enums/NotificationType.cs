@@ -22,6 +22,7 @@
         DeviceRepairCostThreshold = 18,       // بلغت تكلفة قطع جهاز حد الاستبدال (لرئيس القسم)
         TaskDueSoon = 19,                     // مهمة يحين موعدها اليوم أو غداً
         TaskOverdue = 20,                     // تجاوزت مهمة موعد تسليمها
-        TaskAttachmentAdded = 21              // أُرفق ملف بمهمة
+        TaskAttachmentAdded = 21,             // أُرفق ملف بمهمة
+        TaskRecurrenceStopped = 22            // توقفت مهمة دورية لتعذّر إنشائها (لصاحبها)
     }
 }

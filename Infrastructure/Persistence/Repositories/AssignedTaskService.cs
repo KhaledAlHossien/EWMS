@@ -142,6 +142,9 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<bool> ExistsForUserAsync(int userId) =>
             await _context.AssignedTasks.AnyAsync(t => t.CreatedByUserId == userId || t.AssigneeUserId == userId || t.ClaimedByUserId == userId)
             || await _context.AssignedTaskActivities.AnyAsync(a => a.UserId == userId)
-            || await _context.AssignedTaskAttachments.AnyAsync(a => a.UploadedByUserId == userId);
+            || await _context.AssignedTaskAttachments.AnyAsync(a => a.UploadedByUserId == userId)
+            || await _context.AssignedTaskTemplates.AnyAsync(t => t.OwnerUserId == userId)
+            || await _context.AssignedTaskRecurrences.AnyAsync(r => r.OwnerUserId == userId)
+            || await _context.AssignedTaskLinks.AnyAsync(l => l.CreatedByUserId == userId);
     }
 }

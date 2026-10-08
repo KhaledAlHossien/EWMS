@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Common;
 using Application.Interfaces;
@@ -99,6 +100,33 @@ namespace Application.Features.AssignedTasks
 
         public static bool CanView(AssignedTask t, Viewer v) =>
             v.IsSuperAdmin || t.CreatedByUserId == v.Id || CanHandle(t, v) || Scope(v).Compile()(t);
+
+        /// <summary>فلتر عرض اللوحة: incoming (الواردة) | outgoing (الصادرة) | scope (كل مهام نطاقي)</summary>
+        public static Expression<Func<AssignedTask, bool>> ModeFilter(Viewer v, string? mode)
+        {
+            var userId = v.Id;
+            return (mode ?? "incoming").ToLowerInvariant() switch
+            {
+                "outgoing" => t => t.CreatedByUserId == userId,
+                "scope" => Scope(v),
+                _ => Incoming(v)
+            };
+        }
+
+        /// <summary>فلاتر البحث والتصدير على بطاقات اللوحة (نفس منطق بحث الواجهة)</summary>
+        public static bool MatchesExportFilter(AssignedTaskCardDto c, AssignedTaskExportFilterDto f)
+        {
+            var q = f.Q?.Trim();
+            if (!string.IsNullOrEmpty(q)
+                && !(c.Title.Contains(q, StringComparison.OrdinalIgnoreCase) || c.TargetName.Contains(q, StringComparison.OrdinalIgnoreCase)
+                     || c.CreatedByName.Contains(q, StringComparison.OrdinalIgnoreCase)))
+                return false;
+            if (!string.IsNullOrEmpty(f.Priority) && !string.Equals(c.Priority, f.Priority, StringComparison.OrdinalIgnoreCase)) return false;
+            if (f.OverdueOnly && !c.IsOverdue) return false;
+            if (f.DueFrom != null && (c.DueDate == null || c.DueDate.Value.Date < f.DueFrom.Value.Date)) return false;
+            if (f.DueTo != null && (c.DueDate == null || c.DueDate.Value.Date > f.DueTo.Value.Date)) return false;
+            return true;
+        }
 
         /// <summary>الواردة: المهام التي أنا منفِّذها</summary>
         public static Expression<Func<AssignedTask, bool>> Incoming(Viewer v)

@@ -23,10 +23,16 @@ namespace API.Controllers
             _mediator = mediator;
         }
 
-        // mode: incoming | outgoing | scope
+        // mode: incoming | outgoing | scope — doneDays: عمر المنجزة المعروضة (الافتراضي 30)
         [HttpGet("Board")]
-        public async Task<ActionResult<TaskBoardDto>> Board([FromQuery] string mode = "incoming")
-            => Ok(await _mediator.Send(new GetTaskBoardQuery(mode)));
+        public async Task<ActionResult<TaskBoardDto>> Board([FromQuery] string mode = "incoming", [FromQuery] int? doneDays = null)
+            => Ok(await _mediator.Send(new GetTaskBoardQuery(mode, doneDays)));
+
+        /// <summary>تصدير مهام العرض الحالي إلى Excel (نفس فلاتر الواجهة)</summary>
+        [HttpGet("Export")]
+        public async Task<IActionResult> Export([FromQuery] AssignedTaskExportFilterDto filter)
+            => File(await _mediator.Send(new ExportAssignedTasksQuery(filter)),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"tasks-{DateTime.Now:yyyy-MM-dd}.xlsx");
 
         [HttpGet("Get/{id}")]
         public async Task<ActionResult<AssignedTaskDetailDto>> Get(int id)
@@ -102,6 +108,74 @@ namespace API.Controllers
         [HttpPut("Claim/{id}")]
         public async Task<ActionResult<AssignedTaskDetailDto>> Claim(int id, [FromBody] ClaimAssignedTaskRequestDto dto)
             => Ok(await _mediator.Send(new ClaimAssignedTaskCommand(id, dto.Claim)));
+
+        // ════════ القوالب والمهام الدورية (لمن يملك صلاحية إسناد؛ خاصة بصاحبها) ════════
+        [HttpGet("Templates")]
+        public async Task<ActionResult<List<TaskTemplateDto>>> Templates() => Ok(await _mediator.Send(new GetTaskTemplatesQuery()));
+
+        [HttpPost("Templates")]
+        public async Task<ActionResult<TaskTemplateDto>> CreateTemplate([FromBody] SaveTaskTemplateRequestDto dto)
+            => Ok(await _mediator.Send(new SaveTaskTemplateCommand(null, dto)));
+
+        [HttpPut("Templates/{id}")]
+        public async Task<ActionResult<TaskTemplateDto>> UpdateTemplate(int id, [FromBody] SaveTaskTemplateRequestDto dto)
+            => Ok(await _mediator.Send(new SaveTaskTemplateCommand(id, dto)));
+
+        [HttpDelete("Templates/{id}")]
+        public async Task<ActionResult> DeleteTemplate(int id)
+        {
+            await _mediator.Send(new DeleteTaskTemplateCommand(id));
+            return Ok(new { message = "تم حذف القالب" });
+        }
+
+        [HttpGet("Recurrences")]
+        public async Task<ActionResult<List<TaskRecurrenceDto>>> Recurrences() => Ok(await _mediator.Send(new GetTaskRecurrencesQuery()));
+
+        [HttpPost("Recurrences")]
+        public async Task<ActionResult<TaskRecurrenceDto>> CreateRecurrence([FromBody] SaveTaskRecurrenceRequestDto dto)
+            => Ok(await _mediator.Send(new SaveTaskRecurrenceCommand(null, dto)));
+
+        [HttpPut("Recurrences/{id}")]
+        public async Task<ActionResult<TaskRecurrenceDto>> UpdateRecurrence(int id, [FromBody] SaveTaskRecurrenceRequestDto dto)
+            => Ok(await _mediator.Send(new SaveTaskRecurrenceCommand(id, dto)));
+
+        [HttpPut("Recurrences/{id}/Active")]
+        public async Task<ActionResult<TaskRecurrenceDto>> SetRecurrenceActive(int id, [FromBody] SetRecurrenceActiveRequestDto dto)
+            => Ok(await _mediator.Send(new SetTaskRecurrenceActiveCommand(id, dto.IsActive)));
+
+        /// <summary>ينشئ مهمة من التكرار الآن دون تغيير موعده التالي</summary>
+        [HttpPost("Recurrences/{id}/RunNow")]
+        public async Task<ActionResult<AssignedTaskDetailDto>> RunRecurrenceNow(int id)
+            => Ok(await _mediator.Send(new RunTaskRecurrenceNowCommand(id)));
+
+        [HttpDelete("Recurrences/{id}")]
+        public async Task<ActionResult> DeleteRecurrence(int id)
+        {
+            await _mediator.Send(new DeleteTaskRecurrenceCommand(id));
+            return Ok(new { message = "تم حذف المهمة الدورية" });
+        }
+
+        // ════════ ربط المهمة بسجل في نظام آخر ════════
+        [HttpGet("Links/{id}")]
+        public async Task<ActionResult<List<TaskLinkDto>>> Links(int id) => Ok(await _mediator.Send(new GetTaskLinksQuery(id)));
+
+        [HttpPost("Links/{id}")]
+        public async Task<ActionResult<List<TaskLinkDto>>> AddLink(int id, [FromBody] AddTaskLinkRequestDto dto)
+            => Ok(await _mediator.Send(new AddTaskLinkCommand(id, dto)));
+
+        [HttpDelete("Link/{linkId}")]
+        public async Task<ActionResult<List<TaskLinkDto>>> RemoveLink(int linkId) => Ok(await _mediator.Send(new RemoveTaskLinkCommand(linkId)));
+
+        /// <summary>المهام المرتبطة بسجل (entityType: MaintenanceRequest | Vacation | Site) — لمن يحق له عرض السجل نفسه</summary>
+        [HttpGet("ByLink")]
+        public async Task<ActionResult<List<AssignedTaskCardDto>>> ByLink([FromQuery] string entityType, [FromQuery] int entityId)
+            => Ok(await _mediator.Send(new GetTasksByLinkQuery(entityType, entityId)));
+
+        // ════════ الإحصائيات (ViewTaskStats، ضمن مهام نطاقي) ════════
+        [HttpGet("Stats")]
+        [Authorize(Policy = "ViewTaskStats")]
+        public async Task<ActionResult<TaskStatsDto>> Stats([FromQuery] DateTime? from, [FromQuery] DateTime? to)
+            => Ok(await _mediator.Send(new GetTaskStatsQuery(from, to)));
 
         [HttpDelete("Delete/{id}")]
         public async Task<ActionResult> Delete(int id)

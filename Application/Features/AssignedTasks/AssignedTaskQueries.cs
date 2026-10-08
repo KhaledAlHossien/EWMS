@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Application.Common;
+using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using Domain.Entities;
@@ -12,7 +13,9 @@ namespace Application.Features.AssignedTasks
     /// Mode: incoming (الواردة — أنا المنفِّذ)، outgoing (الصادرة — أنا المُسنِد)، scope (كل مهام نطاقي).
     /// المنجزة تُعرض لآخر 30 يوماً فقط حتى لا تزدحم اللوحة.
     /// </summary>
-    public record GetTaskBoardQuery(string Mode) : IRequest<TaskBoardDto>;
+    public record GetTaskBoardQuery(string Mode, int? DoneDays = null) : IRequest<TaskBoardDto>;
+    /// <summary>تصدير مهام العرض الحالي (بنفس فلاتر الواجهة) إلى Excel</summary>
+    public record ExportAssignedTasksQuery(AssignedTaskExportFilterDto Filter) : IRequest<byte[]>;
     public record GetAssignedTaskQuery(int Id) : IRequest<AssignedTaskDetailDto>;
     /// <summary>
     /// الجهات التي يستطيع المستخدم الإسناد إليها من نوع معيّن (أقسام فرعه / مكاتب قسمه / موظفو مكتبه)،
@@ -22,6 +25,7 @@ namespace Application.Features.AssignedTasks
 
     public class AssignedTaskQueriesHandler :
         IRequestHandler<GetTaskBoardQuery, TaskBoardDto>,
+        IRequestHandler<ExportAssignedTasksQuery, byte[]>,
         IRequestHandler<GetAssignedTaskQuery, AssignedTaskDetailDto>,
         IRequestHandler<GetTaskTargetsQuery, List<TaskTargetOptionDto>>
     {
@@ -30,14 +34,17 @@ namespace Application.Features.AssignedTasks
         private readonly IUserPermissionService _permissions;
         private readonly IDepartmentService _departmentService;
         private readonly IOfficeService _officeService;
+        private readonly IAssignedTaskSpreadsheet _spreadsheet;
 
         public AssignedTaskQueriesHandler(
             IAssignedTaskService taskService,
             IUserService userService,
             IUserPermissionService permissions,
             IDepartmentService departmentService,
-            IOfficeService officeService)
+            IOfficeService officeService,
+            IAssignedTaskSpreadsheet spreadsheet)
         {
+            _spreadsheet = spreadsheet;
             _taskService = taskService;
             _userService = userService;
             _permissions = permissions;
@@ -51,16 +58,10 @@ namespace Application.Features.AssignedTasks
         {
             var viewer = await CurrentAsync();
             var mode = (request.Mode ?? "incoming").ToLowerInvariant();
-            var userId = viewer.Id;
+            var filter = AssignedTaskRules.ModeFilter(viewer, mode);
 
-            Expression<Func<AssignedTask, bool>> filter = mode switch
-            {
-                "outgoing" => t => t.CreatedByUserId == userId,
-                "scope" => AssignedTaskRules.Scope(viewer),
-                _ => AssignedTaskRules.Incoming(viewer)
-            };
-
-            var doneSince = DateTime.UtcNow.AddDays(-30);
+            // المنجزة: آخر 30 يوماً افتراضياً، ويمكن توسيعها (حتى 10 سنوات) من فلتر اللوحة
+            var doneSince = DateTime.UtcNow.AddDays(-Math.Clamp(request.DoneDays ?? 30, 1, 3650));
             var tasks = await _taskService.GetBoardAsync(filter);
             var targetTypes = AssignedTaskRules.TargetTypesFor(viewer);
 
@@ -80,6 +81,19 @@ namespace Application.Features.AssignedTasks
                     .Select(t => AssignedTaskRules.ToCard(t, viewer))
                     .ToList()
             };
+        }
+
+        public async Task<byte[]> Handle(ExportAssignedTasksQuery request, CancellationToken ct)
+        {
+            var viewer = await CurrentAsync();
+            var f = request.Filter;
+            var doneSince = DateTime.UtcNow.AddDays(-Math.Clamp(f.DoneDays ?? 30, 1, 3650));
+            var cards = (await _taskService.GetBoardAsync(AssignedTaskRules.ModeFilter(viewer, f.Mode)))
+                .Where(t => t.Status != AssignedTaskStatus.Done || (t.CompletedAt ?? t.UpdatedAt) >= doneSince)
+                .Select(t => AssignedTaskRules.ToCard(t, viewer))
+                .Where(c => AssignedTaskRules.MatchesExportFilter(c, f))
+                .ToList();
+            return _spreadsheet.Export(cards);
         }
 
         public async Task<AssignedTaskDetailDto> Handle(GetAssignedTaskQuery request, CancellationToken ct)

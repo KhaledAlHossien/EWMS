@@ -31,6 +31,8 @@ namespace Infrastructure
             services.AddScoped<IUserPermissionService, UserPermissionService>();
             services.AddScoped<IUserSignatureService, UserSignatureService>();
             services.AddScoped<IAssignedTaskService, AssignedTaskService>();
+            services.AddScoped<IAssignedTaskPlanningService, AssignedTaskPlanningService>();
+            services.AddSingleton<IAssignedTaskSpreadsheet, Infrastructure.Files.AssignedTaskSpreadsheet>();
             services.AddScoped<IMapService, MapService>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IRoleService, RoleService>();
