@@ -24,11 +24,6 @@ namespace Application.Features.Maintenance.DeviceTypes
                 .NotEmpty().WithMessage("اسم نوع الجهاز مطلوب")
                 .MaximumLength(100).WithMessage("اسم نوع الجهاز لا يتجاوز 100 حرف");
 
-            RuleFor(x => x.ReplacementCostThreshold)
-                .GreaterThan(0).WithMessage("حد تكلفة الاستبدال أكبر من صفر (أو اتركه فارغاً)")
-                .LessThanOrEqualTo(1_000_000_000).WithMessage("حد تكلفة الاستبدال كبير جداً")
-                .Must(v => v == null || decimal.Round(v.Value, 2) == v.Value).WithMessage("حد التكلفة بخانتين عشريتين على الأكثر")
-                .When(x => x.ReplacementCostThreshold != null);
         }
     }
 

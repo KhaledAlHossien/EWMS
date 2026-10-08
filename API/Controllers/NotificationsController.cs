@@ -2,6 +2,7 @@
 using Application.Features.Notifications.Commands.MarkAllAsRead;
 using Application.Features.Notifications.Commands.MarkAsRead;
 using Application.Features.Notifications.Queries.GetMy;
+using Application.Features.Notifications.Queries.GetPage;
 using Application.Features.Notifications.Queries.GetUnreadCount;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -25,6 +26,12 @@ namespace API.Controllers
         [HttpGet("My")]
         public async Task<ActionResult<List<NotificationResponseDto>>> GetMy([FromQuery] bool unreadOnly = false)
             => Ok(await _mediator.Send(new GetMyNotificationsQuery(unreadOnly)));
+
+        // ========== صفحة من إشعاراتي (لصفحة الإشعارات: تقسيم صفحات من الخادم) ==========
+        [HttpGet("Page")]
+        public async Task<ActionResult<PagedResultDto<NotificationResponseDto>>> GetPage(
+            [FromQuery] bool unreadOnly = false, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+            => Ok(await _mediator.Send(new GetMyNotificationsPageQuery(unreadOnly, page, pageSize)));
 
         // ========== عدد الإشعارات غير المقروءة ==========
         [HttpGet("UnreadCount")]

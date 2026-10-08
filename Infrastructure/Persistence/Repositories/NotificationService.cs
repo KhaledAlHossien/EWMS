@@ -53,6 +53,19 @@ namespace Infrastructure.Persistence.Repositories
                 .ToListAsync();
         }
 
+        public async Task<(List<Notification> Items, int Total)> GetPageByUserIdAsync(int userId, bool unreadOnly, int page, int pageSize)
+        {
+            var query = _context.Notifications.Where(n => n.UserId == userId);
+            if (unreadOnly) query = query.Where(n => !n.IsRead);
+
+            var total = await query.CountAsync();
+            var items = await query.AsNoTracking()
+                .OrderByDescending(n => n.CreatedAt).ThenByDescending(n => n.Id)
+                .Skip((page - 1) * pageSize).Take(pageSize)
+                .ToListAsync();
+            return (items, total);
+        }
+
         public async Task<int> GetUnreadCountAsync(int userId)
         {
             return await _context.Notifications
