@@ -1,4 +1,5 @@
 using Application.Features.AssignedTasks;
+using Application.Features.ToDoLists;
 using Application.Interfaces;
 
 namespace API.Background
@@ -56,6 +57,21 @@ namespace API.Background
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogError(ex, "تعذّر فحص تذكيرات المهام — تُعاد المحاولة في الدورة التالية");
+                }
+
+                try
+                {
+                    // تذكيرات بنود «مفكرتي» (صاحب القائمة وحده)
+                    using var todo = _scopes.CreateScope();
+                    var todoSent = await ToDoReminders.RunAsync(
+                        todo.ServiceProvider.GetRequiredService<IToDoListService>(),
+                        todo.ServiceProvider.GetRequiredService<INotificationService>(),
+                        DateTime.Now);
+                    if (todoSent > 0) _logger.LogInformation("أُرسلت {Count} تذكيرات لبنود المفكرة", todoSent);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "تعذّر فحص تذكيرات المفكرة — تُعاد المحاولة في الدورة التالية");
                 }
 
                 try { await Task.Delay(_interval, stoppingToken); } catch (OperationCanceledException) { return; }

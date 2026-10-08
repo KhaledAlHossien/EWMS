@@ -29,6 +29,12 @@ namespace Application.Features.ToDoLists
 
             RuleFor(x => x.Description)
                 .MaximumLength(2000).WithMessage("الوصف لا يتجاوز 2000 حرف");
+
+            RuleFor(x => x.Color)
+                .Must(c => string.IsNullOrEmpty(c) || ToDoRules.Colors.Contains(c)).WithMessage("لون القائمة غير صحيح");
+
+            RuleFor(x => x.Icon)
+                .MaximumLength(ToDoRules.MaxIconLength).WithMessage("الرمز قصير: رمز تعبيري واحد");
         }
     }
 
@@ -87,6 +93,8 @@ namespace Application.Features.ToDoLists
         {
             l.Name = l.Name.Trim();
             l.Description = l.Description.Trim();
+            l.Color = l.Color.Trim().ToLowerInvariant();
+            l.Icon = l.Icon.Trim();
         }
 
         public async Task<List<ToDoListResponseDto>> Handle(GetAllToDoListsQuery request, CancellationToken ct)
@@ -102,8 +110,10 @@ namespace Application.Features.ToDoLists
         public async Task<ToDoListResponseDto> Handle(GetToDoListByIdQuery request, CancellationToken ct)
         {
             var viewer = await ViewerAsync();
-            return _mapper.Map<ToDoListResponseDto>(
-                await LoadOwnedAsync(viewer, request.Id, "لا يمكنك عرض قائمة غيرك"));
+            var entity = await LoadOwnedAsync(viewer, request.Id, "لا يمكنك عرض قائمة غيرك");
+            var dto = _mapper.Map<ToDoListResponseDto>(entity);
+            ToDoRules.FillLinks(entity, dto, viewer);
+            return dto;
         }
 
         public async Task<ToDoListResponseDto> Handle(CreateToDoListCommand request, CancellationToken ct)
@@ -130,6 +140,7 @@ namespace Application.Features.ToDoLists
 
             _mapper.Map(request.Dto, entity);
             Trim(entity);
+            if (entity.IsArchived) throw new InvalidOperationException("القائمة مؤرشفة — أعدها من الأرشيف قبل تعديلها");
 
             if (await _service.ExistsByNameAsync(entity.UserId, entity.Name, entity.Id))
                 throw new InvalidOperationException("توجد قائمة أخرى بنفس الاسم");

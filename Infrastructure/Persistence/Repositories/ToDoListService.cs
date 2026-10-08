@@ -15,7 +15,8 @@ namespace Infrastructure.Persistence.Repositories
         }
 
         public async Task<ToDoList?> GetByIdAsync(int id) =>
-            await _context.ToDoLists.Include(l => l.User).Include(l => l.Items.OrderBy(i => i.SortOrder).ThenBy(i => i.Id))
+            await _context.ToDoLists.Include(l => l.User)
+                .Include(l => l.Items.OrderBy(i => i.SortOrder).ThenBy(i => i.Id)).ThenInclude(i => i.LinkedTask)
                 .FirstOrDefaultAsync(l => l.Id == id);
 
         public async Task<List<ToDoList>> GetAllAsync(int? ownerId)
@@ -28,7 +29,7 @@ namespace Infrastructure.Persistence.Repositories
             return await query
                 .Include(l => l.User)
                 .Include(l => l.Items)
-                .OrderByDescending(l => l.Id)
+                .OrderByDescending(l => l.IsPinned).ThenByDescending(l => l.Id)
                 .AsNoTracking()
                 .ToListAsync();
         }
@@ -64,6 +65,26 @@ namespace Infrastructure.Persistence.Repositories
             await _context.ToDoItems.AddAsync(item);
             await _context.SaveChangesAsync();
         }
+
+        public async Task AddItemsAsync(IEnumerable<ToDoItem> items)
+        {
+            await _context.ToDoItems.AddRangeAsync(items);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<ToDoItem>> GetDueItemsAsync(int ownerId, DateTime today) =>
+            await _context.ToDoItems
+                .Where(i => !i.IsDone && i.DueDate != null && i.DueDate <= today
+                            && i.ToDoList.UserId == ownerId && !i.ToDoList.IsArchived)
+                .Include(i => i.ToDoList).Include(i => i.LinkedTask)
+                .AsNoTracking().ToListAsync();
+
+        public async Task<List<ToDoItem>> GetForRemindersAsync(DateTime tomorrow) =>
+            await _context.ToDoItems
+                .Where(i => !i.IsDone && i.DueDate != null && i.DueDate <= tomorrow && !i.ToDoList.IsArchived
+                            && (i.OverdueNotifiedAt == null || i.DueSoonNotifiedAt == null))
+                .Include(i => i.ToDoList)
+                .ToListAsync();
 
         public async Task DeleteItemsAsync(IEnumerable<ToDoItem> items)
         {
