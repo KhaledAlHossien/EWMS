@@ -36,6 +36,9 @@ namespace Infrastructure.Persistence.Data
         public DbSet<UserWorkTask> UserWorkTasks { get; set; }
         public DbSet<AssignedTask> AssignedTasks { get; set; }
         public DbSet<AssignedTaskActivity> AssignedTaskActivities { get; set; }
+        public DbSet<AssignedTaskAttachment> AssignedTaskAttachments { get; set; }
+        public DbSet<AssignedTaskAttachmentContent> AssignedTaskAttachmentContents { get; set; }
+        public DbSet<AssignedTaskChecklistItem> AssignedTaskChecklistItems { get; set; }
         public DbSet<DeviceType> DeviceTypes { get; set; }
         public DbSet<DeviceCompany> DeviceCompanies { get; set; }
         public DbSet<DamageType> DamageTypes { get; set; }
@@ -314,11 +317,39 @@ namespace Infrastructure.Persistence.Data
                 entity.HasOne(t => t.AssigneeUser).WithMany().HasForeignKey(t => t.AssigneeUserId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(t => t.CreatedByUser).WithMany().HasForeignKey(t => t.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(t => t.ParentTask).WithMany(t => t.SubTasks).HasForeignKey(t => t.ParentTaskId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(t => t.ClaimedByUser).WithMany().HasForeignKey(t => t.ClaimedByUserId).OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(t => new { t.DepartmentId, t.Status });
                 entity.HasIndex(t => new { t.OfficeId, t.Status });
                 entity.HasIndex(t => new { t.AssigneeUserId, t.Status });
                 entity.HasIndex(t => new { t.CreatedByUserId, t.Status });
+                // مسح التذكيرات: المهام المفتوحة ذات الموعد فقط
+                entity.HasIndex(t => new { t.Status, t.DueDate });
+            });
+
+            // مرفقات المهمة ومحتواها وقائمة التحقق: جزء من المهمة (تُحذف معها)، والرافع Restrict (حراسة حذف المستخدم)
+            builder.Entity<AssignedTaskAttachment>(entity =>
+            {
+                entity.Property(a => a.FileName).HasMaxLength(200).IsRequired();
+                entity.Property(a => a.ContentType).HasMaxLength(150).IsRequired();
+                entity.HasOne(a => a.AssignedTask).WithMany(t => t.Attachments).HasForeignKey(a => a.AssignedTaskId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(a => a.UploadedByUser).WithMany().HasForeignKey(a => a.UploadedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(a => a.Content).WithOne().HasForeignKey<AssignedTaskAttachmentContent>(c => c.AttachmentId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(a => a.AssignedTaskId);
+                entity.HasIndex(a => a.UploadedByUserId);
+            });
+
+            builder.Entity<AssignedTaskAttachmentContent>(entity =>
+            {
+                entity.HasKey(c => c.AttachmentId);
+                entity.Property(c => c.Data).IsRequired();
+            });
+
+            builder.Entity<AssignedTaskChecklistItem>(entity =>
+            {
+                entity.Property(i => i.Text).HasMaxLength(200).IsRequired();
+                entity.HasOne(i => i.AssignedTask).WithMany(t => t.ChecklistItems).HasForeignKey(i => i.AssignedTaskId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(i => new { i.AssignedTaskId, i.SortOrder });
             });
 
             builder.Entity<AssignedTaskActivity>(entity =>

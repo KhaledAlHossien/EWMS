@@ -55,6 +55,48 @@ namespace Application.Features.AssignedTasks
             _ => false
         };
 
+        /// <summary>
+        /// المُراجِع: من أسند المهمة (أو مدير النظام). المنفِّذ لا يعتمد إنجاز مهمته بنفسه — يرسلها للمراجعة (قرار المستخدم 2026-10-07).
+        /// </summary>
+        public static bool IsReviewer(AssignedTask t, Viewer v) => v.IsSuperAdmin || t.CreatedByUserId == v.Id;
+
+        /// <summary>
+        /// الحالات التي يستطيع المستخدم نقل المهمة إليها الآن (المصدر الوحيد للانتقالات، ويبني الخادمُ السحبَ والأزرار منه):
+        /// المنفِّذ: لم تُنفَّذ ↔ قيد التنفيذ، قيد التنفيذ ← بانتظار المراجعة، وسحبها من المراجعة ← قيد التنفيذ.
+        /// المُراجِع: بانتظار المراجعة ← تم التنفيذ (اعتماد) أو ← قيد التنفيذ (إعادة بسبب)، وقيد التنفيذ ← تم التنفيذ مباشرة.
+        /// «تم التنفيذ» نهائية.
+        /// </summary>
+        public static List<AssignedTaskStatus> AllowedStatuses(AssignedTask t, Viewer v)
+        {
+            var allowed = new HashSet<AssignedTaskStatus>();
+            if (t.Status == AssignedTaskStatus.Done) return [];
+
+            if (CanHandle(t, v))
+            {
+                switch (t.Status)
+                {
+                    case AssignedTaskStatus.Todo: allowed.Add(AssignedTaskStatus.InProgress); break;
+                    case AssignedTaskStatus.InProgress: allowed.Add(AssignedTaskStatus.Todo); allowed.Add(AssignedTaskStatus.InReview); break;
+                    case AssignedTaskStatus.InReview: allowed.Add(AssignedTaskStatus.InProgress); break;
+                }
+            }
+            if (IsReviewer(t, v))
+            {
+                switch (t.Status)
+                {
+                    case AssignedTaskStatus.InProgress: allowed.Add(AssignedTaskStatus.Done); break;
+                    case AssignedTaskStatus.InReview: allowed.Add(AssignedTaskStatus.Done); allowed.Add(AssignedTaskStatus.InProgress); break;
+                }
+            }
+            return allowed.OrderBy(a => a == AssignedTaskStatus.Done).ThenBy(a => (int)a).ToList();
+        }
+
+        /// <summary>إعادة المهمة من المراجعة إلى التنفيذ من المُسنِد (لا من المنفِّذ) تحتاج سبباً</summary>
+        public static bool NeedsReturnNote(AssignedTask t, Viewer v) =>
+            t.Status == AssignedTaskStatus.InReview && IsReviewer(t, v) && !CanHandle(t, v);
+
+        public const int MaxChecklistItems = 30;
+
         public static bool CanView(AssignedTask t, Viewer v) =>
             v.IsSuperAdmin || t.CreatedByUserId == v.Id || CanHandle(t, v) || Scope(v).Compile()(t);
 
@@ -146,6 +188,7 @@ namespace Application.Features.AssignedTasks
         {
             AssignedTaskStatus.Todo => "لم تُنفَّذ",
             AssignedTaskStatus.InProgress => "قيد التنفيذ",
+            AssignedTaskStatus.InReview => "بانتظار المراجعة",
             AssignedTaskStatus.Done => "تم التنفيذ",
             _ => ""
         };
@@ -189,7 +232,23 @@ namespace Application.Features.AssignedTasks
             dto.CanDelete = isCreator && t.Status == AssignedTaskStatus.Todo && t.SubTasks.Count == 0;
             dto.CanComment = CanView(t, viewer);
             // يفوّض من يتولى مهمة قسم (← مكاتبه) أو مهمة مكتب (← موظفيه)
-            dto.CanDelegate = handles && t.Status != AssignedTaskStatus.Done && DelegationTargetFor(t) != null;
+            dto.CanDelegate = handles && (t.Status is AssignedTaskStatus.Todo or AssignedTaskStatus.InProgress) && DelegationTargetFor(t) != null;
+
+            // المرفقات: يرفق من يطّلع على المهمة، ويحذف الرافع أو المُسنِد — كله قبل «تم التنفيذ» (بعدها سجل ثابت)
+            var open = t.Status != AssignedTaskStatus.Done;
+            dto.CanAttach = open && CanView(t, viewer);
+            dto.Attachments = t.Attachments.OrderBy(a => a.UploadedAt)
+                .Select(a => ToAttachmentDto(a, open && (a.UploadedByUserId == viewer.Id || isCreator || viewer.IsSuperAdmin))).ToList();
+            // المهمة الفرعية ترى مرفقات الأصل للقراءة فقط، فلا يُعاد رفعها
+            dto.ParentAttachments = t.ParentTask?.Attachments.OrderBy(a => a.UploadedAt).Select(a => ToAttachmentDto(a, false)).ToList() ?? [];
+
+            // قائمة التحقق: المُسنِد والمنفِّذ يضيفون ويعلّمون
+            dto.CanManageChecklist = open && (isCreator || handles || viewer.IsSuperAdmin);
+            dto.Checklist = t.ChecklistItems.OrderBy(i => i.SortOrder).Select(i => new ChecklistItemDto { Id = i.Id, Text = i.Text, IsDone = i.IsDone }).ToList();
+
+            // «أتولّى هذه المهمة» لمهام الأقسام والمكاتب فقط (مهمة الموظف له وحده)
+            dto.CanClaim = open && handles && t.TargetType != AssignedTaskTargetType.User && t.ClaimedByUserId != viewer.Id;
+            dto.CanRelease = open && t.ClaimedByUserId != null && (t.ClaimedByUserId == viewer.Id || IsReviewer(t, viewer));
             dto.SubTasks = t.SubTasks.OrderBy(s => s.CreatedAt).Select(s => ToCard(s, viewer)).ToList();
             dto.Activities = t.Activities.OrderBy(a => a.CreatedAt).Select(a => new AssignedTaskActivityDto
             {
@@ -201,6 +260,18 @@ namespace Application.Features.AssignedTasks
             }).ToList();
             return dto;
         }
+
+        public static AssignedTaskAttachmentDto ToAttachmentDto(AssignedTaskAttachment a, bool canDelete) => new()
+        {
+            Id = a.Id,
+            TaskId = a.AssignedTaskId,
+            FileName = a.FileName,
+            ContentType = a.ContentType,
+            Size = a.Size,
+            UploadedByName = a.UploadedByUser?.FullName ?? "",
+            UploadedAt = a.UploadedAt,
+            CanDelete = canDelete
+        };
 
         private static T Fill<T>(T dto, AssignedTask t, Viewer viewer) where T : AssignedTaskCardDto
         {
@@ -225,7 +296,14 @@ namespace Application.Features.AssignedTasks
             dto.CreatedAt = t.CreatedAt;
             dto.UpdatedAt = t.UpdatedAt;
             dto.CompletedAt = t.CompletedAt;
-            dto.CanChangeStatus = CanHandle(t, viewer);
+            dto.AllowedStatuses = AllowedStatuses(t, viewer).Select(s => s.ToString()).ToList();
+            dto.CanChangeStatus = dto.AllowedStatuses.Count > 0;
+            dto.NeedsReturnNote = NeedsReturnNote(t, viewer);
+            dto.AttachmentsCount = t.Attachments.Count;
+            dto.ChecklistTotal = t.ChecklistItems.Count;
+            dto.ChecklistDone = t.ChecklistItems.Count(i => i.IsDone);
+            dto.ClaimedByUserId = t.ClaimedByUserId;
+            dto.ClaimedByName = t.ClaimedByUser?.FullName;
             return dto;
         }
     }

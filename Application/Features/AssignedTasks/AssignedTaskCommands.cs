@@ -12,7 +12,7 @@ namespace Application.Features.AssignedTasks
     public record CreateAssignedTaskCommand(CreateAssignedTaskRequestDto Dto) : IRequest<AssignedTaskDetailDto>;
     public record UpdateAssignedTaskCommand(int Id, UpdateAssignedTaskRequestDto Dto) : IRequest<AssignedTaskDetailDto>;
     public record DeleteAssignedTaskCommand(int Id) : IRequest<Unit>;
-    public record ChangeAssignedTaskStatusCommand(int Id, int Status) : IRequest<AssignedTaskCardDto>;
+    public record ChangeAssignedTaskStatusCommand(int Id, int Status, string? Note = null) : IRequest<AssignedTaskCardDto>;
     public record AddAssignedTaskCommentCommand(int Id, string Text) : IRequest<AssignedTaskDetailDto>;
 
     // ════════════════════ التحقق من المدخلات ════════════════════
@@ -46,7 +46,8 @@ namespace Application.Features.AssignedTasks
     {
         public ChangeAssignedTaskStatusCommandValidator()
         {
-            RuleFor(x => x.Status).InclusiveBetween(1, 3).WithMessage("الحالة غير صحيحة");
+            RuleFor(x => x.Status).Must(s => Enum.IsDefined(typeof(AssignedTaskStatus), s)).WithMessage("الحالة غير صحيحة");
+            RuleFor(x => x.Note).MaximumLength(500).WithMessage("السبب لا يتجاوز 500 حرف");
         }
     }
 
@@ -70,8 +71,7 @@ namespace Application.Features.AssignedTasks
     {
         private readonly IAssignedTaskService _taskService;
         private readonly IUserService _userService;
-        private readonly IDepartmentService _departmentService;
-        private readonly IOfficeService _officeService;
+        private readonly AssignedTaskCreator _creator;
         private readonly IUserPermissionService _permissions;
         private readonly INotificationService _notificationService;
 
@@ -79,15 +79,13 @@ namespace Application.Features.AssignedTasks
             IAssignedTaskService taskService,
             IUserService userService,
             IUserPermissionService permissions,
-            IDepartmentService departmentService,
-            IOfficeService officeService,
+            AssignedTaskCreator creator,
             INotificationService notificationService)
         {
             _taskService = taskService;
             _userService = userService;
             _permissions = permissions;
-            _departmentService = departmentService;
-            _officeService = officeService;
+            _creator = creator;
             _notificationService = notificationService;
         }
 
@@ -96,117 +94,13 @@ namespace Application.Features.AssignedTasks
         private async Task<AssignedTask> LoadAsync(int id) =>
             await _taskService.GetByIdAsync(id) ?? throw new KeyNotFoundException("المهمة غير موجودة");
 
-        // ─────────── إنشاء / تفويض ───────────
+        // ─────────── إنشاء / تفويض (المنطق كله في AssignedTaskCreator) ───────────
         public async Task<AssignedTaskDetailDto> Handle(CreateAssignedTaskCommand request, CancellationToken ct)
         {
             var viewer = await CurrentAsync();
-            var user = viewer.User;
             var dto = request.Dto;
-
-            // التفويض: المهمة الأصل يجب أن تكون واردة إليّ (أنا منفِّذها) ولم تُنجز بعد، والجهة أدنى منها بدرجة
-            AssignedTask? parent = null;
-            AssignedTaskTargetType targetType;
-            if (dto.ParentTaskId is int parentId)
-            {
-                parent = await LoadAsync(parentId);
-                if (!AssignedTaskRules.CanHandle(parent, viewer))
-                    throw new UnauthorizedAccessException("يمكنك تفويض المهام الواردة إليك فقط");
-                if (parent.Status == AssignedTaskStatus.Done)
-                    throw new InvalidOperationException("لا يمكن التفويض من مهمة منجزة");
-                targetType = AssignedTaskRules.DelegationTargetFor(parent)
-                    ?? throw new InvalidOperationException("لا يمكن تفويض مهمة موجّهة لموظف");
-            }
-            else
-            {
-                var types = AssignedTaskRules.TargetTypesFor(viewer);
-                if (types.Count == 0)
-                    throw new UnauthorizedAccessException("لا تملك صلاحية إسناد المهام");
-                if (string.IsNullOrWhiteSpace(dto.TargetType))
-                    targetType = types.Count == 1 ? types[0] : throw new ArgumentException("اختر نوع الجهة المُسندة إليها المهمة");
-                else if (!Enum.TryParse(dto.TargetType, true, out targetType) || !types.Contains(targetType))
-                    throw new UnauthorizedAccessException("لا تملك صلاحية الإسناد لهذا النوع من الجهات");
-            }
-
-            var now = DateTime.UtcNow;
-            var task = new AssignedTask
-            {
-                Title = dto.Title.Trim(),
-                Description = dto.Description.Trim(),
-                Priority = (AssignedTaskPriority)dto.Priority,
-                Status = AssignedTaskStatus.Todo,
-                DueDate = dto.DueDate?.Date,
-                TargetType = targetType,
-                CreatedByUserId = user.Id,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
-
-            // الجهة ضمن حدّ الصلاحية (أقسام فرعي / مكاتب قسمي / موظفو مكتبي)، أو ضمن وحدة المهمة الأصل عند التفويض
-            var branchLimit = parent?.BranchId ?? user.BranchId;
-            var departmentLimit = parent != null ? parent.DepartmentId : user.DepartmentId;
-            var officeLimit = parent != null ? parent.OfficeId : user.OfficeId;
-
-            switch (targetType)
-            {
-                case AssignedTaskTargetType.Department:
-                    var department = await _departmentService.GetByIdAsync(dto.TargetId)
-                        ?? throw new KeyNotFoundException("القسم غير موجود");
-                    if (department.BranchId != branchLimit)
-                        throw new UnauthorizedAccessException("يمكنك إسناد المهام لأقسام فرعك فقط");
-                    task.BranchId = department.BranchId;
-                    task.DepartmentId = department.Id;
-                    break;
-                case AssignedTaskTargetType.Office:
-                    var office = await _officeService.GetByIdAsync(dto.TargetId)
-                        ?? throw new KeyNotFoundException("المكتب غير موجود");
-                    if (departmentLimit == null || office.DepartmentId != departmentLimit)
-                        throw new UnauthorizedAccessException(parent != null
-                            ? "يمكنك التفويض لمكاتب قسم المهمة فقط" : "يمكنك إسناد المهام لمكاتب قسمك فقط");
-                    task.BranchId = office.Department?.BranchId ?? branchLimit ?? 0;
-                    task.DepartmentId = office.DepartmentId;
-                    task.OfficeId = office.Id;
-                    break;
-                case AssignedTaskTargetType.User:
-                    var assignee = await _userService.GetByIdAsync(dto.TargetId)
-                        ?? throw new KeyNotFoundException("الموظف غير موجود");
-                    if (officeLimit == null || assignee.OfficeId != officeLimit || assignee.Id == user.Id || !assignee.IsActive)
-                        throw new UnauthorizedAccessException(parent != null
-                            ? "يمكنك التفويض لموظفي مكتب المهمة فقط" : "يمكنك إسناد المهام لموظفي مكتبك فقط");
-                    task.BranchId = assignee.BranchId ?? 0;
-                    task.DepartmentId = assignee.DepartmentId;
-                    task.OfficeId = assignee.OfficeId;
-                    task.AssigneeUserId = assignee.Id;
-                    break;
-            }
-
-            task.ParentTaskId = parent?.Id;
-
-            await _taskService.AddAsync(task);
-            await _taskService.AddActivityAsync(AssignedTaskRules.Activity(task, user, AssignedTaskActivityType.Created, "أنشأ المهمة"));
-
-            if (parent != null)
-            {
-                await _taskService.AddActivityAsync(AssignedTaskRules.Activity(parent, user, AssignedTaskActivityType.Delegated,
-                    $"فوّض مهمة فرعية «{task.Title}»"));
-
-                // بدء العمل على الأصل تلقائياً عند أول تفويض
-                if (parent.Status == AssignedTaskStatus.Todo)
-                {
-                    parent.Status = AssignedTaskStatus.InProgress;
-                    parent.StartedAt ??= now;
-                    parent.UpdatedAt = now;
-                    await _taskService.SaveChangesAsync();
-                    await _taskService.AddActivityAsync(AssignedTaskRules.Activity(parent, user, AssignedTaskActivityType.StatusChanged,
-                        "بدأ التنفيذ (بالتفويض)", AssignedTaskStatus.Todo, AssignedTaskStatus.InProgress));
-                }
-            }
-
-            var created = await LoadAsync(task.Id);
-            await AssignedTaskRules.NotifyAsync(_notificationService,
-                await AssignedTaskRules.HandlerUserIdsAsync(_permissions, created), user.Id, created,
-                NotificationType.TaskAssigned, "مهمة جديدة",
-                $"أسند إليك {user.FullName} مهمة: {created.Title}");
-
+            var created = await _creator.CreateAsync(viewer, new NewTaskSpec(
+                dto.Title, dto.Description, dto.Priority, dto.DueDate, dto.TargetType, dto.TargetId, dto.ParentTaskId));
             return AssignedTaskRules.ToDetail(created, viewer);
         }
 
@@ -226,6 +120,8 @@ namespace Application.Features.AssignedTasks
             task.Title = dto.Title.Trim();
             task.Description = dto.Description.Trim();
             task.Priority = (AssignedTaskPriority)dto.Priority;
+            // موعد جديد = تذكيرات جديدة (تُرسل مرة واحدة لكل موعد)
+            if (task.DueDate?.Date != dto.DueDate?.Date) { task.DueSoonNotifiedAt = null; task.OverdueNotifiedAt = null; }
             task.DueDate = dto.DueDate?.Date;
             task.UpdatedAt = DateTime.UtcNow;
             await _taskService.SaveChangesAsync();
@@ -252,34 +148,69 @@ namespace Application.Features.AssignedTasks
             return Unit.Value;
         }
 
-        // ─────────── تغيير الحالة (السحب والإفلات — المنفِّذ فقط) ───────────
+        // ─────────── تغيير الحالة (السحب والإفلات أو الأزرار) ───────────
+        // الانتقالات المسموحة تحددها AssignedTaskRules.AllowedStatuses: المنفِّذ يرسل للمراجعة، والمُسنِد يعتمد أو يعيد بسبب.
         public async Task<AssignedTaskCardDto> Handle(ChangeAssignedTaskStatusCommand request, CancellationToken ct)
         {
             var viewer = await CurrentAsync();
             var user = viewer.User;
             var task = await LoadAsync(request.Id);
 
-            if (!AssignedTaskRules.CanHandle(task, viewer))
-                throw new UnauthorizedAccessException("تغيير حالة المهمة للجهة المنفِّذة فقط");
-
             var from = task.Status;
             var to = (AssignedTaskStatus)request.Status;
             if (from == to) return AssignedTaskRules.ToCard(task, viewer);
+
+            var handles = AssignedTaskRules.CanHandle(task, viewer);
+            var reviewer = AssignedTaskRules.IsReviewer(task, viewer);
+            if (!handles && !reviewer)
+                throw new UnauthorizedAccessException("تغيير حالة المهمة للجهة المنفِّذة أو لمن أسندها فقط");
+            if (from == AssignedTaskStatus.Done)
+                throw new InvalidOperationException("المهمة منجزة ولا يمكن تغيير حالتها");
+            if (!AssignedTaskRules.AllowedStatuses(task, viewer).Contains(to))
+                throw new InvalidOperationException(to == AssignedTaskStatus.Done && handles && !reviewer
+                    ? "تُرسَل المهمة إلى «بانتظار المراجعة» ويعتمد إنجازها من أسندها"
+                    : $"لا يمكنك نقل المهمة من «{AssignedTaskRules.StatusAr(from)}» إلى «{AssignedTaskRules.StatusAr(to)}»");
+
+            var note = (request.Note ?? string.Empty).Trim();
+            var returned = from == AssignedTaskStatus.InReview && to == AssignedTaskStatus.InProgress && AssignedTaskRules.NeedsReturnNote(task, viewer);
+            if (returned && note.Length == 0)
+                throw new InvalidOperationException("اكتب سبب إعادة المهمة إلى التنفيذ");
 
             var now = DateTime.UtcNow;
             task.Status = to;
             task.UpdatedAt = now;
             if (to == AssignedTaskStatus.InProgress) task.StartedAt ??= now;
             task.CompletedAt = to == AssignedTaskStatus.Done ? now : null;
+
+            // بدء العمل على مهمة وحدة (قسم/مكتب) يسجّل صاحبه تلقائياً إن لم يتولّها أحد
+            var autoClaimed = handles && from == AssignedTaskStatus.Todo && to == AssignedTaskStatus.InProgress
+                && task.TargetType != AssignedTaskTargetType.User && task.ClaimedByUserId == null;
+            if (autoClaimed) { task.ClaimedByUserId = user.Id; task.ClaimedAt = now; }
+
             await _taskService.SaveChangesAsync();
 
-            await _taskService.AddActivityAsync(AssignedTaskRules.Activity(task, user, AssignedTaskActivityType.StatusChanged,
-                $"نقل المهمة من «{AssignedTaskRules.StatusAr(from)}» إلى «{AssignedTaskRules.StatusAr(to)}»", from, to));
+            var text = $"نقل المهمة من «{AssignedTaskRules.StatusAr(from)}» إلى «{AssignedTaskRules.StatusAr(to)}»"
+                + (to == AssignedTaskStatus.Done && reviewer && from == AssignedTaskStatus.InReview ? " (اعتمد الإنجاز)" : "")
+                + (returned ? $" — السبب: {note}" : "");
+            await _taskService.AddActivityAsync(AssignedTaskRules.Activity(task, user, AssignedTaskActivityType.StatusChanged, text, from, to));
 
-            await AssignedTaskRules.NotifyAsync(_notificationService, [task.CreatedByUserId], user.Id, task,
-                NotificationType.TaskStatusChanged,
-                to == AssignedTaskStatus.Done ? "تم تنفيذ مهمة" : "تحديث على مهمة",
-                $"«{task.Title}»: {AssignedTaskRules.StatusAr(to)} — بواسطة {user.FullName}");
+            // الإشعارات: المراجعة ← المُسنِد، الاعتماد/الإعادة ← المنفِّذون، وغير ذلك ← المُسنِد كالسابق
+            if (to == AssignedTaskStatus.InReview)
+                await AssignedTaskRules.NotifyAsync(_notificationService, [task.CreatedByUserId], user.Id, task,
+                    NotificationType.TaskStatusChanged, "مهمة بانتظار مراجعتك",
+                    $"«{task.Title}»: أرسلها {user.FullName} للمراجعة");
+            else if (to == AssignedTaskStatus.Done)
+                await AssignedTaskRules.NotifyAsync(_notificationService, await AssignedTaskRules.HandlerUserIdsAsync(_permissions, task), user.Id, task,
+                    NotificationType.TaskStatusChanged, "اعتُمد إنجاز مهمة",
+                    $"«{task.Title}»: اعتمد {user.FullName} إنجازها");
+            else if (returned)
+                await AssignedTaskRules.NotifyAsync(_notificationService, await AssignedTaskRules.HandlerUserIdsAsync(_permissions, task), user.Id, task,
+                    NotificationType.TaskStatusChanged, "أُعيدت مهمة للتنفيذ",
+                    $"«{task.Title}»: أعادها {user.FullName} — السبب: {note}");
+            else
+                await AssignedTaskRules.NotifyAsync(_notificationService, [task.CreatedByUserId], user.Id, task,
+                    NotificationType.TaskStatusChanged, "تحديث على مهمة",
+                    $"«{task.Title}»: {AssignedTaskRules.StatusAr(to)} — بواسطة {user.FullName}");
 
             return AssignedTaskRules.ToCard(await LoadAsync(task.Id), viewer);
         }

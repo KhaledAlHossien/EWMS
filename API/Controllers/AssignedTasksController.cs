@@ -47,11 +47,61 @@ namespace API.Controllers
 
         [HttpPut("Status/{id}")]
         public async Task<ActionResult<AssignedTaskCardDto>> Status(int id, [FromBody] ChangeAssignedTaskStatusRequestDto dto)
-            => Ok(await _mediator.Send(new ChangeAssignedTaskStatusCommand(id, dto.Status)));
+            => Ok(await _mediator.Send(new ChangeAssignedTaskStatusCommand(id, dto.Status, dto.Note)));
 
         [HttpPost("Comment/{id}")]
         public async Task<ActionResult<AssignedTaskDetailDto>> Comment(int id, [FromBody] AddAssignedTaskCommentRequestDto dto)
             => Ok(await _mediator.Send(new AddAssignedTaskCommentCommand(id, dto.Text)));
+
+        // ════════ المرفقات (قرار المستخدم 2026-10-07): من يطّلع على المهمة، قبل «تم التنفيذ» ════════
+
+        /// <summary>رفع ملف أو أكثر (files): PDF/صور/Office حتى 10MB للملف و10 ملفات للمهمة — يُرجع تفصيل المهمة</summary>
+        [HttpPost("Attachments/{id}")]
+        [RequestSizeLimit(35 * 1024 * 1024)]
+        public async Task<ActionResult<AssignedTaskDetailDto>> Attach(int id, [FromForm] List<IFormFile>? files)
+        {
+            var uploads = new List<UploadedFileDto>();
+            foreach (var file in files ?? [])
+            {
+                using var stream = new MemoryStream();
+                await file.CopyToAsync(stream);
+                uploads.Add(new UploadedFileDto(file.FileName, stream.ToArray()));
+            }
+            return Ok(await _mediator.Send(new UploadTaskAttachmentsCommand(id, uploads)));
+        }
+
+        /// <summary>عرض المرفق (صورة/PDF داخل الصفحة)، أو تنزيله مع ?download=true — ملفات Office تُنزَّل دائماً</summary>
+        [HttpGet("Attachment/{id}")]
+        public async Task<IActionResult> Attachment(int id, [FromQuery] bool download = false)
+        {
+            var file = await _mediator.Send(new GetTaskAttachmentQuery(id));
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            return download || !file.Previewable
+                ? File(file.Data, file.ContentType, file.FileName)
+                : File(file.Data, file.ContentType);
+        }
+
+        [HttpDelete("Attachment/{id}")]
+        public async Task<ActionResult<AssignedTaskDetailDto>> DeleteAttachment(int id)
+            => Ok(await _mediator.Send(new DeleteTaskAttachmentCommand(id)));
+
+        // ════════ قائمة التحقق ════════
+        [HttpPost("Checklist/{id}")]
+        public async Task<ActionResult<AssignedTaskDetailDto>> AddChecklistItem(int id, [FromBody] AddChecklistItemRequestDto dto)
+            => Ok(await _mediator.Send(new AddChecklistItemCommand(id, dto.Text)));
+
+        [HttpPut("ChecklistItem/{id}")]
+        public async Task<ActionResult<AssignedTaskDetailDto>> UpdateChecklistItem(int id, [FromBody] UpdateChecklistItemRequestDto dto)
+            => Ok(await _mediator.Send(new UpdateChecklistItemCommand(id, dto.IsDone, dto.Text)));
+
+        [HttpDelete("ChecklistItem/{id}")]
+        public async Task<ActionResult<AssignedTaskDetailDto>> DeleteChecklistItem(int id)
+            => Ok(await _mediator.Send(new DeleteChecklistItemCommand(id)));
+
+        // ════════ «أتولّى هذه المهمة» ════════
+        [HttpPut("Claim/{id}")]
+        public async Task<ActionResult<AssignedTaskDetailDto>> Claim(int id, [FromBody] ClaimAssignedTaskRequestDto dto)
+            => Ok(await _mediator.Send(new ClaimAssignedTaskCommand(id, dto.Claim)));
 
         [HttpDelete("Delete/{id}")]
         public async Task<ActionResult> Delete(int id)
