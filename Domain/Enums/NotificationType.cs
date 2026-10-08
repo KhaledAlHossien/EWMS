@@ -19,6 +19,9 @@
         MaintenanceTransferRequested = 15,    // طلب فني تحويل طلب صيانة (لرئيس القسم)
         MaintenanceTransferDecided = 16,      // قرار رئيس القسم على طلب التحويل (للفني)
         SparePartLowStock = 17,               // نزلت قطعة غيار تحت حدها الأدنى (لمن يُدخل المخزون في القسم)
-        DeviceRepairCostThreshold = 18        // بلغت تكلفة قطع جهاز حد الاستبدال (لرئيس القسم)
+        DeviceRepairCostThreshold = 18,       // بلغت تكلفة قطع جهاز حد الاستبدال (لرئيس القسم)
+        TaskDueSoon = 19,                     // مهمة يحين موعدها اليوم أو غداً
+        TaskOverdue = 20,                     // تجاوزت مهمة موعد تسليمها
+        TaskAttachmentAdded = 21              // أُرفق ملف بمهمة
     }
 }

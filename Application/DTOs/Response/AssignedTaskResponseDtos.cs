@@ -31,6 +31,16 @@ namespace Application.DTOs.Response
 
         /// <summary>هل يستطيع المستخدم الحالي سحبها بين الأعمدة (هو الجهة المسؤولة عن تنفيذها)</summary>
         public bool CanChangeStatus { get; set; }
+        /// <summary>الحالات التي يستطيع المستخدم الحالي نقل المهمة إليها الآن (Todo | InProgress | InReview | Done) — منها يُبنى السحب والأزرار</summary>
+        public List<string> AllowedStatuses { get; set; } = [];
+        /// <summary>إعادة المهمة من المراجعة إلى التنفيذ من المُسنِد تحتاج سبباً</summary>
+        public bool NeedsReturnNote { get; set; }
+        public int AttachmentsCount { get; set; }
+        public int ChecklistTotal { get; set; }
+        public int ChecklistDone { get; set; }
+        /// <summary>من يعمل عليها من الجهة المنفِّذة («أتولّى هذه المهمة»)</summary>
+        public int? ClaimedByUserId { get; set; }
+        public string? ClaimedByName { get; set; }
     }
 
     public class AssignedTaskDetailDto : AssignedTaskCardDto
@@ -46,6 +56,37 @@ namespace Application.DTOs.Response
 
         public List<AssignedTaskCardDto> SubTasks { get; set; } = [];
         public List<AssignedTaskActivityDto> Activities { get; set; } = [];
+
+        public List<AssignedTaskAttachmentDto> Attachments { get; set; } = [];
+        /// <summary>مرفقات المهمة الأصل للقراءة فقط (للمهمة الفرعية المفوَّضة)</summary>
+        public List<AssignedTaskAttachmentDto> ParentAttachments { get; set; } = [];
+        public List<ChecklistItemDto> Checklist { get; set; } = [];
+        /// <summary>يرفق ملفاً: كل من يطّلع على المهمة قبل «تم التنفيذ»</summary>
+        public bool CanAttach { get; set; }
+        /// <summary>يضيف بنوداً ويعلّم عليها: المُسنِد والمنفِّذ قبل «تم التنفيذ»</summary>
+        public bool CanManageChecklist { get; set; }
+        public bool CanClaim { get; set; }
+        public bool CanRelease { get; set; }
+    }
+
+    public class AssignedTaskAttachmentDto
+    {
+        public int Id { get; set; }
+        public int TaskId { get; set; }
+        public string FileName { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+        public int Size { get; set; }
+        public string UploadedByName { get; set; } = string.Empty;
+        public DateTime UploadedAt { get; set; }
+        /// <summary>يحذفه من رفعه أو المُسنِد، قبل «تم التنفيذ»</summary>
+        public bool CanDelete { get; set; }
+    }
+
+    public class ChecklistItemDto
+    {
+        public int Id { get; set; }
+        public string Text { get; set; } = string.Empty;
+        public bool IsDone { get; set; }
     }
 
     public class AssignedTaskActivityDto

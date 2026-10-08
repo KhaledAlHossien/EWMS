@@ -27,6 +27,26 @@ namespace Application.DTOs.Request
     public class ChangeAssignedTaskStatusRequestDto
     {
         public int Status { get; set; }
+        /// <summary>سبب إعادة المهمة من المراجعة إلى التنفيذ (من المُسنِد) — مطلوب عندها</summary>
+        public string? Note { get; set; }
+    }
+
+    public class AddChecklistItemRequestDto
+    {
+        public string Text { get; set; } = string.Empty;
+    }
+
+    /// <summary>تعديل بند: التعليم (isDone) و/أو النص (للمُسنِد)</summary>
+    public class UpdateChecklistItemRequestDto
+    {
+        public bool? IsDone { get; set; }
+        public string? Text { get; set; }
+    }
+
+    public class ClaimAssignedTaskRequestDto
+    {
+        /// <summary>true = أتولّى المهمة، false = أتخلّى عنها</summary>
+        public bool Claim { get; set; } = true;
     }
 
     public class AddAssignedTaskCommentRequestDto
