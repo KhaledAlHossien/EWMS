@@ -37,6 +37,17 @@ namespace Domain.Entities
         public ICollection<AssignedTask> SubTasks { get; set; } = new List<AssignedTask>();
 
         public ICollection<AssignedTaskActivity> Activities { get; set; } = new List<AssignedTaskActivity>();
+        public ICollection<AssignedTaskAttachment> Attachments { get; set; } = new List<AssignedTaskAttachment>();
+        public ICollection<AssignedTaskChecklistItem> ChecklistItems { get; set; } = new List<AssignedTaskChecklistItem>();
+
+        // ===== «أتولّى هذه المهمة»: من يعمل عليها فعلاً من الجهة المنفِّذة (معلومة للعرض، لا تقيّد غيره من المنفِّذين) =====
+        public int? ClaimedByUserId { get; set; }
+        public User? ClaimedByUser { get; set; }
+        public DateTime? ClaimedAt { get; set; }
+
+        // ===== تذكيرات الموعد: تُرسل مرة واحدة لكل موعد، وتُصفَّر عند تغيير تاريخ التسليم =====
+        public DateTime? DueSoonNotifiedAt { get; set; }
+        public DateTime? OverdueNotifiedAt { get; set; }
 
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }

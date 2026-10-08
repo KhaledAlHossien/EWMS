@@ -5,7 +5,8 @@ namespace Domain.Enums
     {
         Todo = 1,        // لم تُنفَّذ
         InProgress = 2,  // قيد التنفيذ
-        Done = 3         // تم التنفيذ
+        Done = 3,        // تم التنفيذ (يعتمده المُسنِد)
+        InReview = 4     // بانتظار مراجعة المُسنِد (أُضيفت بعد Done فبقيت الأرقام القديمة كما هي)
     }
 
     public enum AssignedTaskPriority
@@ -34,6 +35,10 @@ namespace Domain.Enums
         StatusChanged = 2,
         Comment = 3,
         Delegated = 4,   // أُسندت منها مهمة فرعية لجهة أدنى
-        Edited = 5
+        Edited = 5,
+        Attached = 6,          // أُرفق ملف
+        AttachmentRemoved = 7, // حُذف مرفق
+        Claimed = 8,           // «أتولّى هذه المهمة»
+        Released = 9           // تخلّى عن توليها
     }
 }

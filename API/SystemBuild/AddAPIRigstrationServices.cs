@@ -55,6 +55,7 @@ namespace API.SystemBuild
             services.AddApplicationServices();
             services.AddInfrastructureServices(configuration);
             services.AddHttpContextAccessor();
+            services.AddHostedService<API.Background.TaskReminderWorker>();   // تذكيرات مواعيد المهام
 
             services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
             services.AddAuthorization(options =>
