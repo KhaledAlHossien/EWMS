@@ -762,6 +762,8 @@ namespace Infrastructure.Persistence.Data
             {
                 entity.Property(l => l.Name).HasMaxLength(200).IsRequired();
                 entity.Property(l => l.Description).HasMaxLength(2000);
+                entity.Property(l => l.Color).HasMaxLength(20);
+                entity.Property(l => l.Icon).HasMaxLength(16);
 
                 entity.HasOne(l => l.User).WithMany()
                     .HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -773,9 +775,16 @@ namespace Infrastructure.Persistence.Data
             builder.Entity<ToDoItem>(entity =>
             {
                 entity.Property(i => i.Title).HasMaxLength(200).IsRequired();
+                entity.Property(i => i.Note).HasMaxLength(1000);
+                entity.Property(i => i.Repeat).HasConversion<int?>();
                 entity.HasOne(i => i.ToDoList).WithMany(l => l.Items)
                     .HasForeignKey(i => i.ToDoListId).OnDelete(DeleteBehavior.Cascade);
+                // حذف المهمة من لوحة المهام لا يمنع ولا يحذف بند المفكرة: يُفكّ الربط فقط
+                entity.HasOne(i => i.LinkedTask).WithMany()
+                    .HasForeignKey(i => i.LinkedTaskId).OnDelete(DeleteBehavior.SetNull);
                 entity.HasIndex(i => new { i.ToDoListId, i.SortOrder });
+                // مسح «اليوم» والتذكيرات: غير المنجزة ذات الموعد
+                entity.HasIndex(i => new { i.IsDone, i.DueDate });
             });
 
             // ==================== توقيع المستخدم ====================

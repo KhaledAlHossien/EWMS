@@ -23,6 +23,8 @@
         TaskDueSoon = 19,                     // مهمة يحين موعدها اليوم أو غداً
         TaskOverdue = 20,                     // تجاوزت مهمة موعد تسليمها
         TaskAttachmentAdded = 21,             // أُرفق ملف بمهمة
-        TaskRecurrenceStopped = 22            // توقفت مهمة دورية لتعذّر إنشائها (لصاحبها)
+        TaskRecurrenceStopped = 22,           // توقفت مهمة دورية لتعذّر إنشائها (لصاحبها)
+        ToDoItemDueSoon = 23,                 // بند في مفكرتي يستحق اليوم أو غداً
+        ToDoItemOverdue = 24                  // بند في مفكرتي تجاوز موعده
     }
 }

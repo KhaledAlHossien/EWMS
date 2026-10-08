@@ -5,5 +5,9 @@ namespace Application.DTOs.Request
     {
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        /// <summary>green | blue | purple | orange | red | gray، أو فارغ</summary>
+        public string Color { get; set; } = string.Empty;
+        /// <summary>رمز تعبيري واحد (حتى 8 أحرف)، أو فارغ</summary>
+        public string Icon { get; set; } = string.Empty;
     }
 }
