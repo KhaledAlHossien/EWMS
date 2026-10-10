@@ -12,13 +12,16 @@ namespace API.SystemBuild
             // 2. CORS
             app.UseCors("AllowAngular");
 
-            // 3. Swagger
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
+            // 3. Swagger: فقط إن فُعّل في الإعدادات (Swagger:Enabled — مفعّل في التطوير، معطّل افتراضياً في الإنتاج)
+            if (app.ApplicationServices.GetRequiredService<IConfiguration>().GetValue("Swagger:Enabled", false))
             {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Project Management API");
-                c.DocumentTitle = "Project Management API";
-            });
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Project Management API");
+                    c.DocumentTitle = "Project Management API";
+                });
+            }
 
             // 4. HTTPS + Auth
             app.UseHttpsRedirection();
