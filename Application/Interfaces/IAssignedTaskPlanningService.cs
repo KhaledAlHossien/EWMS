@@ -29,8 +29,17 @@ namespace Application.Interfaces
         Task<AssignedTaskRecurrence?> GetRecurrenceAsync(int id);
         Task AddRecurrenceAsync(AssignedTaskRecurrence recurrence);
         Task DeleteRecurrenceAsync(AssignedTaskRecurrence recurrence);
-        /// <summary>النشطة التي حان موعدها (NextRunDate ≤ today) مع القالب وبنوده وصاحبها</summary>
+        /// <summary>النشطة التي حان موعدها (NextRunDate ≤ today) مع القالب وبنوده وصاحبها — للقراءة فقط؛ التنفيذ عبر RunScheduledAsync</summary>
         Task<List<AssignedTaskRecurrence>> GetDueRecurrencesAsync(DateTime today);
+
+        /// <summary>
+        /// ينفّذ موعداً مجدولاً مرة واحدة: معاملة مع قفل على التكرار، ثم يتحقق أنه ما زال نشطاً بالموعد نفسه (expectedNextRun)
+        /// ويستدعي action (ينشئ المهمة ويقدّم الموعد) ويحفظ الكل معاً أو لا شيء. false = نفّذه غيرنا (نسخة أخرى من الخادم) أو تغيّر.
+        /// </summary>
+        Task<bool> RunScheduledAsync(int recurrenceId, DateTime expectedNextRun, Func<AssignedTaskRecurrence, Task> action);
+
+        /// <summary>يوقف تكراراً برسالة الخطأ (بعد فشل تنفيذه)؛ false إن كان متوقفاً أصلاً</summary>
+        Task<bool> StopRecurrenceAsync(int recurrenceId, string error);
 
         // ===== الروابط =====
         Task<List<AssignedTaskLink>> GetLinksAsync(int taskId);
