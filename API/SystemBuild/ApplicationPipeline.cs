@@ -1,4 +1,5 @@
 ﻿using API.Middlewares;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace API.SystemBuild
 {
@@ -6,7 +7,14 @@ namespace API.SystemBuild
     {
         public static IApplicationBuilder UseApplicationPipeline(this IApplicationBuilder app)
         {
-            // 1. Exception Handler (الأول دائماً)
+            // 0. خلف Nginx (الإنتاج): البروتوكول وعنوان العميل الأصليان من X-Forwarded-*.
+            //    الوكيل الموثوق هو الجهاز نفسه فقط (الافتراضي)، فلا يزوّرها أحد من الخارج. بلا وكيل (التطوير) لا أثر له.
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            });
+
+            // 1. Exception Handler
             app.UseMiddleware<ExceptionMiddleware>();
 
             // 2. CORS
