@@ -42,7 +42,7 @@ namespace Application.Features.Users.Commands.Delete
             if (user.Id == _currentUserService.UserId)
                 throw new InvalidOperationException("لا يمكنك حذف حسابك الحالي");
 
-            UserRules.EnsureCanChangeExistingUser(_currentUserService, user);
+            await UserRules.EnsureCanChangeExistingUserAsync(_currentUserService, user);
 
             // أسند مهام أو أُسندت إليه أو شارك في سجلها — يُعطَّل الحساب بدل حذفه
             if (await _vacationService.ExistsForUserAsync(user.Id))

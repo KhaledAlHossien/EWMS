@@ -32,6 +32,11 @@ namespace Infrastructure.Persistence.Repositories
             }
         }
 
+        public async Task RevokeSessionsAsync(int userId) =>
+            await _context.UserTokens
+                .Where(t => t.UserId == userId && !t.IsRevoked)
+                .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsRevoked, true));
+
         public async Task<User?> GetByIdAsync(int id)
         {
             return await _context.Users

@@ -64,7 +64,8 @@ namespace Application.Features.Users
             int? branchId,
             int roleId)
         {
-            if (currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+            var me = await currentUserService.GetUserAsync();
+            if (OrganizationRole.IsSystemAdmin(me))
                 return;
 
             var role = await roleService.GetByIdAsync(roleId)
@@ -77,7 +78,7 @@ namespace Application.Features.Users
             if (rolePermissions.Any(rp => AppPermissions.IsBranchManagement(rp.Permission.Name)))
                 throw new UnauthorizedAccessException("لا يمكنك منح صلاحية إدارة الفروع");
 
-            if (currentUserService.BranchId != branchId)
+            if (!OrganizationRole.InBranch(me, branchId))
                 throw new UnauthorizedAccessException("لا يمكنك إدارة مستخدم خارج فرعك");
         }
 
@@ -85,12 +86,13 @@ namespace Application.Features.Users
         public static string? NormalizePersonalIdNumber(string? value) =>
             string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToUpperInvariant();
 
-        public static void EnsureCanChangeExistingUser(ICurrentUserService currentUserService, User user)
+        public static async Task EnsureCanChangeExistingUserAsync(ICurrentUserService currentUserService, User user)
         {
-            if (currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+            var me = await currentUserService.GetUserAsync();
+            if (OrganizationRole.IsSystemAdmin(me))
                 return;
 
-            if (currentUserService.BranchId != user.BranchId)
+            if (!OrganizationRole.InBranch(me, user.BranchId))
                 throw new UnauthorizedAccessException("لا يمكنك إدارة مستخدم خارج فرعك");
 
             if (user.Role?.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase) == true)

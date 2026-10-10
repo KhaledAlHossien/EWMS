@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using AutoMapper;
@@ -29,8 +30,8 @@ namespace Application.Features.Users.Queries.GetByOffice
             var office = await _officeService.GetByIdAsync(request.OfficeId)
                 ?? throw new KeyNotFoundException("المكتب غير موجود");
 
-            if (!_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
-                && _currentUserService.DepartmentId != office.DepartmentId)
+            var me = await _currentUserService.GetUserAsync();
+            if (!OrganizationRole.IsSystemAdmin(me) && !OrganizationRole.InDepartment(me, office.DepartmentId))
                 throw new UnauthorizedAccessException("لا يمكنك عرض مستخدمي مكتب خارج قسمك");
 
             return _mapper.Map<List<UserResponseDto>>(await _userService.GetByOfficeAsync(request.OfficeId));
