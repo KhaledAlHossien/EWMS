@@ -34,7 +34,7 @@ namespace Application.Features.Roles.Commands.Update
             var role = await _roleService.GetByIdAsync(request.Id)
                 ?? throw new KeyNotFoundException("الدور غير موجود");
 
-            var isSuperAdmin = _currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            var isSuperAdmin = OrganizationRole.IsSystemAdmin(await _currentUserService.GetUserAsync());
             if (!isSuperAdmin && role.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
                 throw new UnauthorizedAccessException("لا يمكن تعديل دور SuperAdmin إلا من SuperAdmin");
 
@@ -80,7 +80,7 @@ namespace Application.Features.Roles.Commands.Update
 
         private async Task EnsureCanGrantPermissions(IEnumerable<int> permissionIds)
         {
-            if (_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+            if (OrganizationRole.IsSystemAdmin(await _currentUserService.GetUserAsync()))
                 return;
 
             foreach (var permissionId in permissionIds.Distinct())

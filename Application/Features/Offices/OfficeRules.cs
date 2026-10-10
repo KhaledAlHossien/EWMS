@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.Interfaces;
 
 namespace Application.Features.Offices
@@ -15,12 +16,13 @@ namespace Application.Features.Offices
             int departmentId,
             string message)
         {
-            if (currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+            var me = await currentUserService.GetUserAsync();
+            if (OrganizationRole.IsSystemAdmin(me))
                 return;
 
-            if (currentUserService.DepartmentId > 0)
+            if (me.DepartmentId is > 0)
             {
-                if (currentUserService.DepartmentId != departmentId)
+                if (me.DepartmentId != departmentId)
                     throw new UnauthorizedAccessException(message);
                 return;
             }
@@ -28,7 +30,7 @@ namespace Application.Features.Offices
             var department = await departmentService.GetByIdAsync(departmentId)
                 ?? throw new KeyNotFoundException("القسم المحدد غير موجود");
 
-            if (currentUserService.BranchId <= 0 || department.BranchId != currentUserService.BranchId)
+            if (!OrganizationRole.InBranch(me, department.BranchId))
                 throw new UnauthorizedAccessException(message);
         }
     }

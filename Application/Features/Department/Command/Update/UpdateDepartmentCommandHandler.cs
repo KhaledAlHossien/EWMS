@@ -1,4 +1,5 @@
-﻿using Application.DTOs.Response;
+﻿using Application.Common;
+using Application.DTOs.Response;
 using Application.Interfaces;
 using AutoMapper;
 using MediatR;
@@ -37,9 +38,10 @@ namespace Application.Features.Department.Command.Update
             if (!await _branchService.ExistsAsync(request.DepartmentDto.BranchId))
                 throw new KeyNotFoundException("الفرع المحدد غير موجود");
 
-            if (!_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
-                && (_currentUserService.BranchId != department.BranchId
-                    || _currentUserService.BranchId != request.DepartmentDto.BranchId))
+            var me = await _currentUserService.GetUserAsync();
+            if (!OrganizationRole.IsSystemAdmin(me)
+                && (!OrganizationRole.InBranch(me, department.BranchId)
+                    || !OrganizationRole.InBranch(me, request.DepartmentDto.BranchId)))
                 throw new UnauthorizedAccessException("لا يمكنك تعديل قسم خارج فرعك");
 
             // 3. التحقق من عدم تكرار الاسم (مع استثناء القسم الحالي)

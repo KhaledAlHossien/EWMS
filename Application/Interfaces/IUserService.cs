@@ -22,6 +22,9 @@ namespace Application.Interfaces
         Task<List<User>> GetByOfficeAsync(int officeId);
         Task<List<User>> GetByBranchAsync(int branchId);
 
+        /// <summary>يبطل كل جلسات المستخدم المفتوحة (يُطلب منه تسجيل الدخول من جديد)</summary>
+        Task RevokeSessionsAsync(int userId);
+
         // ===== المستخدم الحالي =====
         int UserId { get; }
 

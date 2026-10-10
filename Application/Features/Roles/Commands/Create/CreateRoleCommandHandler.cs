@@ -34,7 +34,8 @@ namespace Application.Features.Roles.Commands.Create
             if (await _roleService.ExistsAsync(request.RoleDto.Name))
                 throw new InvalidOperationException("يوجد دور بنفس الاسم مسبقاً");
 
-            if (!_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
+            var isSuperAdmin = OrganizationRole.IsSystemAdmin(await _currentUserService.GetUserAsync());
+            if (!isSuperAdmin
                 && request.RoleDto.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
                 throw new UnauthorizedAccessException("فقط SuperAdmin يمكنه إنشاء دور SuperAdmin");
 
@@ -66,7 +67,7 @@ namespace Application.Features.Roles.Commands.Create
 
         private async Task EnsureCanGrantPermissions(IEnumerable<int> permissionIds)
         {
-            if (_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+            if (OrganizationRole.IsSystemAdmin(await _currentUserService.GetUserAsync()))
                 return;
 
             foreach (var permissionId in permissionIds.Distinct())

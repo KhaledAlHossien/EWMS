@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.Interfaces;
 using MediatR;
 
@@ -25,7 +26,7 @@ namespace Application.Features.Roles.Commands.Delete
                 ?? throw new KeyNotFoundException("الدور غير موجود");
 
             if (role.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
-                && !_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+                && !OrganizationRole.IsSystemAdmin(await _currentUserService.GetUserAsync()))
                 throw new UnauthorizedAccessException("لا يمكن حذف دور SuperAdmin إلا من SuperAdmin");
 
             // دور SuperAdmin لا يُحذف أبداً (مدير النظام يُعرَّف باسم دوره)

@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using AutoMapper;
@@ -32,8 +33,8 @@ namespace Application.Features.Users.Queries.GetByDepartment
             var department = await _departmentService.GetByIdAsync(request.DepartmentId)
                 ?? throw new KeyNotFoundException("القسم غير موجود");
 
-            if (!_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
-                && _currentUserService.BranchId != department.BranchId)
+            var me = await _currentUserService.GetUserAsync();
+            if (!OrganizationRole.IsSystemAdmin(me) && !OrganizationRole.InBranch(me, department.BranchId))
                 throw new UnauthorizedAccessException("لا يمكنك عرض مستخدمي قسم خارج فرعك");
 
             return _mapper.Map<List<UserResponseDto>>(await _userService.GetByDepartmentAsync(request.DepartmentId));

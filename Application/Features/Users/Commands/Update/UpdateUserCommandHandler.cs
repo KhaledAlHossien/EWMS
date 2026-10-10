@@ -48,7 +48,7 @@ namespace Application.Features.Users.Commands.Update
             var user = await _userService.GetWithDetailsAsync(request.Id)
                 ?? throw new KeyNotFoundException("المستخدم غير موجود");
 
-            UserRules.EnsureCanChangeExistingUser(_currentUserService, user);
+            await UserRules.EnsureCanChangeExistingUserAsync(_currentUserService, user);
 
             var personalId = UserRules.NormalizePersonalIdNumber(request.UserDto.PersonalIdNumber);
             if (personalId != null && !await _userService.IsPersonalIdNumberUniqueAsync(personalId, request.Id))
@@ -74,6 +74,14 @@ namespace Application.Features.Users.Commands.Update
                 placement.BranchId,
                 request.UserDto.RoleId);
 
+            // تغيير الدور أو المكان أو التعطيل أو كلمة المرور يُنهي جلسات الموظف المفتوحة
+            var sensitive = user.RoleId != request.UserDto.RoleId
+                || user.BranchId != placement.BranchId
+                || user.DepartmentId != placement.DepartmentId
+                || user.OfficeId != placement.OfficeId
+                || (user.IsActive && !request.UserDto.IsActive)
+                || !string.IsNullOrWhiteSpace(request.UserDto.Password);
+
             user.FullName = request.UserDto.FullName;
             user.Email = request.UserDto.Email;
             user.PersonalIdNumber = personalId;
@@ -84,7 +92,7 @@ namespace Application.Features.Users.Commands.Update
             user.BranchId = placement.BranchId;
             // تفعيل الحساب أو تعطيله صلاحية منفصلة عن تعديل البيانات (مدير النظام يملكها دائماً)
             if (request.UserDto.IsActive != user.IsActive
-                && !_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
+                && !OrganizationRole.IsSystemAdmin(await _currentUserService.GetUserAsync())
                 && !await _permissions.HasAsync(_currentUserService.UserId, AppPermissions.ToggleUserActive))
                 throw new UnauthorizedAccessException("لا تملك صلاحية تفعيل الحسابات أو تعطيلها");
 
@@ -94,6 +102,7 @@ namespace Application.Features.Users.Commands.Update
                 user.PasswordHash = _passwordHasher.Hash(request.UserDto.Password);
 
             await _userService.UpdateAsync(user);
+            if (sensitive) await _userService.RevokeSessionsAsync(user.Id);
             var updated = await _userService.GetWithDetailsAsync(user.Id) ?? user;
             return _mapper.Map<UserResponseDto>(updated);
         }
