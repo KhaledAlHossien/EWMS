@@ -61,3 +61,5 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+# ملفات النشر على Linux: نهايات أسطر LF دائماً (CRLF يُلحق  بقيم ewms.env فيكسر المفاتيح ونص الاتصال)
+deploy/linux/** text eol=lf

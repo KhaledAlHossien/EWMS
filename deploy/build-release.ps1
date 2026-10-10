@@ -36,13 +36,19 @@ Write-Host '== 4/5 settings without secrets + deploy files'
 Remove-Item (Join-Path $stage 'app\appsettings.Development.json') -ErrorAction SilentlyContinue
 Copy-Item (Join-Path $PSScriptRoot 'appsettings.release.json') (Join-Path $stage 'app\appsettings.json') -Force
 Copy-Item (Join-Path $PSScriptRoot 'linux') (Join-Path $stage 'deploy') -Recurse -Force
+# ملفات Linux بنهايات LF مهما كانت إعدادات git على جهاز البناء
+Get-ChildItem (Join-Path $stage 'deploy') -File | ForEach-Object {
+    $text = [IO.File]::ReadAllText($_.FullName) -replace "`r`n", "`n"
+    [IO.File]::WriteAllText($_.FullName, $text, (New-Object Text.UTF8Encoding $false))
+}
 Copy-Item (Join-Path $root 'docs\DEPLOYMENT.md') $stage -Force
 Set-Content -Path (Join-Path $stage 'VERSION') -Value $version -Encoding ascii
 
 Write-Host '== 5/5 archive'
 $archive = Join-Path $OutDir "$name.tar.gz"
 if (Test-Path $archive) { Remove-Item $archive -Force }
-tar -czf $archive -C $OutDir $name
+# tar ويندوز نفسه: tar الخاص بـ Git (إن سبقه في PATH) يقرأ «F:» كاسم خادم بعيد ويفشل
+& (Join-Path $env:SystemRoot 'System32\tar.exe') -czf $archive -C $OutDir $name
 if ($LASTEXITCODE -ne 0) { throw 'tar failed' }
 $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
 Set-Content -Path "$archive.sha256" -Value "$hash  $name.tar.gz" -Encoding ascii
