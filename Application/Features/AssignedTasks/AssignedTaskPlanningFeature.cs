@@ -347,7 +347,7 @@ namespace Application.Features.AssignedTasks
                     EntityId = l.EntityId,
                     Available = d.Available,
                     Label = d.Available ? d.Label : "سجل غير متاح لك",
-                    CanRemove = !task.Status.Equals(AssignedTaskStatus.Done)
+                    CanRemove = !task.Status.Equals(AssignedTaskStatus.Done) && !AssignedTaskRules.IsFrozenFor(task, viewer)
                         && (l.CreatedByUserId == viewer.Id || task.CreatedByUserId == viewer.Id || viewer.IsSuperAdmin),
                     CreatedByName = l.CreatedByUser?.FullName ?? string.Empty
                 });
@@ -368,6 +368,7 @@ namespace Application.Features.AssignedTasks
             if (task.CreatedByUserId != viewer.Id && !AssignedTaskRules.CanHandle(task, viewer) && !viewer.IsSuperAdmin)
                 throw new UnauthorizedAccessException("الربط للمُسنِد أو الجهة المنفِّذة");
             if (task.Status == AssignedTaskStatus.Done) throw new InvalidOperationException("لا يمكن الربط بمهمة منجزة");
+            AssignedTaskRules.EnsureNotFrozen(task, viewer);
             if (!TaskLinkResolver.TryParseType(request.Dto.EntityType, out var type)) throw new ArgumentException("نوع السجل غير صحيح");
             if (await _planning.CountLinksAsync(task.Id) >= TaskPlanningRules.MaxLinksPerTask)
                 throw new InvalidOperationException($"الحد الأقصى {TaskPlanningRules.MaxLinksPerTask} روابط للمهمة");
@@ -397,6 +398,7 @@ namespace Application.Features.AssignedTasks
             if (link.CreatedByUserId != viewer.Id && task.CreatedByUserId != viewer.Id && !viewer.IsSuperAdmin)
                 throw new UnauthorizedAccessException("يحذف الرابط من أضافه أو من أسند المهمة");
             if (task.Status == AssignedTaskStatus.Done) throw new InvalidOperationException("لا يمكن تعديل روابط مهمة منجزة");
+            AssignedTaskRules.EnsureNotFrozen(task, viewer);
             await _planning.DeleteLinkAsync(link);
             return await ListAsync(task, viewer);
         }
