@@ -1,4 +1,5 @@
-﻿using Application.DTOs.Response;
+﻿using Application.Common;
+using Application.DTOs.Response;
 using Application.Interfaces;
 using AutoMapper;
 using MediatR;
@@ -35,8 +36,8 @@ namespace Application.Features.Department.Command.Create
             if (!await _branchService.ExistsAsync(request.DepartmentDto.BranchId))
                 throw new KeyNotFoundException("الفرع المحدد غير موجود");
 
-            if (!_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
-                && _currentUserService.BranchId != request.DepartmentDto.BranchId)
+            var me = await _currentUserService.GetUserAsync();
+            if (!OrganizationRole.IsSystemAdmin(me) && !OrganizationRole.InBranch(me, request.DepartmentDto.BranchId))
                 throw new UnauthorizedAccessException("لا يمكنك إضافة قسم خارج فرعك");
 
             // 2. التحقق من عدم تكرار الاسم

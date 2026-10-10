@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using AutoMapper;
@@ -29,8 +30,8 @@ namespace Application.Features.Users.Queries.GetByBranch
             if (!await _branchService.ExistsAsync(request.BranchId))
                 throw new KeyNotFoundException("الفرع غير موجود");
 
-            if (!_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
-                && _currentUserService.BranchId != request.BranchId)
+            var me = await _currentUserService.GetUserAsync();
+            if (!OrganizationRole.IsSystemAdmin(me) && !OrganizationRole.InBranch(me, request.BranchId))
                 throw new UnauthorizedAccessException("لا يمكنك عرض مستخدمي فرع آخر");
 
             return _mapper.Map<List<UserResponseDto>>(await _userService.GetByBranchAsync(request.BranchId));

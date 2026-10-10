@@ -1,4 +1,5 @@
-﻿using Application.Interfaces;
+﻿using Application.Common;
+using Application.Interfaces;
 using MediatR;
 
 namespace Application.Features.Department.Command.Delete
@@ -33,8 +34,8 @@ namespace Application.Features.Department.Command.Delete
             var department = await _departmentService.GetByIdAsync(request.Id)
                 ?? throw new KeyNotFoundException("القسم غير موجود");
 
-            if (!_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
-                && _currentUserService.BranchId != department.BranchId)
+            var me = await _currentUserService.GetUserAsync();
+            if (!OrganizationRole.IsSystemAdmin(me) && !OrganizationRole.InBranch(me, department.BranchId))
                 throw new UnauthorizedAccessException("لا يمكنك حذف قسم خارج فرعك");
 
             // منع الحذف لو فيه مستخدمون

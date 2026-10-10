@@ -1,4 +1,5 @@
-﻿using Application.DTOs.Request;
+﻿using Application.Common;
+using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using Domain.Entities;
@@ -97,9 +98,10 @@ namespace Infrastructure.Persistence.Repositories
             if (office.DepartmentId != request.DepartmentId)
                 return false;
 
-            if (!_currentUserService.Role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+            var me = await _currentUserService.GetUserAsync();
+            if (!OrganizationRole.IsSystemAdmin(me))
             {
-                if (_currentUserService.BranchId != request.BranchId)
+                if (!OrganizationRole.InBranch(me, request.BranchId))
                     return false;
 
                 if (role.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
