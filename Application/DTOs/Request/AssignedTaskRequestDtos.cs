@@ -31,6 +31,8 @@ namespace Application.DTOs.Request
         public int Status { get; set; }
         /// <summary>سبب إعادة المهمة من المراجعة إلى التنفيذ (من المُسنِد) — مطلوب عندها</summary>
         public string? Note { get; set; }
+        /// <summary>الحالة التي رآها المستخدم حين قرّر؛ إن تغيّرت منذها يُرفض القرار ويُطلب تحديث الصفحة</summary>
+        public int? ExpectedStatus { get; set; }
     }
 
     public class AddChecklistItemRequestDto
