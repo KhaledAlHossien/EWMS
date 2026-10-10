@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using BCrypt.Net;
 
 
@@ -13,7 +15,7 @@ namespace Infrastructure.Persistence.Data
 {
     public static class DbSeeder
     {
-        public static async Task SeedAsync(DataContext context)
+        public static async Task SeedAsync(DataContext context, IConfiguration configuration, ILogger logger)
         {
             // ==================== 1. الأدوار ====================
             // الدور العام الوحيد هو SuperAdmin. كل منصب آخر ينشأ من صفحة الأدوار
@@ -130,24 +132,41 @@ namespace Infrastructure.Persistence.Data
 
             await context.SaveChangesAsync();
 
-            // ==================== 6. المستخدم SuperAdmin ====================
-            if (!await context.Users.AnyAsync(u => u.Email == "admin@system.com"))
+            // ==================== 6. أول مدير نظام ====================
+            // لا كلمة مرور في الكود: يُنشأ فقط إن لم يوجد أي مستخدم بدور SuperAdmin، من الإعدادات Seed:AdminEmail / Seed:AdminPassword
+            // (في الإنتاج متغيرا البيئة Seed__AdminEmail و Seed__AdminPassword لمرة واحدة، ثم يُحذفان — docs/DEPLOYMENT.md)
+            var superAdminRole = await context.Roles.FirstAsync(r => r.Name == "SuperAdmin");
+            if (!await context.Users.AnyAsync(u => u.RoleId == superAdminRole.Id))
             {
-                var adminRole = await context.Roles.FirstAsync(r => r.Name == "SuperAdmin");
-
-                var admin = new User
+                var email = configuration["Seed:AdminEmail"]?.Trim();
+                var password = configuration["Seed:AdminPassword"];
+                if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
                 {
-                    FullName = "Super Admin",
-                    Email = "admin@system.com",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("it@123456"),
-                    RoleId = adminRole.Id,
-                    // SuperAdmin لا يتبع لفرع أو قسم أو مكتب
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                await context.Users.AddAsync(admin);
-                await context.SaveChangesAsync();
+                    logger.LogWarning("لا يوجد مدير نظام. اضبط Seed:AdminEmail و Seed:AdminPassword (متغيرا البيئة Seed__AdminEmail و Seed__AdminPassword) ثم أعد التشغيل لإنشائه.");
+                }
+                else if (password.Length < 8)
+                {
+                    logger.LogWarning("لم يُنشأ مدير النظام: كلمة المرور في Seed:AdminPassword أقصر من 8 أحرف.");
+                }
+                else if (await context.Users.AnyAsync(u => u.Email == email))
+                {
+                    logger.LogWarning("لم يُنشأ مدير النظام: البريد {Email} مستخدم لحساب آخر.", email);
+                }
+                else
+                {
+                    await context.Users.AddAsync(new User
+                    {
+                        FullName = "Super Admin",
+                        Email = email,
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                        RoleId = superAdminRole.Id,
+                        // SuperAdmin لا يتبع لفرع أو قسم أو مكتب
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    await context.SaveChangesAsync();
+                    logger.LogWarning("أُنشئ مدير النظام الأول ({Email}). احذف Seed:AdminPassword من الإعدادات وغيّر كلمة المرور بعد أول دخول.", email);
+                }
             }
 
             // ==================== 7. ربط الصلاحيات بالأدوار ====================
