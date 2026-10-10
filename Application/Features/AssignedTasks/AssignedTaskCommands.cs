@@ -12,7 +12,7 @@ namespace Application.Features.AssignedTasks
     public record CreateAssignedTaskCommand(CreateAssignedTaskRequestDto Dto) : IRequest<AssignedTaskDetailDto>;
     public record UpdateAssignedTaskCommand(int Id, UpdateAssignedTaskRequestDto Dto) : IRequest<AssignedTaskDetailDto>;
     public record DeleteAssignedTaskCommand(int Id) : IRequest<Unit>;
-    public record ChangeAssignedTaskStatusCommand(int Id, int Status, string? Note = null) : IRequest<AssignedTaskCardDto>;
+    public record ChangeAssignedTaskStatusCommand(int Id, int Status, string? Note = null, int? ExpectedStatus = null) : IRequest<AssignedTaskCardDto>;
     public record AddAssignedTaskCommentCommand(int Id, string Text) : IRequest<AssignedTaskDetailDto>;
 
     // ════════════════════ التحقق من المدخلات ════════════════════
@@ -54,6 +54,8 @@ namespace Application.Features.AssignedTasks
         {
             RuleFor(x => x.Status).Must(s => Enum.IsDefined(typeof(AssignedTaskStatus), s)).WithMessage("الحالة غير صحيحة");
             RuleFor(x => x.Note).MaximumLength(500).WithMessage("السبب لا يتجاوز 500 حرف");
+            RuleFor(x => x.ExpectedStatus!.Value).Must(s => Enum.IsDefined(typeof(AssignedTaskStatus), s))
+                .When(x => x.ExpectedStatus != null).WithMessage("الحالة غير صحيحة");
         }
     }
 
@@ -164,6 +166,9 @@ namespace Application.Features.AssignedTasks
 
             var from = task.Status;
             var to = (AssignedTaskStatus)request.Status;
+            // قرار بُني على حالة قديمة (أعادها غيره أو اعتمدها قبل لحظات): يُرفض بدل أن يكتب فوقها
+            if (request.ExpectedStatus is int expected && (AssignedTaskStatus)expected != from)
+                throw new InvalidOperationException($"تغيّرت حالة المهمة إلى «{AssignedTaskRules.StatusAr(from)}» منذ فتحتها، حدّث الصفحة وحاول مجدداً");
             if (from == to) return AssignedTaskRules.ToCard(task, viewer);
 
             var handles = AssignedTaskRules.CanHandle(task, viewer);
@@ -194,8 +199,7 @@ namespace Application.Features.AssignedTasks
                 && task.TargetType != AssignedTaskTargetType.User && task.ClaimedByUserId == null;
             if (autoClaimed) { task.ClaimedByUserId = user.Id; task.ClaimedAt = now; }
 
-            await _taskService.SaveChangesAsync();
-
+            // الحالة وسجلّها في حفظ واحد (AddActivityAsync يحفظ المهمة المعدّلة معه، ويفحص RowVersion)
             var text = $"نقل المهمة من «{AssignedTaskRules.StatusAr(from)}» إلى «{AssignedTaskRules.StatusAr(to)}»"
                 + (to == AssignedTaskStatus.Done && reviewer && from == AssignedTaskStatus.InReview ? " (اعتمد الإنجاز)" : "")
                 + (returned ? $" — السبب: {note}" : "");

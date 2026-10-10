@@ -310,6 +310,8 @@ namespace Infrastructure.Persistence.Data
             // كل العلاقات Restrict: سجل المهام يُحفظ، وحذف قسم/مكتب/موظف له مهام يُمنع برسالة واضحة
             builder.Entity<AssignedTask>(entity =>
             {
+                // تعديلان متزامنان على المهمة → الثاني يفشل (DbUpdateConcurrencyException) ويُعرض برسالة
+                entity.Property(t => t.RowVersion).IsRowVersion();
                 entity.Property(t => t.Title).HasMaxLength(200).IsRequired();
                 entity.Property(t => t.Description).HasMaxLength(4000);
                 entity.Property(t => t.Priority).HasConversion<int>();

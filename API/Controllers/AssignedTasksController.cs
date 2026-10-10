@@ -53,7 +53,7 @@ namespace API.Controllers
 
         [HttpPut("Status/{id}")]
         public async Task<ActionResult<AssignedTaskCardDto>> Status(int id, [FromBody] ChangeAssignedTaskStatusRequestDto dto)
-            => Ok(await _mediator.Send(new ChangeAssignedTaskStatusCommand(id, dto.Status, dto.Note)));
+            => Ok(await _mediator.Send(new ChangeAssignedTaskStatusCommand(id, dto.Status, dto.Note, dto.ExpectedStatus)));
 
         [HttpPost("Comment/{id}")]
         public async Task<ActionResult<AssignedTaskDetailDto>> Comment(int id, [FromBody] AddAssignedTaskCommentRequestDto dto)
