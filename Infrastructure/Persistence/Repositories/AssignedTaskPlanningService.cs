@@ -74,12 +74,55 @@ namespace Infrastructure.Persistence.Repositories
             await _context.SaveChangesAsync();
         }
 
+        // بلا تتبّع: RunScheduledAsync يعيد قراءة التكرار داخل القفل (نسخة متتبَّعة قديمة كانت ستُخفي ما حفظته نسخة أخرى)
         public async Task<List<AssignedTaskRecurrence>> GetDueRecurrencesAsync(DateTime today) =>
-            await _context.AssignedTaskRecurrences
+            await _context.AssignedTaskRecurrences.AsNoTracking()
                 .Where(r => r.IsActive && r.NextRunDate != null && r.NextRunDate <= today)
                 .Include(r => r.Template).ThenInclude(t => t.Items)
                 .Include(r => r.OwnerUser)
                 .OrderBy(r => r.Id).ToListAsync();
+
+        public async Task<bool> RunScheduledAsync(int recurrenceId, DateTime expectedNextRun, Func<AssignedTaskRecurrence, Task> action)
+        {
+            // قفل تطبيقي على التكرار داخل معاملة (مثل اعتماد الإجازات): نسختان من الخادم لا تنفّذان الموعد نفسه،
+            // وتعطّل الخادم قبل الـ Commit يُرجع كل شيء (المهمة والموعد) فيُنفَّذ الموعد مرة واحدة في الدورة التالية
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            await _context.Database.ExecuteSqlRawAsync(@"
+DECLARE @r int;
+EXEC @r = sp_getapplock @Resource = {0}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 15000;
+IF @r < 0 THROW 50002, N'task recurrence lock timeout', 1;", $"task-recurrence-{recurrenceId}");
+
+            var recurrence = await _context.AssignedTaskRecurrences
+                .Include(r => r.Template).ThenInclude(t => t.Items)
+                .Include(r => r.OwnerUser)
+                .FirstOrDefaultAsync(r => r.Id == recurrenceId);
+            if (recurrence == null || !recurrence.IsActive || recurrence.NextRunDate != expectedNextRun)
+                return false;
+
+            try
+            {
+                await action(recurrence);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                // المعاملة تُرجع عند التخلص منها؛ وما بقي متتبَّعاً من المحاولة (المهمة وسجلها) لا يُحفظ لاحقاً بالخطأ
+                _context.ChangeTracker.Clear();
+                throw;
+            }
+        }
+
+        public async Task<bool> StopRecurrenceAsync(int recurrenceId, string error)
+        {
+            var recurrence = await _context.AssignedTaskRecurrences.FirstOrDefaultAsync(r => r.Id == recurrenceId);
+            if (recurrence == null || !recurrence.IsActive) return false;
+            recurrence.IsActive = false;
+            recurrence.LastError = error;
+            await _context.SaveChangesAsync();
+            return true;
+        }
 
         // ===== الروابط =====
         public async Task<List<AssignedTaskLink>> GetLinksAsync(int taskId) =>
