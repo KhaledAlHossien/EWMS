@@ -65,6 +65,8 @@ namespace Application.DTOs.Response
         public bool CanAttach { get; set; }
         /// <summary>يضيف بنوداً ويعلّم عليها: المُسنِد والمنفِّذ قبل «تم التنفيذ»</summary>
         public bool CanManageChecklist { get; set; }
+        /// <summary>بانتظار المراجعة ولستُ مراجِعها: لا أعدّل فيها حتى يعتمدها المُسنِد أو يعيدها</summary>
+        public bool ReviewLocked { get; set; }
         public bool CanClaim { get; set; }
         public bool CanRelease { get; set; }
     }

@@ -177,6 +177,7 @@ namespace Application.Features.AssignedTasks
                 throw new UnauthorizedAccessException("تغيير حالة المهمة للجهة المنفِّذة أو لمن أسندها فقط");
             if (from == AssignedTaskStatus.Done)
                 throw new InvalidOperationException("المهمة منجزة ولا يمكن تغيير حالتها");
+            AssignedTaskRules.EnsureNotFrozen(task, viewer);
             if (!AssignedTaskRules.AllowedStatuses(task, viewer).Contains(to))
                 throw new InvalidOperationException(to == AssignedTaskStatus.Done && handles && !reviewer
                     ? "تُرسَل المهمة إلى «بانتظار المراجعة» ويعتمد إنجازها من أسندها"

@@ -62,8 +62,20 @@ namespace Application.Features.AssignedTasks
         public static bool IsReviewer(AssignedTask t, Viewer v) => v.IsSuperAdmin || t.CreatedByUserId == v.Id;
 
         /// <summary>
+        /// «بانتظار المراجعة» تجمّد المهمة لكل من ليس مراجِعها (المُسنِد أو مدير النظام) حتى يعتمدها أو يعيدها للتنفيذ:
+        /// لا حالة ولا قائمة تحقق ولا مرفقات ولا تولٍّ ولا روابط. التعليقات تبقى مسموحة (حوار المراجعة). قرار المستخدم 2026-10-10.
+        /// </summary>
+        public static bool IsFrozenFor(AssignedTask t, Viewer v) => t.Status == AssignedTaskStatus.InReview && !IsReviewer(t, v);
+
+        public static void EnsureNotFrozen(AssignedTask t, Viewer v)
+        {
+            if (IsFrozenFor(t, v))
+                throw new InvalidOperationException("المهمة بانتظار المراجعة — لا تُعدَّل حتى يعتمدها من أسندها أو يعيدها للتنفيذ");
+        }
+
+        /// <summary>
         /// الحالات التي يستطيع المستخدم نقل المهمة إليها الآن (المصدر الوحيد للانتقالات، ويبني الخادمُ السحبَ والأزرار منه):
-        /// المنفِّذ: لم تُنفَّذ ↔ قيد التنفيذ، قيد التنفيذ ← بانتظار المراجعة، وسحبها من المراجعة ← قيد التنفيذ.
+        /// المنفِّذ: لم تُنفَّذ ↔ قيد التنفيذ، قيد التنفيذ ← بانتظار المراجعة (ثم لا يحرّكها حتى يقرر المُراجِع — IsFrozenFor).
         /// المُراجِع: بانتظار المراجعة ← تم التنفيذ (اعتماد) أو ← قيد التنفيذ (إعادة بسبب)، وقيد التنفيذ ← تم التنفيذ مباشرة.
         /// «تم التنفيذ» نهائية.
         /// </summary>
@@ -78,7 +90,6 @@ namespace Application.Features.AssignedTasks
                 {
                     case AssignedTaskStatus.Todo: allowed.Add(AssignedTaskStatus.InProgress); break;
                     case AssignedTaskStatus.InProgress: allowed.Add(AssignedTaskStatus.Todo); allowed.Add(AssignedTaskStatus.InReview); break;
-                    case AssignedTaskStatus.InReview: allowed.Add(AssignedTaskStatus.InProgress); break;
                 }
             }
             if (IsReviewer(t, v))
@@ -263,7 +274,9 @@ namespace Application.Features.AssignedTasks
             dto.CanDelegate = handles && (t.Status is AssignedTaskStatus.Todo or AssignedTaskStatus.InProgress) && DelegationTargetFor(t) != null;
 
             // المرفقات: يرفق من يطّلع على المهمة، ويحذف الرافع أو المُسنِد — كله قبل «تم التنفيذ» (بعدها سجل ثابت)
-            var open = t.Status != AssignedTaskStatus.Done;
+            // وأثناء المراجعة لا يغيّر فيها إلا المُراجِع (IsFrozenFor)
+            dto.ReviewLocked = IsFrozenFor(t, viewer);
+            var open = t.Status != AssignedTaskStatus.Done && !dto.ReviewLocked;
             dto.CanAttach = open && CanView(t, viewer);
             dto.Attachments = t.Attachments.OrderBy(a => a.UploadedAt)
                 .Select(a => ToAttachmentDto(a, open && (a.UploadedByUserId == viewer.Id || isCreator || viewer.IsSuperAdmin))).ToList();

@@ -64,10 +64,11 @@ namespace Application.Features.AssignedTasks
         private async Task<AssignedTaskDetailDto> DetailAsync(int id, Viewer viewer) =>
             AssignedTaskRules.ToDetail(await LoadAsync(id), viewer);
 
-        private static void EnsureOpen(AssignedTask t)
+        private static void EnsureOpen(AssignedTask t, Viewer viewer)
         {
             if (t.Status == AssignedTaskStatus.Done)
                 throw new InvalidOperationException("المهمة منجزة — سجلها ومرفقاتها وقائمتها ثابتة لا تتغيّر");
+            AssignedTaskRules.EnsureNotFrozen(t, viewer);
         }
 
         // ════════════ المرفقات ════════════
@@ -78,7 +79,7 @@ namespace Application.Features.AssignedTasks
             var task = await LoadAsync(request.TaskId);
             if (!AssignedTaskRules.CanView(task, viewer))
                 throw new UnauthorizedAccessException("لا تملك صلاحية الإرفاق إلى هذه المهمة");
-            EnsureOpen(task);
+            EnsureOpen(task, viewer);
 
             if (request.Files.Count == 0) throw new InvalidOperationException("اختر ملفاً للإرفاق");
             var existing = await _tasks.CountAttachmentsAsync(task.Id);
@@ -142,7 +143,7 @@ namespace Application.Features.AssignedTasks
 
             if (attachment.UploadedByUserId != viewer.Id && !AssignedTaskRules.IsReviewer(task, viewer))
                 throw new UnauthorizedAccessException("يحذف المرفق من رفعه أو من أسند المهمة");
-            EnsureOpen(task);
+            EnsureOpen(task, viewer);
 
             var name = attachment.FileName;
             await _tasks.DeleteAttachmentAsync(attachment);
@@ -156,7 +157,7 @@ namespace Application.Features.AssignedTasks
         {
             if (!(task.CreatedByUserId == viewer.Id || AssignedTaskRules.CanHandle(task, viewer) || viewer.IsSuperAdmin))
                 throw new UnauthorizedAccessException("قائمة التحقق للمُسنِد والجهة المنفِّذة فقط");
-            EnsureOpen(task);
+            EnsureOpen(task, viewer);
         }
 
         public async Task<AssignedTaskDetailDto> Handle(AddChecklistItemCommand request, CancellationToken ct)
@@ -218,7 +219,7 @@ namespace Application.Features.AssignedTasks
             var viewer = await CurrentAsync();
             var user = viewer.User;
             var task = await LoadAsync(request.TaskId);
-            EnsureOpen(task);
+            EnsureOpen(task, viewer);
 
             var now = DateTime.UtcNow;
             if (request.Claim)
