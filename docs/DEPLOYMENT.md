@@ -1,66 +1,131 @@
-# نشر EWMS على خادم الإنتاج
+# نشر EWMS على خادم Linux
 
-> الخادم بلا إنترنت: كل ما يلزم (الخطوط، الخرائط، المكتبات) داخل النسخة نفسها.
+> الخادم بلا إنترنت: الحزمة فيها كل شيء — الخادم مستقل بذاته (لا يحتاج تثبيت .NET)، والواجهة والخطوط والخرائط داخلها.
+> الحزمة تُبنى على جهاز التطوير: `powershell -ExecutionPolicy Bypass -File F:\EWMSSS\deploy\build-release.ps1`
+> ← `release\EWMS-<الإصدار>-linux-x64.tar.gz` (+ ملف `.sha256`). **لا تحتوي أي أسرار.**
 
-## 1. الإعدادات (متغيرات البيئة)
+## 0. المتطلبات على الخادم
+- Linux x64 (Ubuntu 22.04+/Debian 12/RHEL 9 أو ما يماثلها) مع **libicu** (موجودة عادة؛ للتحقق: `ldconfig -p | grep libicu`).
+- **SQL Server 2019+** (على الخادم نفسه أو جهاز آخر في الشبكة) — النظام يستعمل ميزات SQL Server (rowversion، sp_getapplock).
+- **Nginx** أمام التطبيق (الحزم تُنقل دون إنترنت إن لزم).
+- ضبط ساعة الخادم (NTP داخلي إن وُجد). المنطقة الزمنية تُضبط للخدمة نفسها (`TZ=Asia/Damascus` في ملف الخدمة).
 
-`appsettings.json` لا يحتوي أسراراً. في التطوير تأتي من `appsettings.Development.json` (لا يُحمَّل إلا حين `ASPNETCORE_ENVIRONMENT=Development`)،
-وفي الإنتاج من **متغيرات البيئة** (`__` بدل `:`). الخادم **يرفض الإقلاع** برسالة تذكر الناقص إن غاب أحد الإلزامية.
+## 1. التثبيت لأول مرة
+```bash
+# 1) التحقق من سلامة الحزمة بعد نقلها
+sha256sum -c EWMS-1.0.0-linux-x64.tar.gz.sha256
+
+# 2) مستخدم نظام للخدمة (بلا دخول)
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin ewms
+
+# 3) فك الحزمة في مجلد بإصدارها، ورابط ثابت app يشير إليه (التحديث والتراجع = تبديل الرابط)
+sudo mkdir -p /opt/ewms/releases
+sudo tar -xzf EWMS-1.0.0-linux-x64.tar.gz -C /opt/ewms/releases
+sudo ln -sfn /opt/ewms/releases/EWMS-1.0.0-linux-x64/app /opt/ewms/app
+sudo chmod +x /opt/ewms/app/API
+sudo chown -R ewms:ewms /opt/ewms/releases
+```
+
+### 1.1 قاعدة البيانات
+قاعدة جديدة فارغة؛ الجداول تُنشأ من الترحيلات عند أول إقلاع. في SQL Server (بحساب مدير):
+```sql
+CREATE DATABASE EWMS;
+GO
+CREATE LOGIN ewms_app WITH PASSWORD = N'<كلمة مرور قوية>';
+GO
+USE EWMS;
+CREATE USER ewms_app FOR LOGIN ewms_app;
+ALTER ROLE db_owner ADD MEMBER ewms_app;   -- الترحيلات تعدّل البنية
+GO
+```
+
+### 1.2 الإعدادات والأسرار
+```bash
+sudo mkdir -p /etc/ewms
+sudo cp /opt/ewms/releases/EWMS-1.0.0-linux-x64/deploy/ewms.env.example /etc/ewms/ewms.env
+openssl rand -base64 48     # ← JwtSettings__Key
+openssl rand -base64 32     # ← DeviceInventory__PasswordKey
+sudo nano /etc/ewms/ewms.env          # نص الاتصال، المفتاحان، بريد وكلمة مرور أول مدير
+sudo chown root:root /etc/ewms/ewms.env && sudo chmod 600 /etc/ewms/ewms.env
+```
 
 | المتغير | إلزامي | الوصف |
 |---|---|---|
-| `ASPNETCORE_ENVIRONMENT` | — | `Production` (الافتراضي إن لم يُضبط) |
-| `ConnectionStrings__DefaultConnection` | ✔ | نص الاتصال بـ SQL Server |
+| `ConnectionStrings__DefaultConnection` | ✔ | نص الاتصال بـ SQL Server (مستخدم `ewms_app`) |
 | `JwtSettings__Key` | ✔ | مفتاح توقيع الجلسات، 32 حرفاً على الأقل |
-| `DeviceInventory__PasswordKey` | ✔ | مفتاح تشفير كلمات سر الأجهزة: 32 بايت بصيغة Base64 (انظر التحذير أدناه) |
-| `DeviceInventory__OwnerDepartmentId` | | قسم العمليات الذي تتبع له طبقة الأجهزة في الخريطة (الافتراضي 1) |
-| `Cors__AllowedOrigins__0`, `__1`… | | عناوين الواجهة إن كانت على عنوان مختلف عن الخادم. فارغة = نفس العنوان فقط |
-| `Swagger__Enabled` | | `true` لعرض `/swagger` (معطّل افتراضياً في الإنتاج) |
-| `Database__MigrateOnStartup` | | `true` افتراضياً: تُطبَّق الترحيلات عند الإقلاع (انظر §4) |
-| `Seed__AdminEmail`, `Seed__AdminPassword` | مرة واحدة | لإنشاء أول مدير نظام (انظر §3) |
+| `DeviceInventory__PasswordKey` | ✔ | مفتاح تشفير كلمات سر الأجهزة: 32 بايت Base64 |
+| `DeviceInventory__OwnerDepartmentId` | | قسم العمليات صاحب طبقة الأجهزة في الخريطة (بعد إنشاء الأقسام) |
+| `Seed__AdminEmail`, `Seed__AdminPassword` | مرة واحدة | أول مدير نظام (انظر 1.5) |
+| `Cors__AllowedOrigins__0`… | | فقط إن كانت الواجهة على عنوان آخر — هنا لا حاجة (نفس العنوان) |
+| `Swagger__Enabled` | | `true` لعرض `/swagger` مؤقتاً للتشخيص (معطّل افتراضياً) |
+| `Database__MigrateOnStartup` | | `true` افتراضياً (انظر §3) |
 
-### توليد المفاتيح (PowerShell)
-```powershell
-$b = New-Object byte[] 48; [Security.Cryptography.RandomNumberGenerator]::Fill($b); [Convert]::ToBase64String($b)   # JwtSettings__Key
-$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Fill($b); [Convert]::ToBase64String($b)   # DeviceInventory__PasswordKey
+الخادم **يرفض الإقلاع** ويذكر في السجل كل إعداد ناقص أو غير صالح (قيمة `CHANGE_ME` لا تجتاز الفحص).
+
+> **⚠ مفتاح تشفير كلمات سر الأجهزة:** ضياعه أو تغييره يُضيّع كل كلمات سر الأجهزة المحفوظة. احفظ نسخة منه خارج الخادم مع مسؤول النظام.
+> مفتاح الجلسات إن تغيّر: يعيد المستخدمون تسجيل الدخول فقط.
+
+### 1.3 الخدمة
+```bash
+sudo cp /opt/ewms/releases/EWMS-1.0.0-linux-x64/deploy/ewms.service /etc/systemd/system/ewms.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now ewms
+sudo journalctl -u ewms -f            # السجل المباشر (Ctrl+C للخروج)
+curl -s http://127.0.0.1:5000/health  # ← Healthy
 ```
 
-> **مفاتيح جديدة للإنتاج.** مفاتيح التطوير موجودة في تاريخ git، فلا تُستعمل في الإنتاج.
->
-> **⚠ مفتاح تشفير كلمات سر الأجهزة:** كلمات سر الأجهزة المحفوظة مشفّرة به؛ **ضياعه أو تغييره يُضيّعها كلها**.
-> احفظ نسخة منه خارج الخادم (مع مسؤول النظام). وإن نُقلت قاعدة بيانات فيها كلمات سر مشفّرة، يُنقل معها المفتاح الذي شُفّرت به.
-> تغيير مفتاح الجلسات لا يضرّ شيئاً سوى أن المستخدمين يسجّلون الدخول من جديد.
-
-## 2. التشغيل
-- نشر النسخة: `dotnet publish API -c Release -o <مجلد النشر>`، ثم الواجهة: `npm run build` في مجلد الواجهة.
-- HTTPS: الخادم يحوّل HTTP إلى HTTPS (`UseHttpsRedirection`)، فيلزم شهادة على IIS أو على الوكيل العكسي.
-- **فحص الصحة:** `GET /health` → `200 Healthy` حين يتصل بقاعدة البيانات، و`503 Unhealthy` غير ذلك (بلا تفاصيل داخلية). يُضاف إلى أداة المراقبة.
-- **السجلات:** على Windows تُكتب التحذيرات والأخطاء في سجل الأحداث (Event Viewer ← Application، المصدر `.NET Runtime`/اسم التطبيق). على IIS يمكن تفعيل `stdoutLogEnabled` في `web.config` مؤقتاً لتشخيص مشكلة إقلاع.
-- رسائل أخطاء 500 لا تُظهر تفاصيلها للمستخدم خارج Development؛ التفاصيل في السجل.
-
-## 3. أول مدير نظام
-لا كلمة مرور في الكود. عند الإقلاع، **إن لم يوجد أي مستخدم بدور SuperAdmin**، يُنشأ مدير من `Seed__AdminEmail` و`Seed__AdminPassword` (8 أحرف على الأقل):
-1. اضبط المتغيرين، وشغّل الخادم مرة (يُكتب في السجل «أُنشئ مدير النظام الأول»).
-2. **احذف `Seed__AdminPassword`** من الإعدادات، وأعد التشغيل.
-3. سجّل الدخول وغيّر كلمة المرور من صفحة المستخدمين.
-
-إن وُجد مدير مسبقاً فهذه الإعدادات تُتجاهل. وإن غابت ولا مدير، يُكتب تحذير في السجل ولا يُنشأ شيء.
-
-## 4. قاعدة البيانات: النسخ الاحتياطي والتحديث
-**قبل كل تحديث للنسخة** (الترحيلات تعدّل البنية عند الإقلاع):
-```sql
-BACKUP DATABASE [EWMS] TO DISK = N'D:\Backups\EWMS_before_update.bak' WITH COMPRESSION, CHECKSUM, INIT;
+### 1.4 Nginx
+```bash
+sudo cp /opt/ewms/releases/EWMS-1.0.0-linux-x64/deploy/nginx-ewms.conf /etc/nginx/conf.d/ewms.conf
+sudo nano /etc/nginx/conf.d/ewms.conf  # server_name، وشهادة HTTPS إن وُجدت
+sudo nginx -t && sudo systemctl reload nginx
 ```
-- **نسخة يومية** مجدولة (SQL Server Agent، أو Task Scheduler مع `sqlcmd`)، تُحفظ خارج قرص الخادم، وتُجرَّب استعادتها دورياً.
-- ملف النسخة يحتوي كلمات سر الأجهزة **مشفّرة**؛ لا تُقرأ دون المفتاح (§1).
-- `Database__MigrateOnStartup=false` إن أردت تطبيق الترحيلات يدوياً: `dotnet ef migrations script --idempotent -p Infrastructure -s API -o migrate.sql` ثم تشغيله على القاعدة قبل تشغيل النسخة الجديدة.
-- تحذير التطوير: `dotnet ef database update` يستهدف دائماً قاعدة `EWMS` المحلية (`DataContextFactory`)، لا قاعدة الإنتاج.
+- الجدار الناري: افتح 80 (و443) فقط؛ المنفذ 5000 للجهاز نفسه.
+- على RHEL مع SELinux: `sudo setsebool -P httpd_can_network_connect 1` كي يصل Nginx إلى التطبيق.
 
-## 5. قائمة التحقق قبل التشغيل الأول
-- [ ] مفاتيح جديدة مولّدة ومحفوظة خارج الخادم (وخاصة مفتاح تشفير الأجهزة).
-- [ ] المتغيرات الإلزامية مضبوطة، و`Swagger__Enabled` غير مضبوط (أو `false`).
-- [ ] `Cors__AllowedOrigins` = عنوان الواجهة فقط إن كانت على عنوان مختلف.
-- [ ] شهادة HTTPS.
-- [ ] نسخة احتياطية مجدولة ومجرَّبة.
+### 1.5 أول دخول
+1. افتح `http://<الخادم>/` وسجّل الدخول ببريد وكلمة مرور أول مدير.
+2. احذف سطري `Seed__AdminEmail` و`Seed__AdminPassword` من `/etc/ewms/ewms.env`، ثم `sudo systemctl restart ewms`.
+3. غيّر كلمة مرور المدير من صفحة المستخدمين.
+4. أنشئ الفروع والأقسام والأدوار والمستخدمين؛ ثم اضبط `DeviceInventory__OwnerDepartmentId` على رقم قسم العمليات وأعد التشغيل.
+
+### 1.6 تحقق سريع بعد النشر
+- [ ] `/health` = Healthy، والصفحة الرئيسية تفتح.
+- [ ] جرس الإشعارات يتحدّث فوراً (WebSocket عبر Nginx).
+- [ ] رفع مرفق في مهمة أو إجازة، وطباعة طلب إجازة.
+- [ ] تصدير Excel (التركيبات أو المهام) — يعتمد على الخطوط في الخادم؛ إن فشل ثبّت حزمة خطوط (مثل `fonts-dejavu-core`).
+- [ ] التاريخ في نموذج الإجازة صحيح (المنطقة الزمنية).
+
+## 2. السجلات والمراقبة
+- السجل: `sudo journalctl -u ewms --since today` (التحذيرات والأخطاء، وتفاصيل أخطاء 500 التي لا تظهر للمستخدم).
+- المراقبة: `GET /health` → `200 Healthy` حين يتصل بقاعدة البيانات، و`503 Unhealthy` غير ذلك (بلا تفاصيل داخلية).
+- الخدمة تُعاد تلقائياً إن توقفت (`Restart=always`).
+
+## 3. النسخ الاحتياطي والتحديث
+**نسخة يومية** (مثال cron بمستخدم يملك صلاحية النسخ؛ `sqlcmd` من حزمة mssql-tools):
+```bash
+# /etc/cron.d/ewms-backup — كل يوم 02:30، ويحتفظ بآخر 14 نسخة
+30 2 * * * mssql /opt/mssql-tools18/bin/sqlcmd -S localhost -U backup_user -P '<...>' -C -Q "BACKUP DATABASE [EWMS] TO DISK=N'/var/opt/mssql/backup/EWMS_$(date +\%F).bak' WITH COMPRESSION, CHECKSUM, INIT" && find /var/opt/mssql/backup -name 'EWMS_*.bak' -mtime +14 -delete
+```
+انقل النسخ إلى جهاز آخر، وجرّب الاستعادة دورياً. النسخة تحوي كلمات سر الأجهزة **مشفّرة** (لا تُقرأ دون المفتاح).
+
+**تحديث النسخة** (الترحيلات تعدّل البنية عند الإقلاع — النسخة الاحتياطية أولاً):
+```bash
+sqlcmd ... -Q "BACKUP DATABASE [EWMS] TO DISK=N'/var/opt/mssql/backup/EWMS_before_<الإصدار>.bak' WITH COMPRESSION, CHECKSUM, INIT"
+sudo tar -xzf EWMS-<الإصدار>-linux-x64.tar.gz -C /opt/ewms/releases
+sudo chmod +x /opt/ewms/releases/EWMS-<الإصدار>-linux-x64/app/API && sudo chown -R ewms:ewms /opt/ewms/releases
+sudo ln -sfn /opt/ewms/releases/EWMS-<الإصدار>-linux-x64/app /opt/ewms/app
+sudo systemctl restart ewms && curl -s http://127.0.0.1:5000/health
+```
+**التراجع:** أعد الرابط إلى المجلد السابق وأعد التشغيل — وإن كان الإصدار الجديد قد طبّق ترحيلات، فاستعد النسخة الاحتياطية أولاً.
+`Database__MigrateOnStartup=false` لتطبيق الترحيلات يدوياً بسكربت (`dotnet ef migrations script --idempotent -p Infrastructure -s API -o migrate.sql` على جهاز التطوير).
+
+## 4. قائمة التحقق قبل التشغيل الأول
+- [ ] الحزمة سليمة (`sha256sum -c`).
+- [ ] مفاتيح جديدة مولّدة ومحفوظة خارج الخادم (خاصة مفتاح تشفير الأجهزة)، و`ewms.env` بصلاحيات 600.
+- [ ] مستخدم SQL مخصص (لا sa)، ونسخة احتياطية يومية مجرَّبة.
+- [ ] Nginx + جدار ناري (80/443 فقط) + HTTPS إن أمكن.
+- [ ] أول مدير أُنشئ، و`Seed__AdminPassword` حُذف، وكلمة المرور غُيّرت.
 - [ ] `/health` يُراقَب.
-- [ ] أول مدير أُنشئ، و`Seed__AdminPassword` حُذف، وكلمة مروره غُيّرت.
+
+> مفاتيح التطوير موجودة في تاريخ git؛ لا تُستعمل في الإنتاج. وتحذير للتطوير: `dotnet ef database update` يستهدف دائماً قاعدة `EWMS` المحلية (`DataContextFactory`).
