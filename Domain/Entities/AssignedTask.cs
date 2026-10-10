@@ -57,6 +57,9 @@ namespace Domain.Entities
         public DateTime UpdatedAt { get; set; }
         public DateTime? StartedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
+
+        /// <summary>تعديلان متزامنان على المهمة (مثلاً اعتماد وإعادة في اللحظة نفسها) → الثاني يفشل برسالة بدل أن يكتب فوق الأول</summary>
+        public byte[] RowVersion { get; set; } = null!;
     }
 
     /// <summary>سجل المهمة: الإنشاء، تغيير الحالة، التعليقات، التفويض، التعديل</summary>

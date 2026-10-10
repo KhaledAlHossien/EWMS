@@ -63,16 +63,29 @@ namespace Infrastructure.Persistence.Repositories
         public async Task AddAsync(AssignedTask task)
         {
             await _context.AssignedTasks.AddAsync(task);
-            await _context.SaveChangesAsync();
+            await SaveAsync();
         }
 
         public async Task AddActivityAsync(AssignedTaskActivity activity)
         {
             await _context.AssignedTaskActivities.AddAsync(activity);
-            await _context.SaveChangesAsync();
+            await SaveAsync();
         }
 
-        public Task SaveChangesAsync() => _context.SaveChangesAsync();
+        public Task SaveChangesAsync() => SaveAsync();
+
+        private async Task SaveAsync()
+        {
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // عدّل مستخدم آخر المهمة بين تحميلها وحفظها (RowVersion)
+                throw new InvalidOperationException("تم تعديل هذه المهمة من مستخدم آخر للتو، حدّث الصفحة وحاول مجدداً");
+            }
+        }
 
         // ═════════ المرفقات ═════════
         public Task<AssignedTaskAttachment?> GetAttachmentAsync(int id) =>
@@ -84,13 +97,13 @@ namespace Infrastructure.Persistence.Repositories
         public async Task AddAttachmentsAsync(IEnumerable<AssignedTaskAttachment> attachments)
         {
             _context.AssignedTaskAttachments.AddRange(attachments);
-            await _context.SaveChangesAsync();
+            await SaveAsync();
         }
 
         public async Task DeleteAttachmentAsync(AssignedTaskAttachment attachment)
         {
             _context.AssignedTaskAttachments.Remove(attachment);
-            await _context.SaveChangesAsync();
+            await SaveAsync();
         }
 
         public Task<int> CountAttachmentsAsync(int taskId) =>
@@ -108,13 +121,13 @@ namespace Infrastructure.Persistence.Repositories
             item.SortOrder = (await _context.AssignedTaskChecklistItems
                 .Where(i => i.AssignedTaskId == item.AssignedTaskId).MaxAsync(i => (int?)i.SortOrder) ?? 0) + 1;
             _context.AssignedTaskChecklistItems.Add(item);
-            await _context.SaveChangesAsync();
+            await SaveAsync();
         }
 
         public async Task DeleteChecklistItemAsync(AssignedTaskChecklistItem item)
         {
             _context.AssignedTaskChecklistItems.Remove(item);
-            await _context.SaveChangesAsync();
+            await SaveAsync();
         }
 
         public Task<int> CountChecklistAsync(int taskId) =>
@@ -130,7 +143,7 @@ namespace Infrastructure.Persistence.Repositories
         public async Task DeleteAsync(AssignedTask task)
         {
             _context.AssignedTasks.Remove(task);
-            await _context.SaveChangesAsync();
+            await SaveAsync();
         }
 
         public Task<bool> ExistsForDepartmentAsync(int departmentId) =>
