@@ -37,6 +37,25 @@ app.MapHub<NotificationHub>(NotificationHub.Path);
 // فحص صحة الخدمة لأداة المراقبة أو موازن الأحمال: 200 Healthy / 503 Unhealthy، بلا تفاصيل داخلية
 app.MapHealthChecks("/health");
 
+// ==================== 3.1 الواجهة (Angular) من wwwroot ====================
+// حزمة الإصدار تضع ملفات الواجهة في wwwroot: موقع واحد وعنوان واحد (بلا CORS، وSignalR من العنوان نفسه).
+// أي مسار ليس ملفاً ولا api/hubs/health/swagger يعيد index.html (مسارات Angular). index.html بلا تخزين مؤقت
+// كي تصل النسخة الجديدة فوراً؛ بقية الملفات بأسماء فيها بصمة المحتوى. في التطوير لا يوجد wwwroot/index.html فلا يتغير شيء.
+if (app.Environment.WebRootPath is { } webRoot && File.Exists(Path.Combine(webRoot, "index.html")))
+{
+    var spaFiles = new StaticFileOptions
+    {
+        OnPrepareResponse = ctx =>
+        {
+            if (ctx.File.Name.Equals("index.html", StringComparison.OrdinalIgnoreCase))
+                ctx.Context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+        }
+    };
+    app.UseDefaultFiles();
+    app.UseStaticFiles(spaFiles);
+    app.MapFallbackToFile("{*path:nonfile:regex(^(?!api/|hubs/|health|swagger).*$)}", "index.html", spaFiles);
+}
+
 // ==================== 4. Migrations + Seeding ====================
 using (var scope = app.Services.CreateScope())
 {
