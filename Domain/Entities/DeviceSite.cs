@@ -47,6 +47,14 @@ namespace Domain.Entities
         public DateTime? LastVerifiedAt { get; set; }
         public InstallationStatus Status { get; set; } = InstallationStatus.Active;
 
+        // ===== الوحدة المالكة (قرار المستخدم 2026-10-11: ما يضيفه الموظف يرتبط بقسمه وفرعه) =====
+        // تُؤخذ من قسم من أضاف التركيب وفرعه، وتحدد من يراه (قسمي/فرعي) وعلى خريطة أي فرع يظهر.
+        // null للتركيبات القديمة التي لم يُعرف صاحبها (يراها من يملك نظرة المؤسسة ويحدد قسمها من التعديل).
+        public int? BranchId { get; set; }
+        public Branch? Branch { get; set; }
+        public int? DepartmentId { get; set; }
+        public Department? Department { get; set; }
+
         public byte[] RowVersion { get; set; } = [];
     }
 }
