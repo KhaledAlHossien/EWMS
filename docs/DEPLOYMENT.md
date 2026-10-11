@@ -1,8 +1,39 @@
 # نشر EWMS على خادم Linux
 
-> الخادم بلا إنترنت: الحزمة فيها كل شيء — الخادم مستقل بذاته (لا يحتاج تثبيت .NET)، والواجهة والخطوط والخرائط داخلها.
-> الحزمة تُبنى على جهاز التطوير: `powershell -ExecutionPolicy Bypass -File F:\EWMSSS\deploy\build-release.ps1`
-> ← `release\EWMS-<الإصدار>-linux-x64.tar.gz` (+ ملف `.sha256`). **لا تحتوي أي أسرار.**
+> الخادم بلا إنترنت. الحزم تُبنى على جهاز التطوير وتُنقل يدوياً، **ولا تحتوي أي أسرار**:
+> `powershell -ExecutionPolicy Bypass -File F:\EWMSSS\deploy\build-release.ps1` ← حزمتان (الطريقة المعتمدة، القسم A):
+> `release\EWMS-<الإصدار>-api-linux-x64.tar.gz` للخادم و`release\EWMS-<الإصدار>-web.tar.gz` للواجهة (+ ملفا `.sha256`).
+> مع `-Single` تُبنى حزمة واحدة مستقلة بذاتها لتثبيت جديد كلياً (الأقسام 0–4).
+
+## A. تحديث الخادم الحالي (مجلدان) — الطريقة المعتمدة
+الخادم الحالي: الـ API في `/var/www/dmc/EWMS-App` تشغّله الخدمة `ewms-api` (`dotnet API.dll`، يحتاج .NET 10 المثبّت)،
+والواجهة في `/var/www/dmc/EWMS-App/angular` يقدّمها Nginx. **القاعدة: الخادم أولاً ثم الواجهة.**
+حزمة الخادم **لا تحتوي `appsettings.json`**، فإعدادات الخادم ومفاتيحه تبقى كما هي (`appsettings.template.json` فيها مرجع للإعدادات فقط).
+
+```bash
+# 0) ارفع الحزم الأربع إلى /tmp (ويبمين: Tools ← Upload and Download) ثم تحقق منها
+cd /tmp && sha256sum -c EWMS-*-api-linux-x64.tar.gz.sha256 EWMS-*-web.tar.gz.sha256
+
+# 1) نسخة احتياطية: القاعدة والمجلد (التراجع = إعادتهما)
+/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -Q "BACKUP DATABASE [EWMS] TO DISK=N'/var/opt/mssql/data/EWMS_before_update.bak' WITH COMPRESSION, CHECKSUM, INIT"
+cp -a /var/www/dmc/EWMS-App /var/www/dmc/EWMS-App.bak-$(date +%F)
+
+# 2) الخادم (الترحيلات تُطبَّق عند الإقلاع)
+systemctl stop ewms-api
+tar -xzf /tmp/EWMS-*-api-linux-x64.tar.gz -C /var/www/dmc/EWMS-App
+chown -R appuser:appuser /var/www/dmc/EWMS-App
+systemctl start ewms-api && sleep 20 && systemctl is-active ewms-api && curl -s http://127.0.0.1:5000/health; echo
+journalctl -u ewms-api -n 30 --no-pager     # إن لم يقلع: السجل يذكر الإعداد الناقص بالعربية
+
+# 3) الواجهة (بعد نجاح الخادم): تُستبدل ملفاتها كلها
+find /var/www/dmc/EWMS-App/angular -mindepth 1 -delete
+tar -xzf /tmp/EWMS-*-web.tar.gz -C /var/www/dmc/EWMS-App/angular
+chown -R appuser:appuser /var/www/dmc/EWMS-App/angular
+```
+- حدّث الصفحة في المتصفح (Ctrl+F5) بعد تحديث الواجهة.
+- **التراجع:** `systemctl stop ewms-api`، ثم أعد المجلد من `EWMS-App.bak-…` والقاعدة من النسخة الاحتياطية، ثم `systemctl start ewms-api`.
+- إعدادات الخادم الإلزامية (يرفض الإقلاع بدونها): نص الاتصال، `JwtSettings:Key` (32 حرفاً على الأقل)، `DeviceInventory:PasswordKey` (32 بايت Base64) — في `appsettings.json` على الخادم أو متغيرات بيئة الخدمة.
+- **الإصدار 1.1.0:** كل تركيب جهاز صار ملك قسم من أضافه وفرعه، وخريطة كل فرع تُبنى من تركيبات أقسامه. التركيبات القديمة تأخذ قسم من أضافها تلقائياً؛ وما أضافه مدير بلا فرع يظهر «بلا قسم» في صفحة التركيبات — افتحه بالتعديل واختر قسمه فيظهر على خريطة فرعه.
 
 ## 0. المتطلبات على الخادم
 - Linux x64 (Ubuntu 22.04+/Debian 12/RHEL 9 أو ما يماثلها) مع **libicu** (موجودة عادة؛ للتحقق: `ldconfig -p | grep libicu`).
@@ -54,7 +85,6 @@ sudo chown root:root /etc/ewms/ewms.env && sudo chmod 600 /etc/ewms/ewms.env
 | `ConnectionStrings__DefaultConnection` | ✔ | نص الاتصال بـ SQL Server (مستخدم `ewms_app`) |
 | `JwtSettings__Key` | ✔ | مفتاح توقيع الجلسات، 32 حرفاً على الأقل |
 | `DeviceInventory__PasswordKey` | ✔ | مفتاح تشفير كلمات سر الأجهزة: 32 بايت Base64 |
-| `DeviceInventory__OwnerDepartmentId` | | قسم العمليات صاحب طبقة الأجهزة في الخريطة (بعد إنشاء الأقسام) |
 | `Seed__AdminEmail`, `Seed__AdminPassword` | مرة واحدة | أول مدير نظام (انظر 1.5) |
 | `Cors__AllowedOrigins__0`… | | فقط إن كانت الواجهة على عنوان آخر — هنا لا حاجة (نفس العنوان) |
 | `Swagger__Enabled` | | `true` لعرض `/swagger` مؤقتاً للتشخيص (معطّل افتراضياً) |
@@ -87,7 +117,7 @@ sudo nginx -t && sudo systemctl reload nginx
 1. افتح `http://<الخادم>/` وسجّل الدخول ببريد وكلمة مرور أول مدير.
 2. احذف سطري `Seed__AdminEmail` و`Seed__AdminPassword` من `/etc/ewms/ewms.env`، ثم `sudo systemctl restart ewms`.
 3. غيّر كلمة مرور المدير من صفحة المستخدمين.
-4. أنشئ الفروع والأقسام والأدوار والمستخدمين؛ ثم اضبط `DeviceInventory__OwnerDepartmentId` على رقم قسم العمليات وأعد التشغيل.
+4. أنشئ الفروع والأقسام والأدوار والمستخدمين. خريطة كل فرع تُبنى تلقائياً من بياناته (التركيبات المسجّلة باسم أقسامه) — لا إعداد لذلك.
 
 ### 1.6 تحقق سريع بعد النشر
 - [ ] `/health` = Healthy، والصفحة الرئيسية تفتح.
