@@ -13,6 +13,8 @@ namespace Application.Features.Users.Commands.Delete
         private readonly IVacationService _vacationService;
         private readonly ISparePartService _sparePartService;
         private readonly IDeviceInventoryLogService _deviceLog;
+        private readonly IMapLayerService _mapLayers;
+        private readonly IMapEntryService _mapEntries;
 
         public DeleteUserCommandHandler(
             IUserService userService,
@@ -22,8 +24,12 @@ namespace Application.Features.Users.Commands.Delete
             IMaintenanceTaskService maintenanceTaskService,
             IVacationService vacationService,
             ISparePartService sparePartService,
-            IDeviceInventoryLogService deviceLog)
+            IDeviceInventoryLogService deviceLog,
+            IMapLayerService mapLayers,
+            IMapEntryService mapEntries)
         {
+            _mapLayers = mapLayers;
+            _mapEntries = mapEntries;
             _sparePartService = sparePartService;
             _deviceLog = deviceLog;
             _userService = userService;
@@ -60,6 +66,9 @@ namespace Application.Features.Users.Commands.Delete
 
             if (await _sparePartService.ExistsForUserAsync(user.Id))
                 throw new InvalidOperationException("لا يمكن حذف موظف له حركات على مخزون قطع الغيار — عطّل حسابه بدلاً من ذلك");
+
+            if (await _mapLayers.ExistsForUserAsync(user.Id) || await _mapEntries.ExistsForUserAsync(user.Id))
+                throw new InvalidOperationException("لا يمكن حذف موظف أنشأ طبقات أو سجلات على خرائط الفروع — عطّل حسابه بدلاً من ذلك");
 
 
             return await _userService.DeleteAsync(user);

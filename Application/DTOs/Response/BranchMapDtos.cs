@@ -26,7 +26,7 @@ namespace Application.DTOs.Response
     {
         /// <summary>معرّف ثابت للطبقة داخل الخريطة (مثل "devices")</summary>
         public string Key { get; set; } = string.Empty;
-        /// <summary>"devices" = تركيبات الأجهزة</summary>
+        /// <summary>"devices" = تركيبات الأجهزة، "entries" = طبقة يعرّفها الفرع (سجلات على المواقع)</summary>
         public string Kind { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         /// <summary>#RRGGBB — فارغ = لون الواجهة الافتراضي</summary>
@@ -46,5 +46,7 @@ namespace Application.DTOs.Response
         public double? Longitude { get; set; }
         public int InstallationsCount { get; set; }
         public int DeviceTypesCount { get; set; }   // عدد أنواع الأجهزة المختلفة في الموقع
+        /// <summary>عدد سجلات الطبقة على الموقع (طبقات الفروع)</summary>
+        public int EntriesCount { get; set; }
     }
 }

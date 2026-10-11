@@ -95,6 +95,18 @@ namespace Application.Common
             new("EditSite",   "تعديل بيانات أي موقع (الاسم والإحداثيات تظهر لكل الفروع)"),
             new("DeleteSite", "حذف موقع (إن لم يكن عليه تركيبات أو بيانات لأي فرع)"),
 
+            // طبقات خرائط الفروع (1.2.0): الطبقة وحقولها ملك الفرع — الحد: طبقات فرعي
+            new("ViewMapLayers",  "عرض طبقات خريطة فرعي وحقولها"),
+            new("CreateMapLayer", "إنشاء طبقة في خريطة فرعي وتعريف حقولها"),
+            new("EditMapLayer",   "تعديل طبقات فرعي وحقولها (إضافة حقل، إخفاؤه أو حذفه)"),
+            new("DeleteMapLayer", "حذف طبقة من خريطة فرعي (إن لم تكن عليها سجلات)"),
+            // سجلات الطبقات: كل سجل يحمل قسم من أدخله — الحد: سجلات قسمي، أو فرعي كله مع ViewBranchMapEntries
+            new("ViewDepartmentMapEntries", "عرض سجلات طبقات فرعي التي أدخلها قسمي"),
+            new("ViewBranchMapEntries",     "عرض سجلات طبقات فرعي كلها (كل الأقسام) وإدارتها ضمن صلاحياتي"),
+            new("CreateMapEntry", "إضافة سجل طبقة على موقع (يُسجَّل باسم قسمي)"),
+            new("EditMapEntry",   "تعديل سجلات الطبقات التي أراها"),
+            new("DeleteMapEntry", "حذف سجلات الطبقات التي أراها"),
+
             // توثيق الأجهزة (كتالوج أجهزة مشترك / تركيبات) — العرض متاح أيضاً لمن يملك الإضافة أو التعديل أو الحذف (AnyOf).
             // التركيب يُسجَّل باسم قسم من أضافه وفرعه (2026-10-11): الحد = تركيبات قسمي، أو فرعي مع ViewBranchDevices
             new("ViewDevices",  "عرض كتالوج الأجهزة وتركيبات قسمي وسجلها (بلا كلمات السر)"),
@@ -183,8 +195,13 @@ namespace Application.Common
             ["AnyWorkTaskView"] = ["ViewMyWorkTasks", "ViewWorkTasks", "ViewBranchDashboard", "ViewDepartmentDashboard", "ViewOfficeDashboard"],
             // توثيق الأجهزة: من يضيف أو يعدّل أو يحذف يرى ما يعمل عليه
             ["AnyDeviceView"] = ["ViewDevices", "ViewBranchDevices", "CreateDevice", "EditDevice", "DeleteDevice"],
-            // قراءة سجل المواقع: لمن يدير المواقع، ولمن يوثّق الأجهزة (يختار الموقع في نموذج التركيب)
-            ["AnySiteView"] = ["ViewSites", "CreateSite", "EditSite", "DeleteSite", "ViewDevices", "ViewBranchDevices", "CreateDevice", "EditDevice", "DeleteDevice"],
+            // قراءة سجل المواقع: لمن يدير المواقع، ولمن يوثّق الأجهزة أو يسجّل معلومات الطبقات (يختار الموقع في النموذج)
+            // قراءة طبقات فرعي وحقولها: لمن يديرها، ولمن يعمل على سجلاتها (يحتاج حقول الطبقة)
+            ["AnyMapLayerRead"] = ["ViewMapLayers", "CreateMapLayer", "EditMapLayer", "DeleteMapLayer",
+                "ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry"],
+            ["AnyMapEntryView"] = ["ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry"],
+            ["AnySiteView"] = ["ViewSites", "CreateSite", "EditSite", "DeleteSite", "ViewDevices", "ViewBranchDevices", "CreateDevice", "EditDevice", "DeleteDevice",
+                "ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry"],
         };
 
         // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة
@@ -198,6 +215,7 @@ namespace Application.Common
         public const string ViewOfficeDashboard = "ViewOfficeDashboard";
         public const string ViewBranchMap = "ViewBranchMap";
         public const string ViewBranchDevices = "ViewBranchDevices";
+        public const string ViewBranchMapEntries = "ViewBranchMapEntries";
         public const string ViewTaskBoard = "ViewTaskBoard";
         public const string AssignTaskToDepartment = "AssignTaskToDepartment";
         public const string AssignTaskToOffice = "AssignTaskToOffice";
