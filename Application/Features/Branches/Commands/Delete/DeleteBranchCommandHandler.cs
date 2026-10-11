@@ -7,11 +7,13 @@ namespace Application.Features.Branches.Commands.Delete
     {
         private readonly IBranchService _branchService;
         private readonly IDeviceSiteService _installations;
+        private readonly IMapLayerService _mapLayers;
 
-        public DeleteBranchCommandHandler(IBranchService branchService, IDeviceSiteService installations)
+        public DeleteBranchCommandHandler(IBranchService branchService, IDeviceSiteService installations, IMapLayerService mapLayers)
         {
             _branchService = branchService;
             _installations = installations;
+            _mapLayers = mapLayers;
         }
 
         public async Task<bool> Handle(DeleteBranchCommand request, CancellationToken cancellationToken)
@@ -30,6 +32,9 @@ namespace Application.Features.Branches.Commands.Delete
 
             if (await _installations.ExistsForBranchAsync(request.Id))
                 throw new InvalidOperationException("لا يمكن حذف فرع له تركيبات أجهزة مسجّلة باسمه — انقلها إلى فرع آخر أو احذفها أولاً");
+
+            if (await _mapLayers.ExistsForBranchAsync(request.Id))
+                throw new InvalidOperationException("لا يمكن حذف فرع له طبقات على خريطته — احذف طبقاته (وسجلاتها) أولاً");
 
             return await _branchService.DeleteAsync(branch);
         }

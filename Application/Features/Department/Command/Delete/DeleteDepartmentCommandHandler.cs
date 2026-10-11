@@ -13,6 +13,7 @@ namespace Application.Features.Department.Command.Delete
         private readonly IMaintenanceTaskService _maintenanceTaskService;
         private readonly ISparePartService _sparePartService;
         private readonly IDeviceSiteService _installations;
+        private readonly IMapEntryService _mapEntries;
 
         public DeleteDepartmentCommandHandler(
             IDepartmentService departmentService,
@@ -21,7 +22,8 @@ namespace Application.Features.Department.Command.Delete
             IMaintenanceRequestService maintenanceRequestService,
             IMaintenanceTaskService maintenanceTaskService,
             ISparePartService sparePartService,
-            IDeviceSiteService installations)
+            IDeviceSiteService installations,
+            IMapEntryService mapEntries)
         {
             _departmentService = departmentService;
             _currentUserService = currentUserService;
@@ -30,6 +32,7 @@ namespace Application.Features.Department.Command.Delete
             _maintenanceTaskService = maintenanceTaskService;
             _sparePartService = sparePartService;
             _installations = installations;
+            _mapEntries = mapEntries;
         }
 
         public async Task<bool> Handle(DeleteDepartmentCommand request, CancellationToken cancellationToken)
@@ -62,6 +65,9 @@ namespace Application.Features.Department.Command.Delete
 
             if (await _installations.ExistsForDepartmentAsync(request.Id))
                 throw new InvalidOperationException("لا يمكن حذف قسم له تركيبات أجهزة مسجّلة باسمه — انقلها إلى قسم آخر أو احذفها أولاً");
+
+            if (await _mapEntries.ExistsForDepartmentAsync(request.Id))
+                throw new InvalidOperationException("لا يمكن حذف قسم له سجلات على خريطة الفرع — انقلها إلى قسم آخر أو احذفها أولاً");
 
             return await _departmentService.DeleteAsync(department);
         }

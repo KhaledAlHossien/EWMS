@@ -31,6 +31,10 @@ namespace Infrastructure.Persistence.Data
         public DbSet<Site> Sites { get; set; }
         public DbSet<Device> Devices { get; set; }
         public DbSet<DeviceSite> DeviceSites { get; set; }
+        // طبقات خرائط الفروع (1.2.0)
+        public DbSet<MapLayer> MapLayers { get; set; }
+        public DbSet<MapLayerField> MapLayerFields { get; set; }
+        public DbSet<MapEntry> MapEntries { get; set; }
         public DbSet<DeviceInventoryLog> DeviceInventoryLogs { get; set; }
         public DbSet<WorkTask> WorkTasks { get; set; }
         public DbSet<UserWorkTask> UserWorkTasks { get; set; }
@@ -156,6 +160,40 @@ namespace Infrastructure.Persistence.Data
                 // الوحدة المالكة: حدّ العرض وخريطة الفرع. Restrict + حراسة حذف القسم/الفرع
                 entity.HasOne(ds => ds.Branch).WithMany().HasForeignKey(ds => ds.BranchId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(ds => ds.Department).WithMany().HasForeignKey(ds => ds.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ==================== طبقات خرائط الفروع (1.2.0) ====================
+            builder.Entity<MapLayer>(entity =>
+            {
+                entity.Property(l => l.Name).HasMaxLength(100).IsRequired();
+                entity.Property(l => l.Description).HasMaxLength(500);
+                entity.Property(l => l.Color).HasMaxLength(7);
+                entity.Property(l => l.RowVersion).IsRowVersion();
+                entity.HasIndex(l => new { l.BranchId, l.Name }).IsUnique();
+                entity.HasOne(l => l.Branch).WithMany().HasForeignKey(l => l.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(l => l.CreatedByUser).WithMany().HasForeignKey(l => l.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasMany(l => l.Fields).WithOne(f => f.Layer).HasForeignKey(f => f.LayerId).OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<MapLayerField>(entity =>
+            {
+                entity.Property(f => f.Label).HasMaxLength(100).IsRequired();
+                entity.Property(f => f.Type).HasConversion<int>();
+                entity.Property(f => f.Options).HasMaxLength(4000);
+            });
+
+            builder.Entity<MapEntry>(entity =>
+            {
+                entity.Property(e => e.Values).IsRequired();
+                entity.Property(e => e.RowVersion).IsRowVersion();
+                // حذف الطبقة أو الموقع أو القسم أو الفرع أو المستخدم مرفوض ما دامت سجلات تشير إليه (حراسة برسالة في الـ handlers)
+                entity.HasOne(e => e.Layer).WithMany().HasForeignKey(e => e.LayerId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Site).WithMany().HasForeignKey(e => e.SiteId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Branch).WithMany().HasForeignKey(e => e.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Department).WithMany().HasForeignKey(e => e.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.CreatedByUser).WithMany().HasForeignKey(e => e.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.UpdatedByUser).WithMany().HasForeignKey(e => e.UpdatedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => new { e.LayerId, e.SiteId });
             });
 
             builder.Entity<DeviceInventoryLog>(entity =>
