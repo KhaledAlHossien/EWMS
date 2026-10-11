@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Application.DTOs.Request;
 using Domain.Entities;
 
@@ -6,19 +7,45 @@ namespace Application.Interfaces
     /// <summary>تركيب مع علامة تكرار الـ IP في موقعه</summary>
     public sealed record InstallationRow(DeviceSite Installation, bool DuplicateIp);
 
+    /// <summary>
+    /// التركيبات التي يراها المستخدم (2026-10-11): كلها (نظرة المؤسسة)، أو تركيبات فرعه (ViewBranchDevices)،
+    /// أو تركيبات قسمه. لا قسم ولا فرع = لا شيء. يحسبه DeviceInventoryRules.ScopeFor.
+    /// </summary>
+    public sealed record InstallationScope(bool All, int? BranchId, int? DepartmentId)
+    {
+        public static readonly InstallationScope Everything = new(true, null, null);
+        public static readonly InstallationScope Nothing = new(false, null, null);
+
+        public bool Includes(DeviceSite i) =>
+            All || (BranchId != null && i.BranchId == BranchId) || (DepartmentId != null && i.DepartmentId == DepartmentId);
+
+        /// <summary>نفس الشرط لاستعلامات EF</summary>
+        public Expression<Func<DeviceSite, bool>> Predicate()
+        {
+            if (All) return ds => true;
+            if (BranchId is int branchId) return ds => ds.BranchId == branchId;
+            if (DepartmentId is int departmentId) return ds => ds.DepartmentId == departmentId;
+            return ds => false;
+        }
+    }
+
     public interface IDeviceSiteService
     {
-        /// <summary>مع الجهاز والموقع</summary>
+        /// <summary>مع الجهاز والموقع والقسم والفرع</summary>
         Task<DeviceSite?> GetByIdAsync(int id);
         Task<InstallationRow?> GetRowAsync(int id);
 
-        /// <summary>بحث مقسّم صفحات (الأحدث تحديثاً لا يهم: مرتّب بالموقع ثم الجهاز ثم الـ IP)</summary>
-        Task<(List<InstallationRow> Items, int TotalCount)> SearchAsync(InstallationFilterDto filter, int page, int pageSize);
+        /// <summary>بحث مقسّم صفحات ضمن حدّ المستخدم (مرتّب بالموقع ثم الجهاز ثم الـ IP)</summary>
+        Task<(List<InstallationRow> Items, int TotalCount)> SearchAsync(InstallationFilterDto filter, InstallationScope scope, int page, int pageSize);
         /// <summary>كل نتائج البحث بلا تقسيم (للتصدير) — حد أقصى للحماية</summary>
-        Task<List<InstallationRow>> ExportAsync(InstallationFilterDto filter, int max);
+        Task<List<InstallationRow>> ExportAsync(InstallationFilterDto filter, InstallationScope scope, int max);
 
-        /// <summary>تركيبات أخرى بنفس الـ IP في الموقع</summary>
-        Task<List<DeviceSite>> IpInUseAsync(int siteId, string ip, int? excludeId);
+        /// <summary>تركيبات أخرى بنفس الـ IP في الموقع (ضمن حدّ المستخدم)</summary>
+        Task<List<DeviceSite>> IpInUseAsync(int siteId, string ip, int? excludeId, InstallationScope scope);
+
+        /// <summary>حراسة حذف الفرع والقسم (المفتاحان Restrict)</summary>
+        Task<bool> ExistsForBranchAsync(int branchId);
+        Task<bool> ExistsForDepartmentAsync(int departmentId);
 
         Task<DeviceSite> AddAsync(DeviceSite deviceSite);
         Task UpdateAsync(DeviceSite deviceSite, byte[]? rowVersion);

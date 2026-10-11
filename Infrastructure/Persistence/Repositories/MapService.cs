@@ -3,19 +3,20 @@ using Application.DTOs.Response;
 using Application.Interfaces;
 using Infrastructure.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 
 namespace Infrastructure.Persistence.Repositories
 {
+    /// <summary>
+    /// خرائط الفروع من بياناتها (2026-10-11): كل فرع خريطته تلقائياً — لا إعداد يحدد فرعاً مالكاً.
+    /// طبقة الأجهزة = المواقع التي فيها تركيبات مسجّلة باسم الفرع (DeviceSite.BranchId).
+    /// </summary>
     public class MapService : IMapService
     {
         private readonly DataContext _context;
-        private readonly int _devicesOwnerDepartmentId;
 
-        public MapService(DataContext context, IConfiguration configuration)
+        public MapService(DataContext context)
         {
             _context = context;
-            _devicesOwnerDepartmentId = configuration.GetValue<int>("DeviceInventory:OwnerDepartmentId");
         }
 
         public async Task<BranchMapDto?> GetBranchMapAsync(int branchId)
@@ -25,35 +26,37 @@ namespace Infrastructure.Persistence.Repositories
 
             var map = new BranchMapDto { BranchId = branch.Id, BranchName = branch.Name };
 
-            if (await DevicesBranchIdAsync() == branch.Id)
-                map.DevicesLayer = await BuildDevicesLayerAsync();
+            var devices = await BuildDevicesLayerAsync(branch.Id);
+            if (devices.Sites.Count > 0) map.Layers.Add(devices);
 
             return map;
         }
 
         public async Task<List<MapBranchOptionDto>> GetBranchOptionsAsync()
         {
-            var devicesBranchId = await DevicesBranchIdAsync();
+            var withData = await _context.DeviceSites.AsNoTracking()
+                .Where(ds => ds.BranchId != null)
+                .Select(ds => ds.BranchId!.Value)
+                .Distinct()
+                .ToListAsync();
+
             return await _context.Branches.AsNoTracking()
                 .OrderBy(b => b.Name)
-                .Select(b => new MapBranchOptionDto { Id = b.Id, Name = b.Name, HasMapData = b.Id == devicesBranchId })
+                .Select(b => new MapBranchOptionDto { Id = b.Id, Name = b.Name, HasMapData = withData.Contains(b.Id) })
                 .ToListAsync();
         }
 
-        /// <summary>طبقة توثيق الأجهزة تخص فرع القسم المالك لها (قسم العمليات → الفرع التقني)</summary>
-        private Task<int?> DevicesBranchIdAsync() => _context.Departments
-            .Where(d => d.Id == _devicesOwnerDepartmentId)
-            .Select(d => (int?)d.BranchId)
-            .FirstOrDefaultAsync();
-
-        private async Task<DevicesMapLayerDto> BuildDevicesLayerAsync()
+        private async Task<MapLayerDto> BuildDevicesLayerAsync(int branchId)
         {
             var installationsPerSite = await _context.DeviceSites.AsNoTracking()
+                .Where(ds => ds.BranchId == branchId)
                 .GroupBy(ds => ds.SiteId)
                 .Select(g => new { SiteId = g.Key, Count = g.Count(), Types = g.Select(x => x.DeviceId).Distinct().Count() })
                 .ToDictionaryAsync(x => x.SiteId);
 
+            var siteIds = installationsPerSite.Keys.ToList();
             var sites = await _context.Sites.AsNoTracking()
+                .Where(s => siteIds.Contains(s.Id))
                 .OrderBy(s => s.Name)
                 .Select(s => new MapSiteDto
                 {
@@ -68,16 +71,16 @@ namespace Infrastructure.Persistence.Repositories
             foreach (var site in sites)
             {
                 site.GovernorateName = Governorates.NameOf(site.GovernorateCode);
-
-                if (installationsPerSite.TryGetValue(site.Id, out var stats))
-                {
-                    site.InstallationsCount = stats.Count;
-                    site.DeviceTypesCount = stats.Types;
-                }
+                var stats = installationsPerSite[site.Id];
+                site.InstallationsCount = stats.Count;
+                site.DeviceTypesCount = stats.Types;
             }
 
-            return new DevicesMapLayerDto
+            return new MapLayerDto
             {
+                Key = "devices",
+                Kind = "devices",
+                Title = "تركيبات الأجهزة",
                 Sites = sites,
                 SitesWithoutCoordinates = sites.Count(s => s.Latitude == null || s.Longitude == null)
             };

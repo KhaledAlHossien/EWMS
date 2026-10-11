@@ -1,16 +1,17 @@
 namespace Application.DTOs.Response
 {
     /// <summary>
-    /// خريطة فرع: طبقات بيانات حسب وظيفة الفرع. حالياً طبقة واحدة (مواقع توثيق الأجهزة ومحافظاتها)
-    /// تخص فرع قسم العمليات؛ لاحقاً يُضاف لكل فرع طبقته دون تغيير شكل الاستجابة الأساسي.
+    /// خريطة فرع (2026-10-11): طبقات تُبنى من بيانات الفرع نفسه، بلا أي إعداد يربط فرعاً بخريطة.
+    /// الطبقة الأولى «تركيبات الأجهزة» = المواقع التي فيها تركيبات مسجّلة باسم الفرع. الإصدار 1.2.0 يضيف
+    /// طبقات يعرّفها كل فرع بحقوله (Kind = "entries") دون تغيير هذا الشكل.
     /// </summary>
     public class BranchMapDto
     {
         public int BranchId { get; set; }
         public string BranchName { get; set; } = string.Empty;
 
-        /// <summary>null = لا توجد بيانات خريطة لهذا الفرع بعد</summary>
-        public DevicesMapLayerDto? DevicesLayer { get; set; }
+        /// <summary>فارغة = لا توجد بيانات خريطة لهذا الفرع بعد</summary>
+        public List<MapLayerDto> Layers { get; set; } = [];
     }
 
     /// <summary>قائمة اختيار الفرع في الخريطة</summary>
@@ -21,13 +22,18 @@ namespace Application.DTOs.Response
         public bool HasMapData { get; set; }
     }
 
-    public class DevicesMapLayerDto
+    public class MapLayerDto
     {
-        public string Title { get; set; } = "المواقع";
+        /// <summary>معرّف ثابت للطبقة داخل الخريطة (مثل "devices")</summary>
+        public string Key { get; set; } = string.Empty;
+        /// <summary>"devices" = تركيبات الأجهزة</summary>
+        public string Kind { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        /// <summary>#RRGGBB — فارغ = لون الواجهة الافتراضي</summary>
+        public string Color { get; set; } = string.Empty;
         public List<MapSiteDto> Sites { get; set; } = [];
         public int SitesWithoutCoordinates { get; set; }
     }
-
 
     public class MapSiteDto
     {

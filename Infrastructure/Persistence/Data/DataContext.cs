@@ -153,6 +153,9 @@ namespace Infrastructure.Persistence.Data
                 entity.HasIndex(ds => ds.Ip);
                 entity.HasIndex(ds => ds.SN);
                 entity.HasIndex(ds => ds.Status);
+                // الوحدة المالكة: حدّ العرض وخريطة الفرع. Restrict + حراسة حذف القسم/الفرع
+                entity.HasOne(ds => ds.Branch).WithMany().HasForeignKey(ds => ds.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(ds => ds.Department).WithMany().HasForeignKey(ds => ds.DepartmentId).OnDelete(DeleteBehavior.Restrict);
             });
 
             builder.Entity<DeviceInventoryLog>(entity =>

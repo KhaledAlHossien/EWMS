@@ -45,6 +45,11 @@ namespace Application.DTOs.Request
         public DateTime? InstallDate { get; set; }
         /// <summary>1 يعمل، 2 معطّل، 3 أُزيل</summary>
         public int Status { get; set; } = 1;
+        /// <summary>
+        /// القسم المالك — اختياري: فارغ = قسم من يضيف وفرعه. يُقبل لمن يملك نظرة المؤسسة (أي قسم)
+        /// أو ViewBranchDevices (أقسام فرعه)، ويُتجاهل لغيرهما.
+        /// </summary>
+        public int? DepartmentId { get; set; }
         public byte[]? RowVersion { get; set; }
     }
 

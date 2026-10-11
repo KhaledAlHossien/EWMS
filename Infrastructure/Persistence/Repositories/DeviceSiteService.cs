@@ -16,14 +16,16 @@ namespace Infrastructure.Persistence.Repositories
         }
 
         public async Task<DeviceSite?> GetByIdAsync(int id) =>
-            await _context.DeviceSites.Include(ds => ds.Device).Include(ds => ds.Site).FirstOrDefaultAsync(ds => ds.Id == id);
+            await _context.DeviceSites.Include(ds => ds.Device).Include(ds => ds.Site)
+                .Include(ds => ds.Branch).Include(ds => ds.Department)
+                .FirstOrDefaultAsync(ds => ds.Id == id);
 
         public async Task<InstallationRow?> GetRowAsync(int id) =>
             (await RowsAsync(_context.DeviceSites.Where(ds => ds.Id == id))).FirstOrDefault();
 
-        private IQueryable<DeviceSite> Filtered(InstallationFilterDto f)
+        private IQueryable<DeviceSite> Filtered(InstallationFilterDto f, InstallationScope scope)
         {
-            var q = _context.DeviceSites.AsQueryable();
+            var q = _context.DeviceSites.Where(scope.Predicate());
             if (f.SiteId is int siteId) q = q.Where(ds => ds.SiteId == siteId);
             if (f.DeviceId is int deviceId) q = q.Where(ds => ds.DeviceId == deviceId);
             if (f.Status is int status) q = q.Where(ds => ds.Status == (InstallationStatus)status);
@@ -46,7 +48,7 @@ namespace Infrastructure.Persistence.Repositories
         private async Task<List<InstallationRow>> RowsAsync(IQueryable<DeviceSite> query, int skip = 0, int take = int.MaxValue)
         {
             var rows = await query.AsNoTracking()
-                .Include(ds => ds.Device).Include(ds => ds.Site)
+                .Include(ds => ds.Device).Include(ds => ds.Site).Include(ds => ds.Branch).Include(ds => ds.Department)
                 .OrderBy(ds => ds.Site.Name).ThenBy(ds => ds.Device.Name).ThenBy(ds => ds.Ip).ThenBy(ds => ds.Id)
                 .Skip(skip).Take(take)
                 .Select(ds => new { Installation = ds, Duplicate = _context.DeviceSites.Any(o => o.SiteId == ds.SiteId && o.Ip == ds.Ip && o.Id != ds.Id) })
@@ -54,19 +56,24 @@ namespace Infrastructure.Persistence.Repositories
             return rows.Select(r => new InstallationRow(r.Installation, r.Duplicate)).ToList();
         }
 
-        public async Task<(List<InstallationRow> Items, int TotalCount)> SearchAsync(InstallationFilterDto filter, int page, int pageSize)
+        public async Task<(List<InstallationRow> Items, int TotalCount)> SearchAsync(InstallationFilterDto filter, InstallationScope scope, int page, int pageSize)
         {
-            var query = Filtered(filter);
+            var query = Filtered(filter, scope);
             var total = await query.CountAsync();
             return (await RowsAsync(query, (page - 1) * pageSize, pageSize), total);
         }
 
-        public Task<List<InstallationRow>> ExportAsync(InstallationFilterDto filter, int max) => RowsAsync(Filtered(filter), 0, max);
+        public Task<List<InstallationRow>> ExportAsync(InstallationFilterDto filter, InstallationScope scope, int max) => RowsAsync(Filtered(filter, scope), 0, max);
 
-        public async Task<List<DeviceSite>> IpInUseAsync(int siteId, string ip, int? excludeId) =>
+        public async Task<List<DeviceSite>> IpInUseAsync(int siteId, string ip, int? excludeId, InstallationScope scope) =>
             await _context.DeviceSites.AsNoTracking().Include(ds => ds.Device)
+                .Where(scope.Predicate())
                 .Where(ds => ds.SiteId == siteId && ds.Ip == ip && ds.Id != excludeId)
                 .ToListAsync();
+
+        public Task<bool> ExistsForBranchAsync(int branchId) => _context.DeviceSites.AnyAsync(ds => ds.BranchId == branchId);
+
+        public Task<bool> ExistsForDepartmentAsync(int departmentId) => _context.DeviceSites.AnyAsync(ds => ds.DepartmentId == departmentId);
 
         public async Task<DeviceSite> AddAsync(DeviceSite deviceSite)
         {

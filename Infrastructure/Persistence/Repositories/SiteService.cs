@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.Interfaces;
 using Domain.Entities;
 using Infrastructure.Persistence.Data;
@@ -14,19 +15,41 @@ namespace Infrastructure.Persistence.Repositories
             _context = context;
         }
 
-        private IQueryable<SiteWithCounts> WithCounts(IQueryable<Site> sites) => sites.AsNoTracking().Select(s => new SiteWithCounts(
-            s,
-            _context.DeviceSites.Count(ds => ds.SiteId == s.Id),
-            _context.DeviceSites.Count(ds => ds.SiteId == s.Id && ds.Status == InstallationStatus.Active)));
+        /// <summary>العدّادات من تركيبات حدّ المستخدم فقط</summary>
+        private IQueryable<SiteWithCounts> WithCounts(IQueryable<Site> sites, InstallationScope scope)
+        {
+            var visible = _context.DeviceSites.Where(scope.Predicate());
+            return sites.AsNoTracking().Select(s => new SiteWithCounts(
+                s,
+                visible.Count(ds => ds.SiteId == s.Id),
+                visible.Count(ds => ds.SiteId == s.Id && ds.Status == InstallationStatus.Active)));
+        }
 
         public async Task<Site?> GetByIdAsync(int id) =>
             await _context.Sites.FirstOrDefaultAsync(s => s.Id == id);
 
-        public async Task<SiteWithCounts?> GetWithCountsAsync(int id) =>
-            await WithCounts(_context.Sites.Where(s => s.Id == id)).FirstOrDefaultAsync();
+        public async Task<SiteWithCounts?> GetWithCountsAsync(int id, InstallationScope scope) =>
+            await WithCounts(_context.Sites.Where(s => s.Id == id), scope).FirstOrDefaultAsync();
 
-        public async Task<List<SiteWithCounts>> GetAllWithCountsAsync() =>
-            await WithCounts(_context.Sites.OrderBy(s => s.Name)).ToListAsync();
+        public async Task<List<SiteWithCounts>> GetAllWithCountsAsync(InstallationScope scope) =>
+            await WithCounts(_context.Sites.OrderBy(s => s.Name), scope).ToListAsync();
+
+        public async Task<List<NearbySite>> GetNearbyAsync(double latitude, double longitude, double radiusMeters, int? excludeId)
+        {
+            // تصفية أولية بمربع حول النقطة (درجة العرض ≈ 111 كم) ثم المسافة الدقيقة في الذاكرة
+            var delta = radiusMeters / 111_000 * 1.5;
+            var candidates = await _context.Sites.AsNoTracking()
+                .Where(s => s.Id != excludeId && s.Latitude != null && s.Longitude != null
+                    && s.Latitude >= latitude - delta && s.Latitude <= latitude + delta
+                    && s.Longitude >= longitude - delta * 1.3 && s.Longitude <= longitude + delta * 1.3)
+                .Select(s => new { s.Id, s.Name, Lat = s.Latitude!.Value, Lng = s.Longitude!.Value })
+                .ToListAsync();
+            return candidates
+                .Select(s => new NearbySite(s.Id, s.Name, Math.Round(GeoRules.DistanceMeters(latitude, longitude, s.Lat, s.Lng))))
+                .Where(s => s.DistanceMeters <= radiusMeters)
+                .OrderBy(s => s.DistanceMeters)
+                .ToList();
+        }
 
         public async Task<Dictionary<string, Site>> GetByNamesAsync(IEnumerable<string> names)
         {

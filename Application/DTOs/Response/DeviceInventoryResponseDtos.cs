@@ -62,7 +62,20 @@ namespace Application.DTOs.Response
         public string StatusAr { get; set; } = string.Empty;
         /// <summary>تركيب آخر بنفس الـ IP في نفس الموقع (تنبيه فقط — قرار المستخدم 2026-09-29)</summary>
         public bool DuplicateIp { get; set; }
+        /// <summary>الوحدة المالكة (قسم من أضاف التركيب وفرعه) — null للقديم غير المصنّف</summary>
+        public int? BranchId { get; set; }
+        public string BranchName { get; set; } = string.Empty;
+        public int? DepartmentId { get; set; }
+        public string DepartmentName { get; set; } = string.Empty;
         public byte[] RowVersion { get; set; } = [];
+    }
+
+    /// <summary>موقع قريب من النقطة المختارة (تنبيه قبل إضافة موقع مكرر)</summary>
+    public class NearbySiteDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public double DistanceMeters { get; set; }
     }
 
     /// <summary>تركيب آخر يستخدم نفس الـ IP في الموقع (تنبيه النموذج أثناء الكتابة)</summary>
