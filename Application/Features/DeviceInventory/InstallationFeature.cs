@@ -22,7 +22,8 @@ namespace Application.Features.DeviceInventory
     public record GetDeviceInventoryHistoryQuery(DeviceInventoryEntity Type, int Id, int Page, int PageSize) : IRequest<PagedResultDto<DeviceInventoryLogDto>>;
     public record ExportInstallationsQuery(InstallationFilterDto Filter) : IRequest<byte[]>;
     public record GetImportTemplateQuery : IRequest<byte[]>;
-    public record ImportInstallationsCommand(Stream File, bool DryRun) : IRequest<InstallationImportReportDto>;
+    /// <summary>DepartmentId اختياري: القسم الذي تُسجَّل باسمه الأسطر (لمن يملك نظرة المؤسسة أو ViewBranchDevices)</summary>
+    public record ImportInstallationsCommand(Stream File, bool DryRun, int? DepartmentId = null) : IRequest<InstallationImportReportDto>;
 
     public class CreateInstallationCommandValidator : AbstractValidator<CreateInstallationCommand>
     {
@@ -55,10 +56,14 @@ namespace Application.Features.DeviceInventory
         private readonly IDeviceInventoryLogService _log;
         private readonly IDeviceSpreadsheet _spreadsheet;
         private readonly ICurrentUserService _currentUser;
+        private readonly IUserService _users;
+        private readonly IUserPermissionService _permissions;
+        private readonly IDepartmentService _departments;
 
         public InstallationHandler(
             IDeviceSiteService installations, IDeviceService devices, ISiteService sites, IDevicePasswordProtector protector,
-            IDeviceInventoryLogService log, IDeviceSpreadsheet spreadsheet, ICurrentUserService currentUser)
+            IDeviceInventoryLogService log, IDeviceSpreadsheet spreadsheet, ICurrentUserService currentUser,
+            IUserService users, IUserPermissionService permissions, IDepartmentService departments)
         {
             _installations = installations;
             _devices = devices;
@@ -67,7 +72,12 @@ namespace Application.Features.DeviceInventory
             _log = log;
             _spreadsheet = spreadsheet;
             _currentUser = currentUser;
+            _users = users;
+            _permissions = permissions;
+            _departments = departments;
         }
+
+        private Task<Viewer> CurrentAsync() => Viewer.CurrentAsync(_users, _permissions);
 
         private async Task<DeviceSiteResponseDto> DtoAsync(int id) =>
             ToDto(await _installations.GetRowAsync(id) ?? throw new KeyNotFoundException("التركيب غير موجود"));
@@ -75,27 +85,62 @@ namespace Application.Features.DeviceInventory
         private async Task<DeviceSite> LoadAsync(int id) =>
             await _installations.GetByIdAsync(id) ?? throw new KeyNotFoundException("التركيب غير موجود");
 
+        /// <summary>التركيب ضمن حدّ المستخدم (قسمه/فرعه/المؤسسة) وإلا 403</summary>
+        private async Task<DeviceSite> LoadInScopeAsync(int id, Viewer viewer)
+        {
+            var installation = await LoadAsync(id);
+            EnsureInScope(viewer, installation);
+            return installation;
+        }
+
+        /// <summary>
+        /// الوحدة المالكة لتركيب جديد أو منقول: القسم المطلوب إن كان مسموحاً (نظرة المؤسسة: أي قسم،
+        /// ViewBranchDevices: أقسام فرعه)، وإلا قسم المستخدم وفرعه.
+        /// </summary>
+        private async Task<(int BranchId, int? DepartmentId)> UnitAsync(Viewer viewer, int? requestedDepartmentId)
+        {
+            if (requestedDepartmentId is int departmentId && departmentId != viewer.User.DepartmentId)
+            {
+                var department = await _departments.GetByIdAsync(departmentId) ?? throw new KeyNotFoundException("القسم غير موجود");
+                var allowed = viewer.IsOrganizationWide
+                    || (viewer.Has(AppPermissions.ViewBranchDevices) && OrganizationRole.InBranch(viewer.User, department.BranchId));
+                if (!allowed) throw new UnauthorizedAccessException("لا يمكنك تسجيل تركيب باسم قسم آخر");
+                return (department.BranchId, department.Id);
+            }
+            if (viewer.User.BranchId is int branchId) return (branchId, viewer.User.DepartmentId);
+            throw new InvalidOperationException(viewer.IsOrganizationWide
+                ? "حسابك لا يتبع فرعاً — اختر القسم الذي يتبع له التركيب"
+                : "حسابك غير مرتبط بفرع أو قسم، فلا يمكن تسجيل تركيب باسمه");
+        }
+
         // ───────── القراءة ─────────
 
         public async Task<PagedResultDto<DeviceSiteResponseDto>> Handle(SearchInstallationsQuery request, CancellationToken ct)
         {
             var (page, pageSize) = Paging(request.Filter.Page, request.Filter.PageSize);
-            var (items, total) = await _installations.SearchAsync(request.Filter, page, pageSize);
+            var (items, total) = await _installations.SearchAsync(request.Filter, ScopeFor(await CurrentAsync()), page, pageSize);
             return new PagedResultDto<DeviceSiteResponseDto> { Items = items.Select(ToDto).ToList(), TotalCount = total, Page = page, PageSize = pageSize };
         }
 
-        public Task<DeviceSiteResponseDto> Handle(GetInstallationByIdQuery request, CancellationToken ct) => DtoAsync(request.Id);
+        public async Task<DeviceSiteResponseDto> Handle(GetInstallationByIdQuery request, CancellationToken ct)
+        {
+            await LoadInScopeAsync(request.Id, await CurrentAsync());
+            return await DtoAsync(request.Id);
+        }
 
         public async Task<List<IpInUseDto>> Handle(GetIpInUseQuery request, CancellationToken ct)
         {
             if (request.SiteId <= 0 || !NetworkRules.IsIpv4(request.Ip)) return [];
-            return (await _installations.IpInUseAsync(request.SiteId, request.Ip.Trim(), request.ExcludeId))
+            return (await _installations.IpInUseAsync(request.SiteId, request.Ip.Trim(), request.ExcludeId, ScopeFor(await CurrentAsync())))
                 .Select(i => new IpInUseDto { Id = i.Id, DeviceName = i.Device?.Name ?? string.Empty, InstallLocation = i.InstallLocation })
                 .ToList();
         }
 
         public async Task<PagedResultDto<DeviceInventoryLogDto>> Handle(GetDeviceInventoryHistoryQuery request, CancellationToken ct)
         {
+            // سجل التركيب لمن يراه فقط؛ سجل الموقع والجهاز (مشتركان) لكل من يدخل الواجهة
+            if (request.Type == DeviceInventoryEntity.Installation)
+                await LoadInScopeAsync(request.Id, await CurrentAsync());
             var (page, pageSize) = Paging(request.Page, request.PageSize);
             var (items, total) = await _log.GetAsync(request.Type, request.Id, page, pageSize);
             return new PagedResultDto<DeviceInventoryLogDto> { Items = items.Select(ToDto).ToList(), TotalCount = total, Page = page, PageSize = pageSize };
@@ -130,9 +175,10 @@ namespace Application.Features.DeviceInventory
         public async Task<DeviceSiteResponseDto> Handle(CreateInstallationCommand request, CancellationToken ct)
         {
             var (device, site) = await ReferencesAsync(request.Dto.DeviceId, request.Dto.SiteId);
+            var (branchId, departmentId) = await UnitAsync(await CurrentAsync(), request.Dto.DepartmentId);
 
             // الجهاز نوع/موديل قابل للتكرار: يمكن تركيب نفس الجهاز أكثر من مرة في نفس الموقع — قرار المستخدم 2026-09-29
-            var installation = new DeviceSite { DeviceId = device.Id, SiteId = site.Id };
+            var installation = new DeviceSite { DeviceId = device.Id, SiteId = site.Id, BranchId = branchId, DepartmentId = departmentId };
             Apply(request.Dto, installation);
             installation.Pass = _protector.Protect(request.Dto.Pass);
             await _installations.AddAsync(installation);
@@ -144,10 +190,19 @@ namespace Application.Features.DeviceInventory
 
         public async Task<DeviceSiteResponseDto> Handle(UpdateInstallationCommand request, CancellationToken ct)
         {
-            var installation = await LoadAsync(request.Id);
+            var viewer = await CurrentAsync();
+            var installation = await LoadInScopeAsync(request.Id, viewer);
             var (device, site) = await ReferencesAsync(request.Dto.DeviceId, request.Dto.SiteId);
 
             var (oldDevice, oldSite) = (installation.Device?.Name, installation.Site?.Name);
+            var oldUnit = UnitName(installation.Branch?.Name, installation.Department?.Name);
+            // نقل التركيب إلى قسم آخر: لمن يملك نظرة المؤسسة أو فرعه (ViewBranchDevices) فقط
+            if (request.Dto.DepartmentId is int requested && requested != installation.DepartmentId)
+            {
+                var (branchId, departmentId) = await UnitAsync(viewer, requested);
+                installation.BranchId = branchId;
+                installation.DepartmentId = departmentId;
+            }
             var before = new DeviceSite
             {
                 DeviceId = installation.DeviceId, SiteId = installation.SiteId, Ip = installation.Ip, SubnetMask = installation.SubnetMask,
@@ -160,8 +215,10 @@ namespace Application.Features.DeviceInventory
             var passwordChanged = !string.IsNullOrEmpty(request.Dto.Pass) && request.Dto.Pass != _protector.Unprotect(installation.Pass);
             if (passwordChanged) installation.Pass = _protector.Protect(request.Dto.Pass);
             await _installations.UpdateAsync(installation, request.Dto.RowVersion);
+            var saved = await LoadAsync(installation.Id);
 
             var diff = new Diff()
+                .Add("القسم", oldUnit, UnitName(saved.Branch?.Name, saved.Department?.Name))
                 .Add("الجهاز", oldDevice, device.Name)
                 .Add("الموقع", oldSite, site.Name)
                 .Add("IP", before.Ip, installation.Ip)
@@ -187,7 +244,7 @@ namespace Application.Features.DeviceInventory
 
         public async Task<Unit> Handle(DeleteInstallationCommand request, CancellationToken ct)
         {
-            var installation = await LoadAsync(request.Id);
+            var installation = await LoadInScopeAsync(request.Id, await CurrentAsync());
             var title = Title(installation, installation.Device?.Name ?? "", installation.Site?.Name ?? "");
             await _installations.DeleteAsync(installation);
             await _log.AddAsync(Log(DeviceInventoryEntity.Installation, request.Id, DeviceInventoryAction.Deleted, _currentUser.UserId, title,
@@ -197,7 +254,7 @@ namespace Application.Features.DeviceInventory
 
         public async Task<DevicePasswordDto> Handle(RevealDevicePasswordQuery request, CancellationToken ct)
         {
-            var installation = await LoadAsync(request.Id);
+            var installation = await LoadInScopeAsync(request.Id, await CurrentAsync());
             if (string.IsNullOrEmpty(installation.Pass))
                 throw new InvalidOperationException("لا توجد كلمة سر محفوظة لهذا التركيب");
 
@@ -210,7 +267,7 @@ namespace Application.Features.DeviceInventory
 
         public async Task<DeviceSiteResponseDto> Handle(VerifyInstallationCommand request, CancellationToken ct)
         {
-            var installation = await LoadAsync(request.Id);
+            var installation = await LoadInScopeAsync(request.Id, await CurrentAsync());
             installation.LastVerifiedAt = DateTime.Today;
             await _installations.UpdateAsync(installation, null);
             await _log.AddAsync(Log(DeviceInventoryEntity.Installation, installation.Id, DeviceInventoryAction.Verified, _currentUser.UserId,
@@ -218,10 +275,13 @@ namespace Application.Features.DeviceInventory
             return await DtoAsync(installation.Id);
         }
 
+        private static string UnitName(string? branch, string? department) =>
+            string.IsNullOrEmpty(branch) ? "—" : string.IsNullOrEmpty(department) ? branch : $"{branch} / {department}";
+
         // ───────── Excel ─────────
 
         public async Task<byte[]> Handle(ExportInstallationsQuery request, CancellationToken ct) =>
-            _spreadsheet.ExportInstallations(await _installations.ExportAsync(request.Filter, MaxExportRows));
+            _spreadsheet.ExportInstallations(await _installations.ExportAsync(request.Filter, ScopeFor(await CurrentAsync()), MaxExportRows));
 
         public Task<byte[]> Handle(GetImportTemplateQuery request, CancellationToken ct) => Task.FromResult(_spreadsheet.ImportTemplate());
 
@@ -236,6 +296,9 @@ namespace Application.Features.DeviceInventory
             var rows = _spreadsheet.ReadInstallations(request.File, MaxImportRows);
             var report = new InstallationImportReportDto { DryRun = request.DryRun, Total = rows.Count };
             if (rows.Count == 0) throw new InvalidOperationException("الملف لا يحتوي أسطراً — استخدم قالب الاستيراد");
+            var viewer = await CurrentAsync();
+            var (unitBranchId, unitDepartmentId) = await UnitAsync(viewer, request.DepartmentId);
+            var scope = ScopeFor(viewer);
 
             var sites = await _sites.GetByNamesAsync(rows.Select(r => Clean(r.Site)));
             var knownDevices = new Dictionary<(string, string), Device>();
@@ -303,7 +366,7 @@ namespace Application.Features.DeviceInventory
                     continue;
                 }
 
-                var installation = new DeviceSite { DeviceId = device!.Id, SiteId = site!.Id };
+                var installation = new DeviceSite { DeviceId = device!.Id, SiteId = site!.Id, BranchId = unitBranchId, DepartmentId = unitDepartmentId };
                 Apply(dto, installation);
                 installation.DeviceId = device.Id;
                 installation.SiteId = site.Id;
@@ -314,7 +377,7 @@ namespace Application.Features.DeviceInventory
                 // تكرار الـ IP: تنبيه فقط (قرار المستخدم 2026-09-29)
                 var warnings = new List<string>();
                 if (!seenIps.Add((site.Id, installation.Ip))) warnings.Add("الـ IP مكرر في الملف لنفس الموقع");
-                else if ((await _installations.IpInUseAsync(site.Id, installation.Ip, null)).Count > 0) warnings.Add("الـ IP مستخدم في هذا الموقع مسبقاً");
+                else if ((await _installations.IpInUseAsync(site.Id, installation.Ip, null, scope)).Count > 0) warnings.Add("الـ IP مستخدم في هذا الموقع مسبقاً");
                 if (newDevices.ContainsKey(key)) warnings.Add("جهاز جديد يُضاف إلى الكتالوج");
 
                 line.Ok = true;

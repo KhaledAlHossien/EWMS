@@ -92,11 +92,14 @@ namespace API.Controllers
         public async Task<IActionResult> ImportTemplate()
             => File(await _mediator.Send(new GetImportTemplateQuery()), Xlsx, "device-installations-template.xlsx");
 
-        /// <summary>استيراد ملف Excel: dryRun=true معاينة بلا حفظ، false يحفظ الأسطر الصالحة فقط</summary>
+        /// <summary>
+        /// استيراد ملف Excel: dryRun=true معاينة بلا حفظ، false يحفظ الأسطر الصالحة فقط.
+        /// departmentId اختياري: القسم الذي تُسجَّل باسمه الأسطر (نظرة المؤسسة / ViewBranchDevices)، وإلا قسم المستورد.
+        /// </summary>
         [HttpPost("Import")]
         [Authorize(Policy = "CreateDevice")]
         [RequestSizeLimit(6 * 1024 * 1024)]
-        public async Task<ActionResult<InstallationImportReportDto>> Import(IFormFile? file, [FromQuery] bool dryRun = true)
+        public async Task<ActionResult<InstallationImportReportDto>> Import(IFormFile? file, [FromQuery] bool dryRun = true, [FromQuery] int? departmentId = null)
         {
             if (file == null || file.Length == 0)
                 return BadRequest(new { message = "اختر ملف Excel" });
@@ -106,7 +109,7 @@ namespace API.Controllers
             await using var stream = new MemoryStream();
             await file.CopyToAsync(stream);
             stream.Position = 0;
-            return Ok(await _mediator.Send(new ImportInstallationsCommand(stream, dryRun)));
+            return Ok(await _mediator.Send(new ImportInstallationsCommand(stream, dryRun, departmentId)));
         }
     }
 }

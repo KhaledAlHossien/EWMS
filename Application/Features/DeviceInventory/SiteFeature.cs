@@ -14,6 +14,8 @@ namespace Application.Features.DeviceInventory
     public record CreateSiteCommand(SiteRequestDto Dto) : IRequest<SiteResponseDto>;
     public record UpdateSiteCommand(int Id, SiteRequestDto Dto) : IRequest<SiteResponseDto>;
     public record DeleteSiteCommand(int Id) : IRequest<Unit>;
+    /// <summary>مواقع قريبة من نقطة (تنبيه قبل إضافة موقع مكرر في السجل المشترك)</summary>
+    public record GetNearbySitesQuery(double Latitude, double Longitude, int? ExcludeId) : IRequest<List<NearbySiteDto>>;
 
     public class CreateSiteCommandValidator : AbstractValidator<CreateSiteCommand>
     {
@@ -30,24 +32,41 @@ namespace Application.Features.DeviceInventory
         IRequestHandler<GetSiteByIdQuery, SiteResponseDto>,
         IRequestHandler<CreateSiteCommand, SiteResponseDto>,
         IRequestHandler<UpdateSiteCommand, SiteResponseDto>,
-        IRequestHandler<DeleteSiteCommand, Unit>
+        IRequestHandler<DeleteSiteCommand, Unit>,
+        IRequestHandler<GetNearbySitesQuery, List<NearbySiteDto>>
     {
+        /// <summary>ما دون هذه المسافة يُعدّ «موقعاً قريباً» يُنبَّه إليه قبل الإضافة</summary>
+        public const double NearbyRadiusMeters = 200;
+
         private readonly ISiteService _sites;
         private readonly IDeviceInventoryLogService _log;
         private readonly ICurrentUserService _currentUser;
+        private readonly IUserService _users;
+        private readonly IUserPermissionService _permissions;
 
-        public SiteHandler(ISiteService sites, IDeviceInventoryLogService log, ICurrentUserService currentUser)
+        public SiteHandler(ISiteService sites, IDeviceInventoryLogService log, ICurrentUserService currentUser,
+            IUserService users, IUserPermissionService permissions)
         {
             _sites = sites;
             _log = log;
             _currentUser = currentUser;
+            _users = users;
+            _permissions = permissions;
         }
 
+        /// <summary>عدّادات التركيبات ضمن حدّ المستخدم فقط (السجل نفسه مشترك)</summary>
+        private async Task<InstallationScope> ScopeAsync() => ScopeFor(await Viewer.CurrentAsync(_users, _permissions));
+
         private async Task<SiteResponseDto> DtoAsync(int id) =>
-            ToDto(await _sites.GetWithCountsAsync(id) ?? throw new KeyNotFoundException("الموقع غير موجود"));
+            ToDto(await _sites.GetWithCountsAsync(id, await ScopeAsync()) ?? throw new KeyNotFoundException("الموقع غير موجود"));
 
         public async Task<List<SiteResponseDto>> Handle(GetAllSitesQuery request, CancellationToken ct) =>
-            (await _sites.GetAllWithCountsAsync()).Select(ToDto).ToList();
+            (await _sites.GetAllWithCountsAsync(await ScopeAsync())).Select(ToDto).ToList();
+
+        public async Task<List<NearbySiteDto>> Handle(GetNearbySitesQuery request, CancellationToken ct) =>
+            (await _sites.GetNearbyAsync(request.Latitude, request.Longitude, NearbyRadiusMeters, request.ExcludeId))
+                .Select(n => new NearbySiteDto { Id = n.Id, Name = n.Name, DistanceMeters = n.DistanceMeters })
+                .ToList();
 
         public Task<SiteResponseDto> Handle(GetSiteByIdQuery request, CancellationToken ct) => DtoAsync(request.Id);
 

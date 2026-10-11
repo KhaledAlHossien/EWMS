@@ -194,6 +194,50 @@ namespace Infrastructure.Persistence.Data
         }
 
         /// <summary>
+        /// تركيبات قبل الإصدار 1.1.0 بلا وحدة مالكة: تأخذ قسم وفرع من أضافها (من سجل تغييرات الأجهزة)، وإلا القسم في
+        /// الإعداد القديم DeviceInventory:OwnerDepartmentId إن وُجد. ما بقي بلا وحدة (أضافه مدير بلا فرع) يراه من يملك
+        /// نظرة المؤسسة ويحدد قسمه من نموذج التركيب. التشغيل المتكرر يتناول ما بقي بلا وحدة فقط.
+        /// </summary>
+        public static async Task BackfillInstallationUnitsAsync(DataContext context, IConfiguration configuration)
+        {
+            var orphans = await context.DeviceSites.Where(ds => ds.BranchId == null).ToListAsync();
+            if (orphans.Count == 0) return;
+
+            var ids = orphans.Select(o => o.Id).ToList();
+            var creators = await context.DeviceInventoryLogs.AsNoTracking()
+                .Where(l => l.EntityType == DeviceInventoryEntity.Installation && ids.Contains(l.EntityId)
+                    && (l.Action == DeviceInventoryAction.Created || l.Action == DeviceInventoryAction.Imported)
+                    && l.User.BranchId != null)
+                .OrderBy(l => l.CreatedAt)
+                .Select(l => new { l.EntityId, l.User.BranchId, l.User.DepartmentId })
+                .ToListAsync();
+            var byInstallation = creators.GroupBy(c => c.EntityId).ToDictionary(g => g.Key, g => g.First());
+
+            var ownerDepartmentId = configuration.GetValue<int?>("DeviceInventory:OwnerDepartmentId");
+            var fallback = ownerDepartmentId is int departmentId
+                ? await context.Departments.AsNoTracking().Where(d => d.Id == departmentId).Select(d => new { d.Id, d.BranchId }).FirstOrDefaultAsync()
+                : null;
+
+            var changed = false;
+            foreach (var installation in orphans)
+            {
+                if (byInstallation.TryGetValue(installation.Id, out var creator))
+                {
+                    installation.BranchId = creator.BranchId;
+                    installation.DepartmentId = creator.DepartmentId;
+                    changed = true;
+                }
+                else if (fallback != null)
+                {
+                    installation.BranchId = fallback.BranchId;
+                    installation.DepartmentId = fallback.Id;
+                    changed = true;
+                }
+            }
+            if (changed) await context.SaveChangesAsync();
+        }
+
+        /// <summary>
         /// كلمات سر الأجهزة المحفوظة نصاً قبل التشفير (2026-10-05): تُشفَّر مرة واحدة عند التشغيل.
         /// المشفّرة (enc:v1:) تُتخطّى، فالتشغيل المتكرر لا يغيّر شيئاً.
         /// </summary>

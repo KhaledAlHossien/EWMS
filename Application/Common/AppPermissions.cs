@@ -89,12 +89,20 @@ namespace Application.Common
             new("EditWorkTask",   "تعديل مهمة عمل وإسنادها"),
             new("DeleteWorkTask", "حذف مهمة عمل"),
 
-            // توثيق الأجهزة (مواقع / كتالوج أجهزة / تركيبات) — العرض متاح أيضاً لمن يملك الإضافة أو التعديل أو الحذف (AnyOf)
-            new("ViewDevices",  "عرض مواقع الأجهزة والكتالوج والتركيبات وسجلها (بلا كلمات السر)"),
-            new("CreateDevice", "إضافة مواقع وأجهزة وتركيبات واستيرادها من Excel"),
-            new("EditDevice",   "تعديل المواقع والأجهزة والتركيبات"),
-            new("DeleteDevice", "حذف المواقع والأجهزة والتركيبات"),
-            new("RevealDevicePasswords", "إظهار كلمات سر الأجهزة ونسخها (يُسجَّل كل إظهار)"),
+            // المواقع (2026-10-11): سجل مشترك فريد بين كل الفروع، تُبنى عليه خرائط الفروع — الحد: كل المواقع
+            new("ViewSites",  "عرض سجل المواقع المشترك (كل المواقع)"),
+            new("CreateSite", "إضافة موقع إلى السجل المشترك"),
+            new("EditSite",   "تعديل بيانات أي موقع (الاسم والإحداثيات تظهر لكل الفروع)"),
+            new("DeleteSite", "حذف موقع (إن لم يكن عليه تركيبات أو بيانات لأي فرع)"),
+
+            // توثيق الأجهزة (كتالوج أجهزة مشترك / تركيبات) — العرض متاح أيضاً لمن يملك الإضافة أو التعديل أو الحذف (AnyOf).
+            // التركيب يُسجَّل باسم قسم من أضافه وفرعه (2026-10-11): الحد = تركيبات قسمي، أو فرعي مع ViewBranchDevices
+            new("ViewDevices",  "عرض كتالوج الأجهزة وتركيبات قسمي وسجلها (بلا كلمات السر)"),
+            new("ViewBranchDevices", "عرض تركيبات الأجهزة في فرعي كله وإدارتها ضمن صلاحياتي (لا قسمي فقط)"),
+            new("CreateDevice", "إضافة أجهزة للكتالوج وتركيبات (تُسجَّل باسم قسمي) واستيرادها من Excel"),
+            new("EditDevice",   "تعديل الأجهزة والتركيبات التي أراها"),
+            new("DeleteDevice", "حذف الأجهزة والتركيبات التي أراها"),
+            new("RevealDevicePasswords", "إظهار كلمات سر التركيبات التي أراها ونسخها (يُسجَّل كل إظهار)"),
 
             new("ViewMaintenanceTasks",  "عرض مهام الصيانة"),
             new("CreateMaintenanceTask", "إضافة مهمة صيانة"),
@@ -174,7 +182,9 @@ namespace Application.Common
             ["AnyMaintenanceRequestWrite"] = ["CreateMaintenanceRequest", "EditMaintenanceRequest"],
             ["AnyWorkTaskView"] = ["ViewMyWorkTasks", "ViewWorkTasks", "ViewBranchDashboard", "ViewDepartmentDashboard", "ViewOfficeDashboard"],
             // توثيق الأجهزة: من يضيف أو يعدّل أو يحذف يرى ما يعمل عليه
-            ["AnyDeviceView"] = ["ViewDevices", "CreateDevice", "EditDevice", "DeleteDevice"],
+            ["AnyDeviceView"] = ["ViewDevices", "ViewBranchDevices", "CreateDevice", "EditDevice", "DeleteDevice"],
+            // قراءة سجل المواقع: لمن يدير المواقع، ولمن يوثّق الأجهزة (يختار الموقع في نموذج التركيب)
+            ["AnySiteView"] = ["ViewSites", "CreateSite", "EditSite", "DeleteSite", "ViewDevices", "ViewBranchDevices", "CreateDevice", "EditDevice", "DeleteDevice"],
         };
 
         // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة
@@ -187,6 +197,7 @@ namespace Application.Common
         public const string ViewDepartmentDashboard = "ViewDepartmentDashboard";
         public const string ViewOfficeDashboard = "ViewOfficeDashboard";
         public const string ViewBranchMap = "ViewBranchMap";
+        public const string ViewBranchDevices = "ViewBranchDevices";
         public const string ViewTaskBoard = "ViewTaskBoard";
         public const string AssignTaskToDepartment = "AssignTaskToDepartment";
         public const string AssignTaskToOffice = "AssignTaskToOffice";

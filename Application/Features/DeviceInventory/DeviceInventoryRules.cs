@@ -12,9 +12,30 @@ namespace Application.Features.DeviceInventory
     /// توثيق الأجهزة (مراجعة 2026-10-05): مصدر واحد للتحقق والتحويل وسجل التغييرات.
     /// الصلاحيات: ViewDevices/CreateDevice/EditDevice/DeleteDevice (سياسات المتحكمات)، وRevealDevicePasswords لكلمات السر.
     /// كلمة السر لا تُرسل في أي قائمة؛ تُقرأ من DeviceSites/Password/{id} ويُسجَّل كل إظهار ونسخ.
+    /// المواقع سجل مشترك بصلاحياتها (ViewSites…)، والتركيب ملك قسم من أضافه وفرعه (2026-10-11) — ScopeFor.
     /// </summary>
     public static class DeviceInventoryRules
     {
+        /// <summary>
+        /// التركيبات التي يراها ويديرها المستخدم: كلها لنظرة المؤسسة، وتركيبات فرعه مع ViewBranchDevices،
+        /// وإلا تركيبات قسمه. والصلاحية (عرض/تعديل/حذف/إظهار كلمة السر) تحدد العملية داخل هذا الحد.
+        /// </summary>
+        public static InstallationScope ScopeFor(Viewer viewer)
+        {
+            if (viewer.IsOrganizationWide) return InstallationScope.Everything;
+            if (viewer.Has(AppPermissions.ViewBranchDevices) && viewer.User.BranchId is int branchId)
+                return new InstallationScope(false, branchId, null);
+            if (viewer.User.DepartmentId is int departmentId)
+                return new InstallationScope(false, null, departmentId);
+            return InstallationScope.Nothing;
+        }
+
+        public static void EnsureInScope(Viewer viewer, DeviceSite installation)
+        {
+            if (!ScopeFor(viewer).Includes(installation))
+                throw new UnauthorizedAccessException("هذا التركيب يتبع قسماً أو فرعاً آخر");
+        }
+
         public const int MaxPageSize = 200;
         public const int MaxExportRows = 20_000;
         public const int MaxImportRows = 2_000;
@@ -156,6 +177,10 @@ namespace Application.Features.DeviceInventory
                 Status = (int)i.Status,
                 StatusAr = StatusAr(i.Status),
                 DuplicateIp = row.DuplicateIp,
+                BranchId = i.BranchId,
+                BranchName = i.Branch?.Name ?? string.Empty,
+                DepartmentId = i.DepartmentId,
+                DepartmentName = i.Department?.Name ?? string.Empty,
                 RowVersion = i.RowVersion
             };
         }
@@ -233,6 +258,7 @@ namespace Application.Features.DeviceInventory
             RuleFor(x => x.Firmware).MaximumLength(100).WithMessage("إصدار البرنامج الثابت لا يتجاوز 100 حرف");
             RuleFor(x => x.InstallDate).Must(d => d == null || d.Value.Date <= DateTime.Today).WithMessage("تاريخ التركيب لا يكون في المستقبل");
             RuleFor(x => x.Status).Must(s => Enum.IsDefined(typeof(InstallationStatus), s)).WithMessage("حالة التركيب غير صحيحة");
+            RuleFor(x => x.DepartmentId).GreaterThan(0).WithMessage("القسم غير صحيح").When(x => x.DepartmentId != null);
         }
     }
 
