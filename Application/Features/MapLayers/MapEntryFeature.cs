@@ -30,16 +30,18 @@ namespace Application.Features.MapLayers
         IRequestHandler<DeleteMapEntryCommand, Unit>
     {
         private readonly IMapEntryService _entries;
+        private readonly IMapEntryFileService _files;
         private readonly IMapLayerService _layers;
         private readonly ISiteService _sites;
         private readonly IDepartmentService _departments;
         private readonly IUserService _users;
         private readonly IUserPermissionService _permissions;
 
-        public MapEntryHandler(IMapEntryService entries, IMapLayerService layers, ISiteService sites, IDepartmentService departments,
-            IUserService users, IUserPermissionService permissions)
+        public MapEntryHandler(IMapEntryService entries, IMapEntryFileService files, IMapLayerService layers, ISiteService sites,
+            IDepartmentService departments, IUserService users, IUserPermissionService permissions)
         {
             _entries = entries;
+            _files = files;
             _layers = layers;
             _sites = sites;
             _departments = departments;
@@ -125,7 +127,8 @@ namespace Application.Features.MapLayers
                 CreatedByUserId = viewer.Id,
                 CreatedAt = DateTime.UtcNow
             };
-            await _entries.AddAsync(entry);
+            var files = await MapEntryFiles.PlanAsync(layer, null, dto.Values, viewer, _files);
+            await _entries.AddAsync(entry, files);
             return await DtoAsync(entry.Id, viewer);
         }
 
@@ -136,11 +139,12 @@ namespace Application.Features.MapLayers
             if (!entry.Layer.IsActive) throw new InvalidOperationException("الطبقة معطّلة — سجلاتها للقراءة فقط");
 
             entry.Values = NormalizeValues(entry.Layer, request.Dto.Values, entry.Values);
+            var files = await MapEntryFiles.PlanAsync(entry.Layer, entry, request.Dto.Values, viewer, _files);
             if (request.Dto.DepartmentId is int requested && requested != entry.DepartmentId)
                 entry.DepartmentId = await DepartmentAsync(viewer, entry.Layer, requested);
             entry.UpdatedByUserId = viewer.Id;
             entry.UpdatedAt = DateTime.UtcNow;
-            await _entries.UpdateAsync(entry, request.Dto.RowVersion);
+            await _entries.UpdateAsync(entry, request.Dto.RowVersion, files);
             return await DtoAsync(entry.Id, viewer);
         }
 

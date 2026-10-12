@@ -33,6 +33,16 @@ chown -R appuser:appuser /var/www/dmc/EWMS-App/angular
 - حدّث الصفحة في المتصفح (Ctrl+F5) بعد تحديث الواجهة.
 - **التراجع:** `systemctl stop ewms-api`، ثم أعد المجلد من `EWMS-App.bak-…` والقاعدة من النسخة الاحتياطية، ثم `systemctl start ewms-api`.
 - إعدادات الخادم الإلزامية (يرفض الإقلاع بدونها): نص الاتصال، `JwtSettings:Key` (32 حرفاً على الأقل)، `DeviceInventory:PasswordKey` (32 بايت Base64) — في `appsettings.json` على الخادم أو متغيرات بيئة الخدمة.
+- **الإصدار 1.2.0 — حد رفع الملفات في Nginx (مرة واحدة):** حقول «ملفات» في طبقات الخرائط تقبل ملفاً حتى سقف النظام
+  `MapLayers:MaxFileMegabytes` (الافتراضي 100MB، يغيّره مدير النظام في `appsettings.json` على الخادم أو بمتغير البيئة
+  `MapLayers__MaxFileMegabytes`). Nginx يرفض أي طلب أكبر من `client_max_body_size` (الافتراضي **1MB** إن لم يُكتب)،
+  فاجعله أكبر من السقف بقليل في ملف الموقع الحالي:
+  ```bash
+  grep -n client_max_body_size /etc/nginx/sites-enabled/ewms      # إن لم يظهر شيء فالحد 1MB
+  sudo nano /etc/nginx/sites-enabled/ewms                          # داخل server { … } أضف أو عدّل: client_max_body_size 105m;
+  sudo nginx -t && sudo systemctl reload nginx
+  ```
+  الملفات تُحفظ في قاعدة البيانات، فتكبر النسخ الاحتياطية بحجمها — راقب مساحة `/var/opt/mssql`.
 - **الإصدار 1.1.0:** كل تركيب جهاز صار ملك قسم من أضافه وفرعه، وخريطة كل فرع تُبنى من تركيبات أقسامه. التركيبات القديمة تأخذ قسم من أضافها تلقائياً؛ وما أضافه مدير بلا فرع يظهر «بلا قسم» في صفحة التركيبات — افتحه بالتعديل واختر قسمه فيظهر على خريطة فرعه.
 
 ## 0. المتطلبات على الخادم

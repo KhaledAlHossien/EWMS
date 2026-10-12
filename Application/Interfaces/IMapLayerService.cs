@@ -51,6 +51,33 @@ namespace Application.Interfaces
         Task<bool> ExistsForUserAsync(int userId);
     }
 
+    /// <summary>ملفات تُربط بالسجل أو تُحذف منه مع حفظه (نفس المعاملة)</summary>
+    public sealed record MapEntryFileChanges(IReadOnlyList<MapEntryFile> Attach, IReadOnlyList<MapEntryFile> Remove)
+    {
+        public static readonly MapEntryFileChanges None = new([], []);
+    }
+
+    /// <summary>إعدادات طبقات الخرائط من إعدادات الخادم</summary>
+    public interface IMapLayerSettings
+    {
+        /// <summary>سقف حجم الملف الواحد بالـ MB لكل حقول الملفات (MapLayers:MaxFileMegabytes، الافتراضي 100)</summary>
+        int MaxFileMegabytes { get; }
+    }
+
+    /// <summary>ملفات حقول «ملفات»: تُرفع معلّقة ثم تُربط بالسجل عند حفظه</summary>
+    public interface IMapEntryFileService
+    {
+        Task AddPendingAsync(MapEntryFile file, byte[] data);
+        /// <summary>متتبَّعة، بلا المحتوى</summary>
+        Task<List<MapEntryFile>> GetByIdsAsync(IReadOnlyCollection<int> ids);
+        /// <summary>مع السجل (لفحص الحد) ومن رفعه، بلا المحتوى</summary>
+        Task<MapEntryFile?> GetByIdAsync(int id);
+        Task<byte[]?> GetDataAsync(int id);
+        Task DeleteAsync(MapEntryFile file);
+        /// <summary>حذف الملفات المعلّقة (لم تُربط بسجل) المرفوعة قبل الوقت المحدد</summary>
+        Task<int> DeletePendingBeforeAsync(DateTime cutoffUtc);
+    }
+
     public interface IMapEntryService
     {
         /// <summary>مع الطبقة (وحقولها) والموقع والقسم والفرع ومن أنشأ/عدّل</summary>
@@ -60,8 +87,9 @@ namespace Application.Interfaces
         Task<bool> ExistsAsync(int layerId, int siteId, int? excludeId);
         Task<int> CountForLayerAsync(int layerId);
 
-        Task AddAsync(MapEntry entry);
-        Task UpdateAsync(MapEntry entry, byte[]? rowVersion);
+        /// <summary>يحفظ السجل ويربط ملفاته المعلّقة ويحذف المزالة منها في حفظ واحد</summary>
+        Task AddAsync(MapEntry entry, MapEntryFileChanges files);
+        Task UpdateAsync(MapEntry entry, byte[]? rowVersion, MapEntryFileChanges files);
         Task DeleteAsync(MapEntry entry);
 
         Task<bool> ExistsForSiteAsync(int siteId);
