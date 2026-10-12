@@ -8,7 +8,8 @@ namespace Domain.Entities
         Number = 3,
         Date = 4,       // يوم فقط yyyy-MM-dd
         Select = 5,     // قائمة اختيار من Options
-        YesNo = 6
+        YesNo = 6,
+        Files = 7       // ملفات مرفوعة (MapEntryFile) — الصيغ والعدد والحجم من إعدادات الحقل
     }
 
     /// <summary>
@@ -55,6 +56,14 @@ namespace Domain.Entities
         public int SortOrder { get; set; }
         /// <summary>مخفي: لا يظهر في النماذج والعرض، وقيمه محفوظة ويمكن إعادته</summary>
         public bool IsHidden { get; set; }
+
+        // ───── حقل الملفات (Files) فقط؛ 0 و"[]" لغيره ─────
+        /// <summary>أقصى عدد ملفات في الحقل للسجل الواحد</summary>
+        public int MaxFiles { get; set; }
+        /// <summary>أقصى حجم للملف الواحد بالـ MB (لا يتجاوز سقف النظام MapLayers:MaxFileMegabytes)</summary>
+        public int MaxFileMegabytes { get; set; }
+        /// <summary>مجموعات الصيغ المسموحة — مصفوفة JSON من مفاتيح MapFileRules (images, pdf, office…)</summary>
+        public string FileKinds { get; set; } = "[]";
     }
 
     /// <summary>
@@ -84,6 +93,42 @@ namespace Domain.Entities
         public User? UpdatedByUser { get; set; }
         public DateTime? UpdatedAt { get; set; }
 
+        /// <summary>ملفات حقول «ملفات» في هذا السجل (تُحذف معه)</summary>
+        public ICollection<MapEntryFile> Files { get; set; } = new List<MapEntryFile>();
+
         public byte[] RowVersion { get; set; } = [];
+    }
+
+    /// <summary>
+    /// ملف في حقل «ملفات» لسجل طبقة. يُرفع أولاً «معلّقاً» (EntryId = null) ثم يُربط بالسجل عند حفظه؛
+    /// المعلّق الذي لا يُربط تحذفه خدمة الخلفية بعد 24 ساعة. المحتوى في جدول منفصل كي لا تحمّله القوائم.
+    /// </summary>
+    public class MapEntryFile
+    {
+        public int Id { get; set; }
+        /// <summary>null = معلّق (رُفع ولم يُحفظ السجل بعد)</summary>
+        public int? EntryId { get; set; }
+        public MapEntry? Entry { get; set; }
+        public int FieldId { get; set; }
+        public MapLayerField Field { get; set; } = null!;
+
+        public string FileName { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+        /// <summary>مجموعة الصيغة (images, pdf, office…) كما كشفها الخادم من محتوى الملف</summary>
+        public string Kind { get; set; } = string.Empty;
+        public long Size { get; set; }
+
+        public int UploadedByUserId { get; set; }
+        public User UploadedByUser { get; set; } = null!;
+        public DateTime UploadedAt { get; set; }
+
+        public MapEntryFileContent? Content { get; set; }
+    }
+
+    public class MapEntryFileContent
+    {
+        public int FileId { get; set; }
+        public MapEntryFile File { get; set; } = null!;
+        public byte[] Data { get; set; } = [];
     }
 }

@@ -35,6 +35,8 @@ namespace Infrastructure.Persistence.Data
         public DbSet<MapLayer> MapLayers { get; set; }
         public DbSet<MapLayerField> MapLayerFields { get; set; }
         public DbSet<MapEntry> MapEntries { get; set; }
+        public DbSet<MapEntryFile> MapEntryFiles { get; set; }
+        public DbSet<MapEntryFileContent> MapEntryFileContents { get; set; }
         public DbSet<DeviceInventoryLog> DeviceInventoryLogs { get; set; }
         public DbSet<WorkTask> WorkTasks { get; set; }
         public DbSet<UserWorkTask> UserWorkTasks { get; set; }
@@ -180,6 +182,7 @@ namespace Infrastructure.Persistence.Data
                 entity.Property(f => f.Label).HasMaxLength(100).IsRequired();
                 entity.Property(f => f.Type).HasConversion<int>();
                 entity.Property(f => f.Options).HasMaxLength(4000);
+                entity.Property(f => f.FileKinds).HasMaxLength(400);
             });
 
             builder.Entity<MapEntry>(entity =>
@@ -195,6 +198,22 @@ namespace Infrastructure.Persistence.Data
                 entity.HasOne(e => e.UpdatedByUser).WithMany().HasForeignKey(e => e.UpdatedByUserId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasIndex(e => new { e.LayerId, e.SiteId });
             });
+
+            // ملفات حقول «ملفات»: تُحذف مع سجلها أو حقلها (الحذف النهائي)، والمحتوى مع بياناته
+            builder.Entity<MapEntryFile>(entity =>
+            {
+                entity.Property(f => f.FileName).HasMaxLength(200).IsRequired();
+                entity.Property(f => f.ContentType).HasMaxLength(150).IsRequired();
+                entity.Property(f => f.Kind).HasMaxLength(20).IsRequired();
+                entity.HasOne(f => f.Entry).WithMany(e => e.Files).HasForeignKey(f => f.EntryId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(f => f.Field).WithMany().HasForeignKey(f => f.FieldId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(f => f.UploadedByUser).WithMany().HasForeignKey(f => f.UploadedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(f => f.Content).WithOne(c => c.File).HasForeignKey<MapEntryFileContent>(c => c.FileId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(f => new { f.EntryId, f.FieldId });
+                entity.HasIndex(f => f.UploadedAt);
+            });
+
+            builder.Entity<MapEntryFileContent>(entity => entity.HasKey(c => c.FileId));
 
             builder.Entity<DeviceInventoryLog>(entity =>
             {

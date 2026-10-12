@@ -36,6 +36,8 @@ namespace Infrastructure
             services.AddScoped<IMapService, MapService>();
             services.AddScoped<IMapLayerService, MapLayerService>();
             services.AddScoped<IMapEntryService, MapEntryService>();
+            services.AddScoped<IMapEntryFileService, MapEntryFileService>();
+            services.AddSingleton<IMapLayerSettings>(new MapLayerSettings(configuration));
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IPermissionService, PermissionService>();

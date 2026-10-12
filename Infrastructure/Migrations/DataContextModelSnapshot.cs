@@ -1316,6 +1316,71 @@ namespace Infrastructure.Migrations
                     b.ToTable("MapEntries");
                 });
 
+            modelBuilder.Entity("Domain.Entities.MapEntryFile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int?>("EntryId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FieldId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UploadedByUserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FieldId");
+
+                    b.HasIndex("UploadedAt");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.HasIndex("EntryId", "FieldId");
+
+                    b.ToTable("MapEntryFiles");
+                });
+
+            modelBuilder.Entity("Domain.Entities.MapEntryFileContent", b =>
+                {
+                    b.Property<int>("FileId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.HasKey("FileId");
+
+                    b.ToTable("MapEntryFileContents");
+                });
+
             modelBuilder.Entity("Domain.Entities.MapLayer", b =>
                 {
                     b.Property<int>("Id")
@@ -1384,6 +1449,11 @@ namespace Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("FileKinds")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
                     b.Property<bool>("IsHidden")
                         .HasColumnType("bit");
 
@@ -1396,6 +1466,12 @@ namespace Infrastructure.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("LayerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaxFileMegabytes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaxFiles")
                         .HasColumnType("int");
 
                     b.Property<string>("Options")
@@ -2717,6 +2793,43 @@ namespace Infrastructure.Migrations
                     b.Navigation("UpdatedByUser");
                 });
 
+            modelBuilder.Entity("Domain.Entities.MapEntryFile", b =>
+                {
+                    b.HasOne("Domain.Entities.MapEntry", "Entry")
+                        .WithMany("Files")
+                        .HasForeignKey("EntryId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Domain.Entities.MapLayerField", "Field")
+                        .WithMany()
+                        .HasForeignKey("FieldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Entry");
+
+                    b.Navigation("Field");
+
+                    b.Navigation("UploadedByUser");
+                });
+
+            modelBuilder.Entity("Domain.Entities.MapEntryFileContent", b =>
+                {
+                    b.HasOne("Domain.Entities.MapEntryFile", "File")
+                        .WithOne("Content")
+                        .HasForeignKey("Domain.Entities.MapEntryFileContent", "FileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("File");
+                });
+
             modelBuilder.Entity("Domain.Entities.MapLayer", b =>
                 {
                     b.HasOne("Domain.Entities.Branch", "Branch")
@@ -3038,6 +3151,16 @@ namespace Infrastructure.Migrations
                     b.Navigation("DeviceCompanies");
 
                     b.Navigation("DeviceTypes");
+                });
+
+            modelBuilder.Entity("Domain.Entities.MapEntry", b =>
+                {
+                    b.Navigation("Files");
+                });
+
+            modelBuilder.Entity("Domain.Entities.MapEntryFile", b =>
+                {
+                    b.Navigation("Content");
                 });
 
             modelBuilder.Entity("Domain.Entities.MapLayer", b =>

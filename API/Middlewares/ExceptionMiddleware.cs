@@ -66,6 +66,8 @@ namespace API.Middlewares
 
                 var statusCode = ex switch
                 {
+                    // طلب أكبر من حد الرفع (حد الخادم لملفات الطبقات أو غيره) — رسالة مفهومة بدل خطأ خادم
+                    BadHttpRequestException { StatusCode: 413 } => (int)HttpStatusCode.RequestEntityTooLarge,
                     // مستخدم مسجّل لكن غير مخوّل → 403 (وليس 401 حتى لا يُسجَّل خروجه من الواجهة)
                     UnauthorizedAccessException => context.User.Identity?.IsAuthenticated == true
                         ? (int)HttpStatusCode.Forbidden
@@ -84,7 +86,9 @@ namespace API.Middlewares
                 var response = new
                 {
                     statusCode,
-                    message = isServerError && !_env.IsDevelopment()
+                    message = statusCode == (int)HttpStatusCode.RequestEntityTooLarge
+                        ? "الملف أكبر من الحد المسموح على الخادم"
+                        : isServerError && !_env.IsDevelopment()
                         ? "حدث خطأ في الخادم، يرجى المحاولة لاحقاً"
                         : ex.Message,
                     detail = isServerError && _env.IsDevelopment() ? ex.StackTrace : null
