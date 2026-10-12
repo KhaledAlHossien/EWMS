@@ -81,9 +81,9 @@ namespace API.Controllers
         public async Task<ActionResult<PagedResultDto<DeviceInventoryLogDto>>> History(int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
             => Ok(await _mediator.Send(new GetDeviceInventoryHistoryQuery(DeviceInventoryEntity.Installation, id, page, pageSize)));
 
-        /// <summary>تصدير نتائج البحث (نفس فلاتر Search) إلى Excel — بلا كلمات السر</summary>
+        /// <summary>تصدير نتائج البحث (نفس فلاتر Search) إلى Excel — بلا كلمات السر، بصلاحية سحب تقرير التركيبات ويُسجَّل</summary>
         [HttpGet("Export")]
-        [Authorize(Policy = "AnyDeviceView")]
+        [Authorize(Policy = "ExportInstallationsReport")]
         public async Task<IActionResult> Export([FromQuery] InstallationFilterDto filter)
             => File(await _mediator.Send(new ExportInstallationsQuery(filter)), Xlsx, $"device-installations-{DateTime.Now:yyyy-MM-dd}.xlsx");
 

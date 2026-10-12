@@ -59,12 +59,14 @@ namespace Application.Features.DeviceInventory
         private readonly IUserService _users;
         private readonly IUserPermissionService _permissions;
         private readonly IDepartmentService _departments;
+        private readonly IReportLogService _reportLog;
 
         public InstallationHandler(
             IDeviceSiteService installations, IDeviceService devices, ISiteService sites, IDevicePasswordProtector protector,
             IDeviceInventoryLogService log, IDeviceSpreadsheet spreadsheet, ICurrentUserService currentUser,
-            IUserService users, IUserPermissionService permissions, IDepartmentService departments)
+            IUserService users, IUserPermissionService permissions, IDepartmentService departments, IReportLogService reportLog)
         {
+            _reportLog = reportLog;
             _installations = installations;
             _devices = devices;
             _sites = sites;
@@ -280,8 +282,27 @@ namespace Application.Features.DeviceInventory
 
         // ───────── Excel ─────────
 
-        public async Task<byte[]> Handle(ExportInstallationsQuery request, CancellationToken ct) =>
-            _spreadsheet.ExportInstallations(await _installations.ExportAsync(request.Filter, ScopeFor(await CurrentAsync()), MaxExportRows));
+        /// <summary>تصدير صفحة التركيبات (صلاحية ExportInstallationsReport) — يُسجَّل في سجل التقارير كتقرير «التركيبات»</summary>
+        public async Task<byte[]> Handle(ExportInstallationsQuery request, CancellationToken ct)
+        {
+            var viewer = await CurrentAsync();
+            var rows = await _installations.ExportAsync(request.Filter, ScopeFor(viewer), MaxExportRows);
+            var content = _spreadsheet.ExportInstallations(rows);
+            await _reportLog.AddAsync(Reports.ReportRules.Log(viewer, "installations", "التركيبات (تصدير صفحة التركيبات)",
+                ReportFormat.Excel, await ExportFiltersTextAsync(request.Filter), rows.Count));
+            return content;
+        }
+
+        private async Task<string> ExportFiltersTextAsync(InstallationFilterDto f)
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(f.Q)) parts.Add($"بحث: {f.Q.Trim()}");
+            if (!string.IsNullOrWhiteSpace(f.GovernorateCode)) parts.Add($"المحافظة: {Governorates.NameOf(f.GovernorateCode)}");
+            if (f.SiteId is int siteId) parts.Add($"الموقع: {(await _sites.GetByIdAsync(siteId))?.Name ?? "#" + siteId}");
+            if (f.DeviceId is int deviceId) parts.Add($"الجهاز: {(await _devices.GetByIdAsync(deviceId))?.Name ?? "#" + deviceId}");
+            if (f.Status is int status && Enum.IsDefined((InstallationStatus)status)) parts.Add($"الحالة: {StatusAr((InstallationStatus)status)}");
+            return parts.Count == 0 ? "بلا فلاتر (كل ما تسمح به صلاحيتك)" : string.Join(" · ", parts);
+        }
 
         public Task<byte[]> Handle(GetImportTemplateQuery request, CancellationToken ct) => Task.FromResult(_spreadsheet.ImportTemplate());
 

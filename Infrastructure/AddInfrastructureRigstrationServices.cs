@@ -54,6 +54,21 @@ namespace Infrastructure
             services.AddSingleton<IDevicePasswordProtector, Infrastructure.Security.DevicePasswordProtector>();
             services.AddSingleton<IDeviceSpreadsheet, Infrastructure.Files.DeviceSpreadsheet>();
 
+            // مركز التقارير: تقرير جديد = صنف واحد هنا (الترتيب = ترتيب العرض) + صلاحية سحب في AppPermissions
+            services.AddSingleton<IReportSpreadsheet, Infrastructure.Files.ReportSpreadsheet>();
+            services.AddScoped<IReportLogService, ReportLogService>();
+            services.AddScoped<IReport, Infrastructure.Reports.VacationsReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.VacationUsageReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.UsersReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.StructureReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.MaintenanceRequestsReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.TechniciansReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.SparePartMovementsReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.SparePartStockReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.InstallationsReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.SitesReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.MapEntriesReport>();
+
             // الصيانة
             services.AddScoped<IDeviceTypeService, DeviceTypeService>();
             services.AddScoped<IDeviceCompanyService, DeviceCompanyService>();

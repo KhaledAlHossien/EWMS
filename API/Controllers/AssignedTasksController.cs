@@ -28,8 +28,9 @@ namespace API.Controllers
         public async Task<ActionResult<TaskBoardDto>> Board([FromQuery] string mode = "incoming", [FromQuery] int? doneDays = null)
             => Ok(await _mediator.Send(new GetTaskBoardQuery(mode, doneDays)));
 
-        /// <summary>تصدير مهام العرض الحالي إلى Excel (نفس فلاتر الواجهة)</summary>
+        /// <summary>تصدير مهام العرض الحالي إلى Excel (نفس فلاتر الواجهة) — صلاحية ExportTasksReport ويُسجَّل في سجل التقارير</summary>
         [HttpGet("Export")]
+        [Authorize(Policy = "ExportTasksReport")]
         public async Task<IActionResult> Export([FromQuery] AssignedTaskExportFilterDto filter)
             => File(await _mediator.Send(new ExportAssignedTasksQuery(filter)),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"tasks-{DateTime.Now:yyyy-MM-dd}.xlsx");
