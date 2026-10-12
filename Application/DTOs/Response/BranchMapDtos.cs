@@ -31,6 +31,8 @@ namespace Application.DTOs.Response
         public string Title { get; set; } = string.Empty;
         /// <summary>#RRGGBB — فارغ = لون الواجهة الافتراضي</summary>
         public string Color { get; set; } = string.Empty;
+        /// <summary>وحدة العدّ في الموقع: «تركيب»، «سجل»…</summary>
+        public string Unit { get; set; } = string.Empty;
         public List<MapSiteDto> Sites { get; set; } = [];
         public int SitesWithoutCoordinates { get; set; }
     }
@@ -48,5 +50,7 @@ namespace Application.DTOs.Response
         public int DeviceTypesCount { get; set; }   // عدد أنواع الأجهزة المختلفة في الموقع
         /// <summary>عدد سجلات الطبقة على الموقع (طبقات الفروع)</summary>
         public int EntriesCount { get; set; }
+        /// <summary>عدد عناصر الطبقة في الموقع بوحدتها (تركيبات، سجلات…) — العدد العام لكل الطبقات</summary>
+        public int Count { get; set; }
     }
 }

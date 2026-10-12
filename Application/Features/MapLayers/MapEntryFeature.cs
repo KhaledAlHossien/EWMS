@@ -89,7 +89,9 @@ namespace Application.Features.MapLayers
             int? branchId = viewer.IsOrganizationWide ? null : viewer.User.BranchId;
             var layers = !viewer.IsOrganizationWide && branchId == null
                 ? []
-                : (await _layers.GetAllAsync(branchId, includeInactive: false)).Select(l => ToDto(l.Layer, l.Entries, includeHidden: false)).ToList();
+                : (await _layers.GetAllAsync(branchId, includeInactive: false))
+                    .Where(l => l.Layer.Source.Length == 0)   // طبقات بيانات النظام لا تُضاف إليها سجلات
+                    .Select(l => ToDto(l.Layer, l.Entries, includeHidden: false)).ToList();
 
             var entries = await _entries.GetForSiteAsync(request.SiteId, EntryScopeFor(viewer));
             var canCreate = viewer.Has("CreateMapEntry") && layers.Count > 0;
@@ -112,6 +114,8 @@ namespace Application.Features.MapLayers
             var dto = request.Dto;
             var layer = await _layers.GetByIdAsync(dto.LayerId) ?? throw new KeyNotFoundException("الطبقة غير موجودة");
             EnsureLayer(viewer, layer);
+            if (layer.Source.Length > 0)
+                throw new InvalidOperationException("هذه الطبقة من بيانات النظام — نقاطها تُقرأ من جداولها ولا تُضاف إليها سجلات يدوياً");
             if (!layer.IsActive) throw new InvalidOperationException("الطبقة معطّلة — لا تُضاف إليها سجلات");
             if (!await _sites.ExistsAsync(dto.SiteId)) throw new KeyNotFoundException("الموقع غير موجود");
             if (!layer.AllowMultiple && await _entries.ExistsAsync(layer.Id, dto.SiteId, null))

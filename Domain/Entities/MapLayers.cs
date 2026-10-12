@@ -32,6 +32,14 @@ namespace Domain.Entities
         /// <summary>المعطّلة لا تظهر على الخريطة ولا في نماذج الإضافة، وتبقى سجلاتها</summary>
         public bool IsActive { get; set; } = true;
 
+        /// <summary>
+        /// مصدر النقاط: فارغ = إدخال يدوي (حقول وسجلات)، أو مفتاح مزوّد من بيانات النظام (مثل "devices" = التركيبات)
+        /// تُقرأ نقاطه من جدول الميزة نفسها بلا إدخال. لا يتغير بعد الإنشاء.
+        /// </summary>
+        public string Source { get; set; } = string.Empty;
+        /// <summary>فلتر المزوّد JSON: {"category":["كاميرا"],"status":["1"]} — المفتاح الفارغ = الكل</summary>
+        public string SourceFilter { get; set; } = "{}";
+
         public int CreatedByUserId { get; set; }
         public User CreatedByUser { get; set; } = null!;
         public DateTime CreatedAt { get; set; }

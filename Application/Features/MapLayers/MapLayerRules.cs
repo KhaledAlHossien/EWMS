@@ -66,6 +66,24 @@ namespace Application.Features.MapLayers
             catch (JsonException) { return []; }
         }
 
+        // ───────── فلتر طبقات بيانات النظام ─────────
+
+        public static Dictionary<string, List<string>> ParseFilter(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return new();
+            try { return JsonSerializer.Deserialize<Dictionary<string, List<string>>>(json) ?? new(); }
+            catch (JsonException) { return new(); }
+        }
+
+        /// <summary>مفاتيح المزوّد المعروفة فقط، وقيم غير فارغة بلا تكرار (القائمة الفارغة = الكل فلا تُحفظ)</summary>
+        public static Dictionary<string, List<string>> CleanFilter(IReadOnlyDictionary<string, List<string>>? filter, IReadOnlyCollection<string> keys) =>
+            (filter ?? new Dictionary<string, List<string>>())
+                .Where(kv => keys.Contains(kv.Key))
+                .Select(kv => (kv.Key, Values: (kv.Value ?? []).Select(v => (v ?? string.Empty).Trim())
+                    .Where(v => v.Length is > 0 and <= 200).Distinct().Take(100).ToList()))
+                .Where(x => x.Values.Count > 0)
+                .ToDictionary(x => x.Key, x => x.Values);
+
         public static Dictionary<string, JsonElement> ParseValues(string? json)
         {
             if (string.IsNullOrWhiteSpace(json)) return new();
@@ -150,7 +168,8 @@ namespace Application.Features.MapLayers
 
         // ───────── التحويل إلى DTO ─────────
 
-        public static MapLayerDefinitionDto ToDto(MapLayer layer, int entriesCount, bool includeHidden) => new()
+        /// <summary>sourceTitle: اسم مزوّد بيانات النظام لطبقة من بياناته (فارغ للطبقة اليدوية)</summary>
+        public static MapLayerDefinitionDto ToDto(MapLayer layer, int entriesCount, bool includeHidden, string sourceTitle = "") => new()
         {
             Id = layer.Id,
             BranchId = layer.BranchId,
@@ -161,6 +180,9 @@ namespace Application.Features.MapLayers
             AllowMultiple = layer.AllowMultiple,
             IsActive = layer.IsActive,
             SortOrder = layer.SortOrder,
+            Source = layer.Source,
+            SourceTitle = sourceTitle,
+            SourceFilter = ParseFilter(layer.SourceFilter),
             EntriesCount = entriesCount,
             Fields = layer.Fields
                 .Where(f => includeHidden || !f.IsHidden)
