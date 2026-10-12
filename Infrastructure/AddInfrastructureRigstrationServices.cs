@@ -37,6 +37,8 @@ namespace Infrastructure
             services.AddScoped<IMapLayerService, MapLayerService>();
             services.AddScoped<IMapEntryService, MapEntryService>();
             services.AddScoped<IMapEntryFileService, MapEntryFileService>();
+            // مزوّدات طبقات الخرائط من بيانات النظام — ميزة جديدة سجلاتها على المواقع = مزوّد جديد هنا
+            services.AddScoped<IMapLayerProvider, DevicesMapLayerProvider>();
             services.AddSingleton<IMapLayerSettings>(new MapLayerSettings(configuration));
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IRoleService, RoleService>();

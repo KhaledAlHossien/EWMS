@@ -170,6 +170,8 @@ namespace Infrastructure.Persistence.Data
                 entity.Property(l => l.Name).HasMaxLength(100).IsRequired();
                 entity.Property(l => l.Description).HasMaxLength(500);
                 entity.Property(l => l.Color).HasMaxLength(7);
+                entity.Property(l => l.Source).HasMaxLength(50);
+                entity.Property(l => l.SourceFilter).HasMaxLength(2000);
                 entity.Property(l => l.RowVersion).IsRowVersion();
                 entity.HasIndex(l => new { l.BranchId, l.Name }).IsUnique();
                 entity.HasOne(l => l.Branch).WithMany().HasForeignKey(l => l.BranchId).OnDelete(DeleteBehavior.Restrict);

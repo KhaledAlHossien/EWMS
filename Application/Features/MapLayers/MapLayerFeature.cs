@@ -20,6 +20,8 @@ namespace Application.Features.MapLayers
     /// <summary>حقل بلا قيم: يُحذف. له قيم: Purge=false يخفيه (تبقى القيم)، Purge=true يحذفه مع قيمه</summary>
     public record DeleteMapLayerFieldCommand(int FieldId, bool Purge) : IRequest<MapLayerDefinitionDto>;
     public record RestoreMapLayerFieldCommand(int FieldId) : IRequest<MapLayerDefinitionDto>;
+    /// <summary>مزوّدات بيانات النظام وفلاترها من بيانات الفرع (فرعي، أو المختار لنظرة المؤسسة)</summary>
+    public record GetMapSourcesQuery(int? BranchId) : IRequest<List<MapSourceDto>>;
 
     public class MapLayerRequestValidator : AbstractValidator<MapLayerRequestDto>
     {
@@ -65,22 +67,25 @@ namespace Application.Features.MapLayers
         IRequestHandler<DeleteMapLayerCommand, Unit>,
         IRequestHandler<GetFieldUsageQuery, FieldUsageDto>,
         IRequestHandler<DeleteMapLayerFieldCommand, MapLayerDefinitionDto>,
-        IRequestHandler<RestoreMapLayerFieldCommand, MapLayerDefinitionDto>
+        IRequestHandler<RestoreMapLayerFieldCommand, MapLayerDefinitionDto>,
+        IRequestHandler<GetMapSourcesQuery, List<MapSourceDto>>
     {
         private readonly IMapLayerService _layers;
         private readonly IMapEntryService _entries;
         private readonly IBranchService _branches;
         private readonly IMapLayerSettings _settings;
+        private readonly IEnumerable<IMapLayerProvider> _providers;
         private readonly IUserService _users;
         private readonly IUserPermissionService _permissions;
 
         public MapLayerHandler(IMapLayerService layers, IMapEntryService entries, IBranchService branches, IMapLayerSettings settings,
-            IUserService users, IUserPermissionService permissions)
+            IEnumerable<IMapLayerProvider> providers, IUserService users, IUserPermissionService permissions)
         {
             _layers = layers;
             _entries = entries;
             _branches = branches;
             _settings = settings;
+            _providers = providers;
             _users = users;
             _permissions = permissions;
         }
@@ -95,7 +100,26 @@ namespace Application.Features.MapLayers
         }
 
         private async Task<MapLayerDefinitionDto> DtoAsync(MapLayer layer) =>
-            ToDto(layer, await _entries.CountForLayerAsync(layer.Id), includeHidden: true);
+            ToDto(layer, await _entries.CountForLayerAsync(layer.Id), includeHidden: true, SourceTitle(layer.Source));
+
+        private string SourceTitle(string source) =>
+            source.Length == 0 ? string.Empty : _providers.FirstOrDefault(p => p.Key == source)?.Title ?? source;
+
+        /// <summary>مصدر الطبقة: فارغ = يدوي، وإلا مزوّد معروف</summary>
+        private IMapLayerProvider? ProviderFor(string? source)
+        {
+            var key = (source ?? string.Empty).Trim();
+            if (key.Length == 0) return null;
+            return _providers.FirstOrDefault(p => p.Key == key) ?? throw new InvalidOperationException("مصدر الطبقة غير معروف");
+        }
+
+        /// <summary>فلتر المزوّد نظيفاً كـ JSON (لا يتجاوز طول العمود)</summary>
+        private static string FilterJson(IMapLayerProvider provider, IReadOnlyDictionary<string, List<string>>? filter)
+        {
+            var json = JsonSerializer.Serialize(CleanFilter(filter, provider.FilterKeys));
+            if (json.Length > 2000) throw new InvalidOperationException("الفلتر طويل جداً — قلّل الخيارات المختارة");
+            return json;
+        }
 
         private static MapLayerField NewField(MapLayerFieldRequestDto dto, int order)
         {
@@ -137,7 +161,19 @@ namespace Application.Features.MapLayers
             else return [];
 
             return (await _layers.GetAllAsync(branchId, request.IncludeInactive))
-                .Select(l => ToDto(l.Layer, l.Entries, includeHidden: true)).ToList();
+                .Select(l => ToDto(l.Layer, l.Entries, includeHidden: true, SourceTitle(l.Layer.Source))).ToList();
+        }
+
+        public async Task<List<MapSourceDto>> Handle(GetMapSourcesQuery request, CancellationToken ct)
+        {
+            var viewer = await CurrentAsync();
+            var branchId = viewer.IsOrganizationWide && request.BranchId is int chosen ? chosen : viewer.User.BranchId;
+            if (branchId is not int b) return [];
+
+            var result = new List<MapSourceDto>();
+            foreach (var provider in _providers)
+                result.Add(new MapSourceDto { Key = provider.Key, Title = provider.Title, Unit = provider.Unit, Filters = await provider.GetFiltersAsync(b) });
+            return result;
         }
 
         public async Task<MapLayerDefinitionDto> Handle(GetMapLayerQuery request, CancellationToken ct) =>
@@ -155,7 +191,8 @@ namespace Application.Features.MapLayers
                 : "حسابك غير مرتبط بفرع، فلا يمكن إنشاء طبقة");
             if (!await _branches.ExistsAsync(branchId)) throw new KeyNotFoundException("الفرع غير موجود");
 
-            EnsureFileLimits(dto.Fields);
+            var provider = ProviderFor(dto.Source);
+            if (provider == null) EnsureFileLimits(dto.Fields);
             var name = dto.Name.Trim();
             if (await _layers.NameExistsAsync(branchId, name, null))
                 throw new InvalidOperationException("توجد طبقة بنفس الاسم في هذا الفرع");
@@ -168,13 +205,16 @@ namespace Application.Features.MapLayers
                 Name = name,
                 Description = dto.Description.Trim(),
                 Color = dto.Color.ToUpperInvariant(),
-                AllowMultiple = dto.AllowMultiple,
+                // طبقة بيانات النظام: بلا حقول ولا سجلات — نقاطها من جدول المزوّد بفلترها
+                AllowMultiple = provider == null && dto.AllowMultiple,
                 IsActive = dto.IsActive,
+                Source = provider?.Key ?? string.Empty,
+                SourceFilter = provider == null ? "{}" : FilterJson(provider, dto.SourceFilter),
                 SortOrder = existing.Count == 0 ? 0 : existing.Max(l => l.Layer.SortOrder) + 1,
                 CreatedByUserId = viewer.Id,
                 CreatedAt = now,
                 UpdatedAt = now,
-                Fields = dto.Fields.Select((f, i) => NewField(f, i)).ToList()
+                Fields = provider == null ? dto.Fields.Select((f, i) => NewField(f, i)).ToList() : []
             };
             await _layers.AddAsync(layer);
             return await DtoAsync(await LoadAsync(layer.Id, viewer));
@@ -186,7 +226,10 @@ namespace Application.Features.MapLayers
             var layer = await LoadAsync(request.Id, viewer);
             var dto = request.Dto;
 
-            EnsureFileLimits(dto.Fields);
+            if ((dto.Source ?? string.Empty).Trim() != layer.Source)
+                throw new InvalidOperationException("مصدر الطبقة لا يتغير بعد إنشائها — أنشئ طبقة جديدة بالمصدر المطلوب");
+            var provider = ProviderFor(layer.Source);
+            if (provider == null) EnsureFileLimits(dto.Fields);
             var name = dto.Name.Trim();
             if (await _layers.NameExistsAsync(layer.BranchId, name, layer.Id))
                 throw new InvalidOperationException("توجد طبقة بنفس الاسم في هذا الفرع");
@@ -195,9 +238,15 @@ namespace Application.Features.MapLayers
             layer.Name = name;
             layer.Description = dto.Description.Trim();
             layer.Color = dto.Color.ToUpperInvariant();
-            layer.AllowMultiple = dto.AllowMultiple;
+            layer.AllowMultiple = provider == null && dto.AllowMultiple;
             layer.IsActive = dto.IsActive;
             layer.UpdatedAt = DateTime.UtcNow;
+            if (provider != null)
+            {
+                layer.SourceFilter = FilterJson(provider, dto.SourceFilter);
+                await _layers.UpdateAsync(layer, dto.RowVersion);
+                return await DtoAsync(await LoadAsync(layer.Id, viewer));
+            }
 
             // الحقول المرسلة: الموجود يُعدَّل، والجديد يُضاف؛ الترتيب = ترتيب القائمة. غير المرسل لا يُمسّ
             for (var i = 0; i < dto.Fields.Count; i++)
