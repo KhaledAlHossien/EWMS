@@ -1,3 +1,4 @@
+using API.Filters;
 using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Features.MapLayers;
@@ -25,6 +26,11 @@ namespace API.Controllers
         [Authorize(Policy = "AnyMapLayerRead")]
         public async Task<ActionResult<List<MapLayerDefinitionDto>>> GetAll([FromQuery] int? branchId, [FromQuery] bool includeInactive = true)
             => Ok(await _mediator.Send(new GetMapLayersQuery(branchId, includeInactive)));
+
+        /// <summary>سقف حجم الملف ومجموعات الصيغ — لمنشئ حقول الملفات ونموذج السجل</summary>
+        [HttpGet("FileOptions")]
+        [Authorize(Policy = "AnyMapLayerRead")]
+        public async Task<ActionResult<MapFileOptionsDto>> FileOptions() => Ok(await _mediator.Send(new GetMapFileOptionsQuery()));
 
         [HttpGet("Get/{id}")]
         [Authorize(Policy = "AnyMapLayerRead")]
@@ -95,6 +101,41 @@ namespace API.Controllers
         {
             await _mediator.Send(new DeleteMapEntryCommand(id));
             return Ok(new { message = "تم حذف السجل" });
+        }
+
+        // ════════ حقل «ملفات»: الملف يُرفع معلّقاً، ويُربط بالسجل حين يُحفظ بمعرّفه في قيمة الحقل ════════
+
+        /// <summary>رفع ملف واحد (file) لحقل ملفات — الحجم من إعداد الحقل ضمن سقف النظام، والنوع من محتوى الملف</summary>
+        [HttpPost("Files")]
+        [Authorize(Policy = "AnyMapEntryWrite")]
+        [MapFileUploadLimit]
+        public async Task<ActionResult<MapEntryFileDto>> Upload([FromQuery] int fieldId, IFormFile? file)
+        {
+            if (file == null) throw new InvalidOperationException("اختر ملفاً");
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            return Ok(await _mediator.Send(new UploadMapEntryFileCommand(fieldId, new UploadedFileDto(file.FileName, stream.ToArray()))));
+        }
+
+        /// <summary>معاينة الصورة/PDF داخل الصفحة، أو التنزيل (?download=true) — باقي الصيغ تُنزَّل دائماً</summary>
+        [HttpGet("File/{id}")]
+        [Authorize(Policy = "AnyMapEntryView")]
+        public async Task<IActionResult> GetFile(int id, [FromQuery] bool download = false)
+        {
+            var file = await _mediator.Send(new GetMapEntryFileQuery(id));
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            return download || !file.Previewable
+                ? File(file.Data, file.ContentType, file.FileName)
+                : File(file.Data, file.ContentType);
+        }
+
+        /// <summary>حذف ملف معلّق رفعه المستخدم ولم يحفظ سجله بعد</summary>
+        [HttpDelete("File/{id}")]
+        [Authorize(Policy = "AnyMapEntryWrite")]
+        public async Task<ActionResult> DeletePendingFile(int id)
+        {
+            await _mediator.Send(new DeletePendingMapEntryFileCommand(id));
+            return Ok(new { message = "تم حذف الملف" });
         }
     }
 }

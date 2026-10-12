@@ -70,6 +70,10 @@ namespace Infrastructure.Persistence.Repositories
 
         public async Task<int> FieldUsageAsync(MapLayerField field)
         {
+            // حقل الملفات: عدد السجلات التي فيها ملفات له
+            if (field.Type == MapFieldType.Files)
+                return await _context.MapEntryFiles.Where(f => f.FieldId == field.Id && f.EntryId != null)
+                    .Select(f => f.EntryId).Distinct().CountAsync();
             var key = field.Id.ToString();
             var values = await _context.MapEntries.AsNoTracking().Where(e => e.LayerId == field.LayerId).Select(e => e.Values).ToListAsync();
             return values.Count(v => HasValue(v, key));
@@ -85,6 +89,7 @@ namespace Infrastructure.Persistence.Repositories
                 if (JsonNode.Parse(entry.Values) is JsonObject obj && obj.Remove(key))
                     entry.Values = obj.ToJsonString();
             }
+            // ملفات الحقل (إن كان حقل ملفات) تُحذف معه بالحذف المتتالي في قاعدة البيانات
             _context.MapLayerFields.Remove(field);
             await SaveAsync();
             await transaction.CommitAsync();
@@ -125,7 +130,8 @@ namespace Infrastructure.Persistence.Repositories
             .Include(e => e.Branch)
             .Include(e => e.Department)
             .Include(e => e.CreatedByUser)
-            .Include(e => e.UpdatedByUser);
+            .Include(e => e.UpdatedByUser)
+            .Include(e => e.Files).ThenInclude(f => f.UploadedByUser);
 
         public Task<MapEntry?> GetByIdAsync(int id) => WithDetails().FirstOrDefaultAsync(e => e.Id == id);
 
@@ -141,17 +147,26 @@ namespace Infrastructure.Persistence.Repositories
 
         public Task<int> CountForLayerAsync(int layerId) => _context.MapEntries.CountAsync(e => e.LayerId == layerId);
 
-        public async Task AddAsync(MapEntry entry)
+        public async Task AddAsync(MapEntry entry, MapEntryFileChanges files)
         {
             _context.MapEntries.Add(entry);
+            ApplyFiles(entry, files);
             await SaveAsync();
         }
 
-        public async Task UpdateAsync(MapEntry entry, byte[]? rowVersion)
+        public async Task UpdateAsync(MapEntry entry, byte[]? rowVersion, MapEntryFileChanges files)
         {
             if (rowVersion is { Length: > 0 })
                 _context.Entry(entry).Property(e => e.RowVersion).OriginalValue = rowVersion;
+            ApplyFiles(entry, files);
             await SaveAsync();
+        }
+
+        /// <summary>الملفات المعلّقة تُربط بالسجل والمزالة تُحذف (مع محتواها بالحذف المتتالي) — في حفظ السجل نفسه</summary>
+        private void ApplyFiles(MapEntry entry, MapEntryFileChanges files)
+        {
+            foreach (var file in files.Attach) file.Entry = entry;
+            foreach (var file in files.Remove) _context.MapEntryFiles.Remove(file);
         }
 
         public async Task DeleteAsync(MapEntry entry)
@@ -165,7 +180,41 @@ namespace Infrastructure.Persistence.Repositories
         public Task<bool> ExistsForSiteAsync(int siteId) => _context.MapEntries.AnyAsync(e => e.SiteId == siteId);
         public Task<bool> ExistsForDepartmentAsync(int departmentId) => _context.MapEntries.AnyAsync(e => e.DepartmentId == departmentId);
         public Task<bool> ExistsForBranchAsync(int branchId) => _context.MapEntries.AnyAsync(e => e.BranchId == branchId);
-        public Task<bool> ExistsForUserAsync(int userId) =>
-            _context.MapEntries.AnyAsync(e => e.CreatedByUserId == userId || e.UpdatedByUserId == userId);
+        public async Task<bool> ExistsForUserAsync(int userId) =>
+            await _context.MapEntries.AnyAsync(e => e.CreatedByUserId == userId || e.UpdatedByUserId == userId)
+            || await _context.MapEntryFiles.AnyAsync(f => f.UploadedByUserId == userId);
+    }
+
+    /// <summary>ملفات حقول «ملفات» (1.2.0): البيانات في MapEntryFiles، والمحتوى في MapEntryFileContents</summary>
+    public class MapEntryFileService : IMapEntryFileService
+    {
+        private readonly DataContext _context;
+
+        public MapEntryFileService(DataContext context) => _context = context;
+
+        public async Task AddPendingAsync(MapEntryFile file, byte[] data)
+        {
+            file.Content = new MapEntryFileContent { Data = data };
+            _context.MapEntryFiles.Add(file);
+            await _context.SaveChangesAsync();
+        }
+
+        public Task<List<MapEntryFile>> GetByIdsAsync(IReadOnlyCollection<int> ids) =>
+            _context.MapEntryFiles.Where(f => ids.Contains(f.Id)).ToListAsync();
+
+        public Task<MapEntryFile?> GetByIdAsync(int id) =>
+            _context.MapEntryFiles.Include(f => f.Entry).Include(f => f.UploadedByUser).FirstOrDefaultAsync(f => f.Id == id);
+
+        public Task<byte[]?> GetDataAsync(int id) =>
+            _context.MapEntryFileContents.AsNoTracking().Where(c => c.FileId == id).Select(c => c.Data).FirstOrDefaultAsync();
+
+        public async Task DeleteAsync(MapEntryFile file)
+        {
+            _context.MapEntryFiles.Remove(file);
+            await _context.SaveChangesAsync();
+        }
+
+        public Task<int> DeletePendingBeforeAsync(DateTime cutoffUtc) =>
+            _context.MapEntryFiles.Where(f => f.EntryId == null && f.UploadedAt < cutoffUtc).ExecuteDeleteAsync();
     }
 }

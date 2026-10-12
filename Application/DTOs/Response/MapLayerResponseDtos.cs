@@ -12,6 +12,10 @@ namespace Application.DTOs.Response
         public int SortOrder { get; set; }
         /// <summary>مخفي: لا يظهر في النماذج، وقيمه محفوظة (يُعاد من صفحة الطبقات)</summary>
         public bool IsHidden { get; set; }
+        /// <summary>حقل الملفات (7): أقصى عدد ملفات، وأقصى حجم للملف بالـ MB، ومجموعات الصيغ</summary>
+        public int MaxFiles { get; set; }
+        public int MaxFileMegabytes { get; set; }
+        public List<string> FileKinds { get; set; } = [];
     }
 
     public class MapLayerDefinitionDto
@@ -48,9 +52,45 @@ namespace Application.DTOs.Response
         public DateTime CreatedAt { get; set; }
         public string UpdatedByName { get; set; } = string.Empty;
         public DateTime? UpdatedAt { get; set; }
+        /// <summary>ملفات حقول «ملفات» (كل ملف يحمل FieldId)</summary>
+        public List<MapEntryFileDto> Files { get; set; } = [];
         public bool CanEdit { get; set; }
         public bool CanDelete { get; set; }
         public byte[] RowVersion { get; set; } = [];
+    }
+
+    public class MapEntryFileDto
+    {
+        public int Id { get; set; }
+        public int FieldId { get; set; }
+        public string FileName { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+        /// <summary>مجموعة الصيغة كما كشفها الخادم (images, pdf, office…)</summary>
+        public string Kind { get; set; } = string.Empty;
+        public long Size { get; set; }
+        /// <summary>صورة أو PDF تُعاين داخل الصفحة؛ غيرها يُنزَّل</summary>
+        public bool Previewable { get; set; }
+        public string UploadedByName { get; set; } = string.Empty;
+        public DateTime UploadedAt { get; set; }
+    }
+
+    /// <summary>محتوى ملف للتنزيل أو المعاينة</summary>
+    public record MapEntryFileContentDto(string FileName, string ContentType, byte[] Data, bool Previewable);
+
+    /// <summary>إعدادات رفع الملفات: سقف النظام ومجموعات الصيغ (لمنشئ الحقول ونموذج السجل)</summary>
+    public class MapFileOptionsDto
+    {
+        public int MaxFileMegabytes { get; set; }
+        public int MaxFilesPerField { get; set; }
+        public List<MapFileKindDto> Kinds { get; set; } = [];
+    }
+
+    public class MapFileKindDto
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Formats { get; set; } = string.Empty;
+        public List<string> Extensions { get; set; } = [];
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using Application.Features.AssignedTasks;
+using Application.Features.MapLayers;
 using Application.Features.ToDoLists;
 using Application.Interfaces;
 
@@ -72,6 +73,18 @@ namespace API.Background
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogError(ex, "تعذّر فحص تذكيرات المفكرة — تُعاد المحاولة في الدورة التالية");
+                }
+
+                try
+                {
+                    // ملفات حقول الطبقات المرفوعة ولم يُحفظ سجلها خلال 24 ساعة
+                    using var files = _scopes.CreateScope();
+                    var removed = await MapEntryFiles.CleanupAsync(files.ServiceProvider.GetRequiredService<IMapEntryFileService>(), DateTime.UtcNow);
+                    if (removed > 0) _logger.LogInformation("حُذف {Count} ملفاً معلّقاً من حقول الطبقات", removed);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "تعذّر حذف الملفات المعلّقة — تُعاد المحاولة في الدورة التالية");
                 }
 
                 try { await Task.Delay(_interval, stoppingToken); } catch (OperationCanceledException) { return; }

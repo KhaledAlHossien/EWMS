@@ -7,11 +7,17 @@ namespace Application.DTOs.Request
     {
         public int? Id { get; set; }
         public string Label { get; set; } = string.Empty;
-        /// <summary>1 نص، 2 نص طويل، 3 رقم، 4 تاريخ، 5 قائمة اختيار، 6 نعم/لا</summary>
+        /// <summary>1 نص، 2 نص طويل، 3 رقم، 4 تاريخ، 5 قائمة اختيار، 6 نعم/لا، 7 ملفات</summary>
         public int Type { get; set; } = 1;
         public bool IsRequired { get; set; }
         /// <summary>خيارات القائمة (للنوع 5 فقط)</summary>
         public List<string> Options { get; set; } = [];
+        /// <summary>حقل الملفات (7): أقصى عدد ملفات (1–20)</summary>
+        public int MaxFiles { get; set; }
+        /// <summary>حقل الملفات (7): أقصى حجم للملف بالـ MB (لا يتجاوز سقف النظام)</summary>
+        public int MaxFileMegabytes { get; set; }
+        /// <summary>حقل الملفات (7): مجموعات الصيغ المسموحة (images, pdf, office, text, cad, maps, archives, media)</summary>
+        public List<string> FileKinds { get; set; } = [];
     }
 
     public class MapLayerRequestDto
@@ -32,7 +38,10 @@ namespace Application.DTOs.Request
     {
         public int LayerId { get; set; }
         public int SiteId { get; set; }
-        /// <summary>{"&lt;fieldId&gt;": قيمة} — نص، رقم، تاريخ yyyy-MM-dd، خيار من القائمة، أو true/false</summary>
+        /// <summary>
+        /// {"&lt;fieldId&gt;": قيمة} — نص، رقم، تاريخ yyyy-MM-dd، خيار من القائمة، أو true/false.
+        /// حقل الملفات: مصفوفة معرّفات ملفاته (المرفوعة معلّقةً من MapEntries/Files والموجودة) = قائمته الكاملة بعد الحفظ.
+        /// </summary>
         public Dictionary<string, JsonElement> Values { get; set; } = new();
         /// <summary>القسم المالك (لمن يملك نظرة المؤسسة أو ViewBranchMapEntries، ضمن فرع الطبقة) — فارغ = قسم من يضيف</summary>
         public int? DepartmentId { get; set; }

@@ -83,6 +83,8 @@ namespace Application.Features.MapLayers
             var result = new Dictionary<string, object?>();
             foreach (var field in layer.Fields.OrderBy(f => f.SortOrder).ThenBy(f => f.Id))
             {
+                // حقل الملفات لا يُحفظ في JSON: ملفاته في MapEntryFiles (MapEntryFiles.PlanAsync)
+                if (field.Type == MapFieldType.Files) continue;
                 var key = field.Id.ToString(CultureInfo.InvariantCulture);
                 if (field.IsHidden)
                 {
@@ -166,7 +168,8 @@ namespace Application.Features.MapLayers
                 .Select(f => new MapLayerFieldDto
                 {
                     Id = f.Id, Label = f.Label, Type = (int)f.Type, IsRequired = f.IsRequired,
-                    Options = ParseOptions(f.Options), SortOrder = f.SortOrder, IsHidden = f.IsHidden
+                    Options = ParseOptions(f.Options), SortOrder = f.SortOrder, IsHidden = f.IsHidden,
+                    MaxFiles = f.MaxFiles, MaxFileMegabytes = f.MaxFileMegabytes, FileKinds = MapFileRules.ParseKinds(f.FileKinds)
                 }).ToList(),
             RowVersion = layer.RowVersion
         };
@@ -184,6 +187,7 @@ namespace Application.Features.MapLayers
             DepartmentId = entry.DepartmentId,
             DepartmentName = entry.Department?.Name ?? string.Empty,
             Values = ParseValues(entry.Values),
+            Files = entry.Files.OrderBy(f => f.Id).Select(MapFileRules.ToDto).ToList(),
             CreatedByName = entry.CreatedByUser?.FullName ?? string.Empty,
             CreatedAt = entry.CreatedAt,
             UpdatedByName = entry.UpdatedByUser?.FullName ?? string.Empty,

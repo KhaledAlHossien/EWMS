@@ -37,6 +37,12 @@ namespace Application.Features.MapLayers
                 field.RuleFor(f => f.Type).Must(t => Enum.IsDefined(typeof(MapFieldType), t)).WithMessage("نوع الحقل غير صحيح");
                 field.RuleFor(f => f.Options).Must(o => CleanOptions(o).Count > 0)
                     .When(f => f.Type == (int)MapFieldType.Select).WithMessage("حقل القائمة يحتاج خياراً واحداً على الأقل");
+                field.RuleFor(f => f.FileKinds).Must(k => MapFileRules.CleanKinds(k).Count > 0)
+                    .When(f => f.Type == (int)MapFieldType.Files).WithMessage("اختر صيغة واحدة على الأقل لحقل الملفات");
+                field.RuleFor(f => f.MaxFiles).InclusiveBetween(1, MapFileRules.MaxFilesPerField)
+                    .When(f => f.Type == (int)MapFieldType.Files).WithMessage($"عدد ملفات الحقل من 1 إلى {MapFileRules.MaxFilesPerField}");
+                field.RuleFor(f => f.MaxFileMegabytes).GreaterThan(0)
+                    .When(f => f.Type == (int)MapFieldType.Files).WithMessage("حدّد أقصى حجم للملف بالـ MB");
             });
         }
     }
@@ -64,15 +70,17 @@ namespace Application.Features.MapLayers
         private readonly IMapLayerService _layers;
         private readonly IMapEntryService _entries;
         private readonly IBranchService _branches;
+        private readonly IMapLayerSettings _settings;
         private readonly IUserService _users;
         private readonly IUserPermissionService _permissions;
 
-        public MapLayerHandler(IMapLayerService layers, IMapEntryService entries, IBranchService branches,
+        public MapLayerHandler(IMapLayerService layers, IMapEntryService entries, IBranchService branches, IMapLayerSettings settings,
             IUserService users, IUserPermissionService permissions)
         {
             _layers = layers;
             _entries = entries;
             _branches = branches;
+            _settings = settings;
             _users = users;
             _permissions = permissions;
         }
@@ -89,14 +97,36 @@ namespace Application.Features.MapLayers
         private async Task<MapLayerDefinitionDto> DtoAsync(MapLayer layer) =>
             ToDto(layer, await _entries.CountForLayerAsync(layer.Id), includeHidden: true);
 
-        private static MapLayerField NewField(MapLayerFieldRequestDto dto, int order) => new()
+        private static MapLayerField NewField(MapLayerFieldRequestDto dto, int order)
         {
-            Label = dto.Label.Trim(),
-            Type = (MapFieldType)dto.Type,
-            IsRequired = dto.IsRequired,
-            Options = JsonSerializer.Serialize(dto.Type == (int)MapFieldType.Select ? CleanOptions(dto.Options) : []),
-            SortOrder = order
-        };
+            var field = new MapLayerField
+            {
+                Label = dto.Label.Trim(),
+                Type = (MapFieldType)dto.Type,
+                IsRequired = dto.IsRequired,
+                Options = JsonSerializer.Serialize(dto.Type == (int)MapFieldType.Select ? CleanOptions(dto.Options) : []),
+                SortOrder = order
+            };
+            ApplyFileSettings(field, dto);
+            return field;
+        }
+
+        /// <summary>إعدادات حقل الملفات (العدد والحجم والصيغ)؛ تُصفَّر لغيره</summary>
+        private static void ApplyFileSettings(MapLayerField field, MapLayerFieldRequestDto dto)
+        {
+            var isFiles = dto.Type == (int)MapFieldType.Files;
+            field.MaxFiles = isFiles ? dto.MaxFiles : 0;
+            field.MaxFileMegabytes = isFiles ? dto.MaxFileMegabytes : 0;
+            field.FileKinds = JsonSerializer.Serialize(isFiles ? MapFileRules.CleanKinds(dto.FileKinds) : []);
+        }
+
+        /// <summary>حجم الملف في أي حقل لا يتجاوز سقف النظام (إعدادات الخادم)</summary>
+        private void EnsureFileLimits(IEnumerable<MapLayerFieldRequestDto> fields)
+        {
+            var over = fields.FirstOrDefault(f => f.Type == (int)MapFieldType.Files && f.MaxFileMegabytes > _settings.MaxFileMegabytes);
+            if (over != null)
+                throw new InvalidOperationException($"حجم الملف في «{over.Label.Trim()}» لا يتجاوز سقف النظام {_settings.MaxFileMegabytes}MB");
+        }
 
         public async Task<List<MapLayerDefinitionDto>> Handle(GetMapLayersQuery request, CancellationToken ct)
         {
@@ -125,6 +155,7 @@ namespace Application.Features.MapLayers
                 : "حسابك غير مرتبط بفرع، فلا يمكن إنشاء طبقة");
             if (!await _branches.ExistsAsync(branchId)) throw new KeyNotFoundException("الفرع غير موجود");
 
+            EnsureFileLimits(dto.Fields);
             var name = dto.Name.Trim();
             if (await _layers.NameExistsAsync(branchId, name, null))
                 throw new InvalidOperationException("توجد طبقة بنفس الاسم في هذا الفرع");
@@ -155,6 +186,7 @@ namespace Application.Features.MapLayers
             var layer = await LoadAsync(request.Id, viewer);
             var dto = request.Dto;
 
+            EnsureFileLimits(dto.Fields);
             var name = dto.Name.Trim();
             if (await _layers.NameExistsAsync(layer.BranchId, name, layer.Id))
                 throw new InvalidOperationException("توجد طبقة بنفس الاسم في هذا الفرع");
@@ -181,6 +213,7 @@ namespace Application.Features.MapLayers
                     field.Type = (MapFieldType)f.Type;
                     field.IsRequired = f.IsRequired;
                     field.Options = JsonSerializer.Serialize(f.Type == (int)MapFieldType.Select ? CleanOptions(f.Options) : []);
+                    ApplyFileSettings(field, f);
                     field.SortOrder = i;
                 }
                 else
