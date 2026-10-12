@@ -170,6 +170,21 @@ namespace Application.Common
             new("CreateMaintenanceLookup", "إضافة أنواع الأجهزة والشركات والأعطال وحالات الطلب"),
             new("EditMaintenanceLookup",   "تعديل أنواع الأجهزة والشركات والأعطال وحالات الطلب"),
             new("DeleteMaintenanceLookup", "حذف أنواع الأجهزة والشركات والأعطال وحالات الطلب"),
+
+            // مركز التقارير (2026-10-12): صلاحية سحب لكل تقرير (معاينة + Excel + طباعة)، حدّها حدّ صفحة بياناته، وكل سحب يُسجَّل
+            new("ExportVacationsReport",      "سحب تقرير سجل الإجازات (إجازاته، وإجازات قسمه أو فرعه حسب صلاحيات عرض الإجازات)"),
+            new("ExportVacationUsageReport",  "سحب تقرير استهلاك الإجازات الشهري (بحدود عرض الإجازات نفسها، من الإجازات المعتمدة)"),
+            new("ExportUsersReport",          "سحب تقرير الموظفين بهواتفهم وأرقامهم الذاتية (موظفو فرعه، والمؤسسة كلها لنظرة المؤسسة)"),
+            new("ExportStructureReport",      "سحب تقرير الهيكل التنظيمي وأعداد الموظفين (فرعه، والمؤسسة كلها لنظرة المؤسسة)"),
+            new("ExportMaintenanceRequestsReport", "سحب تقرير طلبات الصيانة (طلباته، وطلبات قسمه لمن يملك الاطلاع على القسم)"),
+            new("ExportTechniciansReport",    "سحب تقرير أداء الفنيين (بحدود طلبات الصيانة نفسها)"),
+            new("ExportSparePartMovementsReport", "سحب تقرير حركات قطع الغيار (مخزون قسمه)"),
+            new("ExportSparePartStockReport", "سحب تقرير مخزون قطع الغيار وقيمته (مخزون قسمه)"),
+            new("ExportInstallationsReport",  "سحب تقرير التركيبات وتصديرها من صفحتها (التركيبات التي يراها، بلا كلمات السر)"),
+            new("ExportSitesReport",          "سحب تقرير المواقع (السجل المشترك كله)"),
+            new("ExportMapEntriesReport",     "سحب تقرير سجلات طبقة خريطة (السجلات التي يراها من طبقات فرعه)"),
+            new("ExportTasksReport",          "تصدير مهام لوحة المهام إلى Excel (المهام التي يراها في اللوحة)"),
+            new("ViewReportLog",              "عرض سجل سحب التقارير (سحوبات موظفي فرعه، والمؤسسة كلها لنظرة المؤسسة)"),
         ];
 
         /// <summary>
@@ -202,6 +217,10 @@ namespace Application.Common
             ["AnyMapEntryView"] = ["ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry"],
             // رفع ملفات حقول «ملفات» (معلّقة حتى حفظ السجل): لمن يضيف السجلات أو يعدّلها
             ["AnyMapEntryWrite"] = ["CreateMapEntry", "EditMapEntry"],
+            // مركز التقارير: من يملك صلاحية سحب أي تقرير يفتح المركز، وصلاحية كل تقرير يفحصها الـ handler
+            ["AnyReportExport"] = ["ExportVacationsReport", "ExportVacationUsageReport", "ExportUsersReport", "ExportStructureReport",
+                "ExportMaintenanceRequestsReport", "ExportTechniciansReport", "ExportSparePartMovementsReport", "ExportSparePartStockReport",
+                "ExportInstallationsReport", "ExportSitesReport", "ExportMapEntriesReport"],
             ["AnySiteView"] = ["ViewSites", "CreateSite", "EditSite", "DeleteSite", "ViewDevices", "ViewBranchDevices", "CreateDevice", "EditDevice", "DeleteDevice",
                 "ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry"],
         };
