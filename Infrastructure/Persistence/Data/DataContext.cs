@@ -38,6 +38,7 @@ namespace Infrastructure.Persistence.Data
         public DbSet<MapEntryFile> MapEntryFiles { get; set; }
         public DbSet<MapEntryFileContent> MapEntryFileContents { get; set; }
         public DbSet<DeviceInventoryLog> DeviceInventoryLogs { get; set; }
+        public DbSet<ReportExportLog> ReportExportLogs { get; set; }
         public DbSet<WorkTask> WorkTasks { get; set; }
         public DbSet<UserWorkTask> UserWorkTasks { get; set; }
         public DbSet<AssignedTask> AssignedTasks { get; set; }
@@ -226,6 +227,19 @@ namespace Infrastructure.Persistence.Data
                 entity.HasOne(l => l.User).WithMany().HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasIndex(l => new { l.EntityType, l.EntityId, l.CreatedAt });
                 entity.HasIndex(l => new { l.UserId, l.CreatedAt });
+            });
+
+            // سجل سحب التقارير: المستخدم Restrict (يُعطَّل لا يُحذف)، والفرع لقطة بلا مفتاح أجنبي
+            builder.Entity<ReportExportLog>(entity =>
+            {
+                entity.Property(l => l.ReportKey).HasMaxLength(50).IsRequired();
+                entity.Property(l => l.ReportTitle).HasMaxLength(150).IsRequired();
+                entity.Property(l => l.Filters).HasMaxLength(1000);
+                entity.Property(l => l.Format).HasConversion<int>();
+                entity.HasOne(l => l.User).WithMany().HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(l => l.CreatedAt);
+                entity.HasIndex(l => new { l.UserId, l.CreatedAt });
+                entity.HasIndex(l => new { l.BranchId, l.CreatedAt });
             });
 
             // ==================== تكوين العلاقات ====================
