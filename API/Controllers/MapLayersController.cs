@@ -27,6 +27,11 @@ namespace API.Controllers
         public async Task<ActionResult<List<MapLayerDefinitionDto>>> GetAll([FromQuery] int? branchId, [FromQuery] bool includeInactive = true)
             => Ok(await _mediator.Send(new GetMapLayersQuery(branchId, includeInactive)));
 
+        /// <summary>مصادر بيانات النظام وفلاترها من بيانات الفرع (branchId لنظرة المؤسسة) — لنموذج الطبقة</summary>
+        [HttpGet("Sources")]
+        [Authorize(Policy = "AnyMapLayerRead")]
+        public async Task<ActionResult<List<MapSourceDto>>> Sources([FromQuery] int? branchId) => Ok(await _mediator.Send(new GetMapSourcesQuery(branchId)));
+
         /// <summary>سقف حجم الملف ومجموعات الصيغ — لمنشئ حقول الملفات ونموذج السجل</summary>
         [HttpGet("FileOptions")]
         [Authorize(Policy = "AnyMapLayerRead")]

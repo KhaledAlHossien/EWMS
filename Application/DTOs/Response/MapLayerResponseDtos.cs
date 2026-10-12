@@ -29,6 +29,10 @@ namespace Application.DTOs.Response
         public bool AllowMultiple { get; set; }
         public bool IsActive { get; set; }
         public int SortOrder { get; set; }
+        /// <summary>فارغ = إدخال يدوي؛ وإلا مفتاح مزوّد من بيانات النظام</summary>
+        public string Source { get; set; } = string.Empty;
+        public string SourceTitle { get; set; } = string.Empty;
+        public Dictionary<string, List<string>> SourceFilter { get; set; } = new();
         public int EntriesCount { get; set; }
         public List<MapLayerFieldDto> Fields { get; set; } = [];
         public byte[] RowVersion { get; set; } = [];
@@ -58,6 +62,24 @@ namespace Application.DTOs.Response
         public bool CanDelete { get; set; }
         public byte[] RowVersion { get; set; } = [];
     }
+
+    /// <summary>مزوّد من بيانات النظام يمكن أن تُبنى منه طبقة، بفلاتره من بيانات الفرع</summary>
+    public class MapSourceDto
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Unit { get; set; } = string.Empty;
+        public List<MapSourceFilterDto> Filters { get; set; } = [];
+    }
+
+    public class MapSourceFilterDto
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public List<MapSourceOptionDto> Options { get; set; } = [];
+    }
+
+    public record MapSourceOptionDto(string Value, string Label);
 
     public class MapEntryFileDto
     {

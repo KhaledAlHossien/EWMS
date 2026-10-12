@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Application.DTOs.Response;
 using Domain.Entities;
 
 namespace Application.Interfaces
@@ -49,6 +50,27 @@ namespace Application.Interfaces
 
         Task<bool> ExistsForBranchAsync(int branchId);
         Task<bool> ExistsForUserAsync(int userId);
+    }
+
+    /// <summary>
+    /// مزوّد طبقة من بيانات النظام: ميزة سجلاتها مرتبطة بالمواقع المشتركة (SiteId) وتحمل وحدتها (BranchId/DepartmentId)،
+    /// فتظهر على خريطة الفرع بلا إدخال يدوي. أول مزوّد: تركيبات الأجهزة. ميزة جديدة لها مكان = مزوّد جديد يُسجَّل في DI.
+    /// الخريطة تعرض المواقع والأعداد فقط؛ تفاصيل السجلات في صفحات الميزة نفسها وبصلاحياتها.
+    /// </summary>
+    public interface IMapLayerProvider
+    {
+        string Key { get; }
+        string Title { get; }
+        /// <summary>وحدة العدّ في الموقع (مثل «تركيب»)</summary>
+        string Unit { get; }
+        /// <summary>مفاتيح الفلاتر التي يفهمها المزوّد</summary>
+        IReadOnlyCollection<string> FilterKeys { get; }
+        /// <summary>الفلاتر بخياراتها من بيانات الفرع (لنموذج الطبقة)</summary>
+        Task<List<MapSourceFilterDto>> GetFiltersAsync(int branchId);
+        /// <summary>مواقع سجلات الفرع المطابقة للفلتر مع العدد في كل موقع (Count)</summary>
+        Task<List<MapSiteDto>> GetSitesAsync(int branchId, IReadOnlyDictionary<string, List<string>> filter);
+        /// <summary>الفروع التي لها بيانات من هذا المزوّد (لقائمة فروع الخريطة)</summary>
+        Task<List<int>> BranchesWithDataAsync();
     }
 
     /// <summary>ملفات تُربط بالسجل أو تُحذف منه مع حفظه (نفس المعاملة)</summary>

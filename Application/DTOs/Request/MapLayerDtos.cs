@@ -29,6 +29,10 @@ namespace Application.DTOs.Request
         public string Color { get; set; } = "#2563EB";
         public bool AllowMultiple { get; set; }
         public bool IsActive { get; set; } = true;
+        /// <summary>فارغ = إدخال يدوي؛ أو مفتاح مزوّد من بيانات النظام (MapLayers/Sources). لا يتغير بعد الإنشاء</summary>
+        public string? Source { get; set; }
+        /// <summary>فلتر المزوّد: مفتاح ← قيم (القائمة الفارغة = الكل)</summary>
+        public Dictionary<string, List<string>>? SourceFilter { get; set; }
         /// <summary>الحقول المرسلة تُضاف أو تُعدَّل؛ الحذف من DELETE Field/{id} (يخيّر بين الإخفاء والحذف النهائي)</summary>
         public List<MapLayerFieldRequestDto> Fields { get; set; } = [];
         public byte[]? RowVersion { get; set; }
