@@ -14,11 +14,13 @@ namespace API.SystemBuild
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             });
 
-            // 1. Exception Handler
+            // 1. ترويسات الأمان على كل رد (حتى ردود الأخطاء)، ثم معالج الأخطاء
+            app.UseMiddleware<SecurityHeadersMiddleware>();
             app.UseMiddleware<ExceptionMiddleware>();
 
-            // 2. CORS
+            // 2. CORS، ثم حد المحاولات لكل جهاز (طلبات الدخول — عنوان الجهاز الحقيقي من X-Forwarded-For أعلاه)
             app.UseCors("AllowAngular");
+            app.UseRateLimiter();
 
             // 3. Swagger: فقط إن فُعّل في الإعدادات (Swagger:Enabled — مفعّل في التطوير، معطّل افتراضياً في الإنتاج)
             if (app.ApplicationServices.GetRequiredService<IConfiguration>().GetValue("Swagger:Enabled", false))

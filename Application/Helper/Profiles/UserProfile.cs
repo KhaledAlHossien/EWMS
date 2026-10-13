@@ -9,6 +9,8 @@ namespace Application.Helper.Profiles
         public UserProfile()
         {
             CreateMap<User, UserResponseDto>()
+                .ForMember(dest => dest.LockedUntil,
+                    opt => opt.MapFrom(src => src.LockoutUntil > DateTime.UtcNow ? src.LockoutUntil : null))
                 .ForMember(dest => dest.RoleName,
                     opt => opt.MapFrom(src => src.Role != null ? src.Role.Name : string.Empty))
                 .ForMember(dest => dest.DepartmentName,
