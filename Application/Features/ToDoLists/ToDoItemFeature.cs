@@ -36,6 +36,7 @@ namespace Application.Features.ToDoLists
                 .MaximumLength(ToDoRules.MaxTitleLength).WithMessage($"عنوان البند لا يتجاوز {ToDoRules.MaxTitleLength} حرف");
             RuleFor(x => x.Dto.Note).MaximumLength(ToDoRules.MaxNoteLength).WithMessage($"الملاحظة لا تتجاوز {ToDoRules.MaxNoteLength} حرف");
             RuleFor(x => x.Dto).Must(d => ToDoRules.ParseRepeat(d.Repeat) == null || d.DueDate != null).WithMessage("البند المتكرر يحتاج موعداً");
+            RuleFor(x => x.Dto.Color).Must(ToDoRules.IsColor).WithMessage("لون البند غير صحيح");
         }
     }
 
@@ -54,7 +55,8 @@ namespace Application.Features.ToDoLists
         public UpdateToDoItemCommandValidator()
         {
             RuleFor(x => x.Dto).Must(d => d.Title != null || d.IsDone != null || d.Note != null || d.IsImportant != null
-                    || d.DueDate != null || d.ClearDueDate || d.Repeat != null).WithMessage("لا يوجد ما يُعدَّل");
+                    || d.Color != null || d.DueDate != null || d.ClearDueDate || d.Repeat != null).WithMessage("لا يوجد ما يُعدَّل");
+            RuleFor(x => x.Dto.Color).Must(ToDoRules.IsColor).WithMessage("لون البند غير صحيح");
             RuleFor(x => x.Dto.Title).NotEmpty().When(x => x.Dto.Title != null).WithMessage("عنوان البند مطلوب")
                 .MaximumLength(ToDoRules.MaxTitleLength).WithMessage($"عنوان البند لا يتجاوز {ToDoRules.MaxTitleLength} حرف");
             RuleFor(x => x.Dto.Note).MaximumLength(ToDoRules.MaxNoteLength).WithMessage($"الملاحظة لا تتجاوز {ToDoRules.MaxNoteLength} حرف");
@@ -137,9 +139,10 @@ namespace Application.Features.ToDoLists
                 Title = dto.Title.Trim(),
                 Note = Clean(dto.Note),
                 IsImportant = dto.IsImportant,
+                Color = ToDoRules.CleanColor(dto.Color),
                 DueDate = dto.DueDate?.Date,
                 Repeat = ToDoRules.ParseRepeat(dto.Repeat),
-                SortOrder = await _service.NextSortOrderAsync(list.Id),
+                SortOrder = await _service.FirstSortOrderAsync(list.Id),
                 CreatedAt = DateTime.UtcNow
             });
             return await ResultAsync(list.Id, viewer);
@@ -152,7 +155,7 @@ namespace Application.Features.ToDoLists
             if (list.Items.Count + titles.Count > ToDoRules.MaxItemsPerList)
                 throw new InvalidOperationException($"لا تتسع القائمة: الحد الأقصى {ToDoRules.MaxItemsPerList} بنداً وفيها {list.Items.Count}");
 
-            var order = await _service.NextSortOrderAsync(list.Id);
+            var order = await _service.FirstSortOrderAsync(list.Id) - titles.Count + 1;
             var now = DateTime.UtcNow;
             await _service.AddItemsAsync(titles.Select((t, i) => new ToDoItem
             {
@@ -179,7 +182,7 @@ namespace Application.Features.ToDoLists
                 Title = task.Title.Length > ToDoRules.MaxTitleLength ? task.Title[..ToDoRules.MaxTitleLength] : task.Title,
                 DueDate = task.DueDate?.Date,
                 LinkedTaskId = task.Id,
-                SortOrder = await _service.NextSortOrderAsync(list.Id),
+                SortOrder = await _service.FirstSortOrderAsync(list.Id),
                 CreatedAt = DateTime.UtcNow
             });
             return await ResultAsync(list.Id, viewer);
@@ -198,6 +201,7 @@ namespace Application.Features.ToDoLists
             if (dto.Title != null) item.Title = dto.Title.Trim();
             if (dto.Note != null) item.Note = Clean(dto.Note);
             if (dto.IsImportant is bool important) item.IsImportant = important;
+            if (dto.Color != null) item.Color = ToDoRules.CleanColor(dto.Color);
 
             var dueBefore = item.DueDate;
             if (dto.ClearDueDate) { item.DueDate = null; item.Repeat = null; }
@@ -294,7 +298,7 @@ namespace Application.Features.ToDoLists
                 UserId = source.UserId, Name = name, Description = source.Description, Color = source.Color, Icon = source.Icon,
                 Items = source.Items.OrderBy(i => i.SortOrder).ThenBy(i => i.Id).Select((i, index) => new ToDoItem
                 {
-                    Title = i.Title, Note = i.Note, IsImportant = i.IsImportant, SortOrder = index, CreatedAt = now
+                    Title = i.Title, Note = i.Note, IsImportant = i.IsImportant, Color = i.Color, SortOrder = index, CreatedAt = now
                 }).ToList()
             };
             var created = await _service.AddAsync(copy);

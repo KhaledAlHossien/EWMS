@@ -23,8 +23,10 @@ namespace Domain.Entities
         public DateTime CreatedAt { get; set; }
 
         public string Note { get; set; } = string.Empty;
-        /// <summary>علامة «مهم»</summary>
+        /// <summary>علامة «مهم» — البنود الهامة غير المنجزة تُعرض أولاً دائماً (قرار المستخدم 2026-10-13)</summary>
         public bool IsImportant { get; set; }
+        /// <summary>لون البند (ألوان القوائم نفسها ToDoRules.Colors؛ فارغ = بلا لون)</summary>
+        public string Color { get; set; } = string.Empty;
 
         /// <summary>تاريخ الاستحقاق (يوم فقط)؛ منه يأتي «مهامي اليوم» والتذكيرات</summary>
         public DateTime? DueDate { get; set; }

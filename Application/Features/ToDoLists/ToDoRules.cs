@@ -17,6 +17,10 @@ namespace Application.Features.ToDoLists
 
         public static readonly string[] Colors = ["green", "blue", "purple", "orange", "red", "gray"];
 
+        /// <summary>لون قائمة أو بند: أحد Colors أو فارغ</summary>
+        public static bool IsColor(string? color) => string.IsNullOrWhiteSpace(color) || Colors.Contains(color.Trim().ToLowerInvariant());
+        public static string CleanColor(string? color) => (color ?? string.Empty).Trim().ToLowerInvariant();
+
         public static string RepeatAr(TaskRecurrenceFrequency r) => r switch
         {
             TaskRecurrenceFrequency.Daily => "يومياً",

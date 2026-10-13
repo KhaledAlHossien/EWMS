@@ -97,6 +97,9 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<int> NextSortOrderAsync(int listId) =>
             (await _context.ToDoItems.Where(i => i.ToDoListId == listId).MaxAsync(i => (int?)i.SortOrder) ?? -1) + 1;
 
+        public async Task<int> FirstSortOrderAsync(int listId) =>
+            (await _context.ToDoItems.Where(i => i.ToDoListId == listId).MinAsync(i => (int?)i.SortOrder) ?? 1) - 1;
+
         public Task SaveChangesAsync() => _context.SaveChangesAsync();
 
         public async Task<bool> ExistsByNameAsync(int ownerId, string name, int? excludeId = null) =>

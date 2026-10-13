@@ -33,6 +33,7 @@ namespace Application.DTOs.Response
 
         public string Note { get; set; } = string.Empty;
         public bool IsImportant { get; set; }
+        public string Color { get; set; } = string.Empty;
         public DateTime? DueDate { get; set; }
         public bool IsOverdue { get; set; }
         /// <summary>Daily | Weekly | Monthly، أو null</summary>

@@ -25,10 +25,10 @@ namespace API.Controllers
         public async Task<ActionResult<List<PublicHolidayResponseDto>>> GetAll([FromQuery] int? year)
             => Ok(await _mediator.Send(new GetAllPublicHolidaysQuery(year)));
 
-        // EndDate اختياري: يضيف يوماً لكل تاريخ في المدة (مثل عطلة العيد)
+        // EndDate اختياري: عطلة من عدة أيام سجلٌّ واحد (مثل عطلة العيد)
         [HttpPost("Create")]
         [Authorize(Policy = "CreateHoliday")]
-        public async Task<ActionResult<List<PublicHolidayResponseDto>>> Create([FromBody] PublicHolidayRequestDto dto)
+        public async Task<ActionResult<PublicHolidayResponseDto>> Create([FromBody] PublicHolidayRequestDto dto)
             => Ok(await _mediator.Send(new CreatePublicHolidayCommand(dto)));
 
         [HttpPut("Update/{id}")]

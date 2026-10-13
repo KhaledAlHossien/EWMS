@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories
 {
+    /// <summary>العطل الرسمية: سجل لكل عطلة بفترة من–إلى؛ أيامها تُفرد لحساب الإجازات</summary>
     public class PublicHolidayService : IPublicHolidayService
     {
         private readonly DataContext _context;
@@ -14,28 +15,34 @@ namespace Infrastructure.Persistence.Repositories
             _context = context;
         }
 
-        public async Task<List<PublicHoliday>> GetAllAsync(int? year = null) =>
-            await _context.PublicHolidays
-                .Where(h => year == null || h.Date.Year == year)
-                .OrderBy(h => h.Date)
-                .ToListAsync();
+        public async Task<List<PublicHoliday>> GetAllAsync(int? year = null)
+        {
+            var query = _context.PublicHolidays.AsQueryable();
+            if (year is int y)
+            {
+                var first = new DateTime(y, 1, 1);
+                var last = new DateTime(y, 12, 31);
+                query = query.Where(h => h.StartDate <= last && h.EndDate >= first);
+            }
+            return await query.OrderBy(h => h.StartDate).ToListAsync();
+        }
 
         public async Task<List<PublicHoliday>> GetBetweenAsync(DateTime start, DateTime end)
         {
             var from = start.Date;
             var to = end.Date;
             return await _context.PublicHolidays
-                .Where(h => h.Date >= from && h.Date <= to)
-                .OrderBy(h => h.Date)
+                .Where(h => h.StartDate <= to && h.EndDate >= from)
+                .OrderBy(h => h.StartDate)
                 .ToListAsync();
         }
 
         public async Task<PublicHoliday?> GetByIdAsync(int id) =>
             await _context.PublicHolidays.FirstOrDefaultAsync(h => h.Id == id);
 
-        public async Task AddRangeAsync(IEnumerable<PublicHoliday> holidays)
+        public async Task AddAsync(PublicHoliday holiday)
         {
-            await _context.PublicHolidays.AddRangeAsync(holidays);
+            await _context.PublicHolidays.AddAsync(holiday);
             await _context.SaveChangesAsync();
         }
 
@@ -51,24 +58,25 @@ namespace Infrastructure.Persistence.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<DateTime>> ExistingDatesAsync(IEnumerable<DateTime> dates, int? excludeId = null)
+        public async Task<PublicHoliday?> FindOverlapAsync(DateTime start, DateTime end, int? excludeId = null)
         {
-            var list = dates.Select(d => d.Date).ToList();
+            var from = start.Date;
+            var to = end.Date;
             return await _context.PublicHolidays
-                .Where(h => list.Contains(h.Date) && h.Id != excludeId)
-                .Select(h => h.Date)
-                .ToListAsync();
+                .Where(h => h.Id != excludeId && h.StartDate <= to && h.EndDate >= from)
+                .OrderBy(h => h.StartDate)
+                .FirstOrDefaultAsync();
         }
 
         public async Task<IReadOnlySet<DateTime>> GetDatesAsync(DateTime start, DateTime end)
         {
             var from = start.Date;
             var to = end.Date;
-            var dates = await _context.PublicHolidays
-                .Where(h => h.Date >= from && h.Date <= to)
-                .Select(h => h.Date)
-                .ToListAsync();
-            return dates.ToHashSet();
+            var dates = new HashSet<DateTime>();
+            foreach (var h in await GetBetweenAsync(from, to))
+                for (var d = h.StartDate.Date < from ? from : h.StartDate.Date; d <= h.EndDate.Date && d <= to; d = d.AddDays(1))
+                    dates.Add(d);
+            return dates;
         }
     }
 }
