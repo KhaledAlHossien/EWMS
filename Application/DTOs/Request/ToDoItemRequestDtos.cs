@@ -5,6 +5,8 @@ namespace Application.DTOs.Request
         public string Title { get; set; } = string.Empty;
         public string? Note { get; set; }
         public bool IsImportant { get; set; }
+        /// <summary>green | blue | purple | orange | red | gray، أو فارغ</summary>
+        public string? Color { get; set; }
         public DateTime? DueDate { get; set; }
         /// <summary>1 يومي، 2 أسبوعي، 3 شهري — يحتاج DueDate (null/0 = بلا تكرار)</summary>
         public int? Repeat { get; set; }
@@ -17,6 +19,8 @@ namespace Application.DTOs.Request
         public bool? IsDone { get; set; }
         public string? Note { get; set; }
         public bool? IsImportant { get; set; }
+        /// <summary>لون البند ("" = بلا لون)</summary>
+        public string? Color { get; set; }
         public DateTime? DueDate { get; set; }
         public bool ClearDueDate { get; set; }
         public int? Repeat { get; set; }

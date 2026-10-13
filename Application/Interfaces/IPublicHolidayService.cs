@@ -4,17 +4,19 @@ namespace Application.Interfaces
 {
     public interface IPublicHolidayService
     {
+        /// <summary>العطل التي تقع (أو جزء منها) في السنة</summary>
         Task<List<PublicHoliday>> GetAllAsync(int? year = null);
+        /// <summary>العطل التي تتقاطع مع الفترة (شاملة)</summary>
         Task<List<PublicHoliday>> GetBetweenAsync(DateTime start, DateTime end);
         Task<PublicHoliday?> GetByIdAsync(int id);
-        Task AddRangeAsync(IEnumerable<PublicHoliday> holidays);
+        Task AddAsync(PublicHoliday holiday);
         Task UpdateAsync(PublicHoliday holiday);
         Task DeleteAsync(PublicHoliday holiday);
 
-        /// <summary>أي من هذه التواريخ مسجّل مسبقاً كعطلة (excludeId للتعديل)</summary>
-        Task<List<DateTime>> ExistingDatesAsync(IEnumerable<DateTime> dates, int? excludeId = null);
+        /// <summary>أول عطلة أخرى تتداخل مع الفترة (excludeId للتعديل) — العطل لا تتداخل</summary>
+        Task<PublicHoliday?> FindOverlapAsync(DateTime start, DateTime end, int? excludeId = null);
 
-        /// <summary>تواريخ العطل الرسمية بين تاريخين (شاملة) — لحساب أيام الإجازة</summary>
+        /// <summary>تواريخ أيام العطل الرسمية بين تاريخين (شاملة) — لحساب أيام الإجازة</summary>
         Task<IReadOnlySet<DateTime>> GetDatesAsync(DateTime start, DateTime end);
     }
 }

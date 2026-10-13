@@ -34,8 +34,11 @@ namespace Infrastructure.Reports
                 .Select(o => new ReportOptionDto(o.Id.ToString(), o.Name + " — " + o.Department.Name, o.DepartmentId.ToString()))
                 .ToListAsync(ct);
             filters.Add(Select(Office, "المكتب", offices, dependsOn: Department));
-            var roles = await Db.Roles.AsNoTracking().OrderBy(r => r.Name)
-                .Select(r => new ReportOptionDto(r.Id.ToString(), r.Name, null)).ToListAsync(ct);
+            // الأدوار التي يحملها موظفو حدّي فقط (لا أدوار الفروع الأخرى)، وكلها لنظرة المؤسسة
+            var roles = limit == null
+                ? await Db.Roles.AsNoTracking().OrderBy(r => r.Name).Select(r => new ReportOptionDto(r.Id.ToString(), r.Name, null)).ToListAsync(ct)
+                : (await Db.Users.AsNoTracking().Where(u => u.BranchId == limit).Select(u => new { u.RoleId, u.Role.Name }).Distinct().ToListAsync(ct))
+                    .OrderBy(r => r.Name).Select(r => new ReportOptionDto(r.RoleId.ToString(), r.Name)).ToList();
             filters.Add(Select(Role, "الدور", roles));
             filters.Add(Select(Status, "الحالة", [new("1", "نشط"), new("0", "موقوف")]));
             filters.Add(Text(Name, "الموظف", "الاسم أو الرقم الذاتي"));
