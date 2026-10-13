@@ -144,9 +144,9 @@ namespace Infrastructure.Persistence.Data
                 {
                     logger.LogWarning("لا يوجد مدير نظام. اضبط Seed:AdminEmail و Seed:AdminPassword (متغيرا البيئة Seed__AdminEmail و Seed__AdminPassword) ثم أعد التشغيل لإنشائه.");
                 }
-                else if (password.Length < 8)
+                else if (Application.Common.PasswordRules.Problem(password, email) is { } weak)
                 {
-                    logger.LogWarning("لم يُنشأ مدير النظام: كلمة المرور في Seed:AdminPassword أقصر من 8 أحرف.");
+                    logger.LogWarning("لم يُنشأ مدير النظام: كلمة المرور في Seed:AdminPassword ضعيفة — {Problem}.", weak);
                 }
                 else if (await context.Users.AnyAsync(u => u.Email == email))
                 {

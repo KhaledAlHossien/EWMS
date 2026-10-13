@@ -3,6 +3,7 @@ using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using Domain.Entities;
+using Domain.Enums;
 using Infrastructure.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -16,18 +17,25 @@ namespace Infrastructure.Persistence.Repositories
         private readonly DataContext _context;
         private readonly IJwtService _jwtService;
         private readonly ICurrentUserService _currentUserService;
+        private readonly INotificationService _notifications;
 
         public AuthService(
             DataContext context,
             IJwtService jwtService,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            INotificationService notifications)
         {
+            _notifications = notifications;
             _context = context;
             _jwtService = jwtService;
             _currentUserService = currentUserService;
         }
 
-        public async Task<LoginResponse?> LoginAsync(LoginRequest request)
+        /// <summary>
+        /// الدخول مع الحماية من التخمين (LoginRules): 5 محاولات خاطئة متتالية تقفل الحساب 15 دقيقة (ولو أُدخلت الكلمة
+        /// الصحيحة خلالها) ويُشعَر صاحبه؛ الدخول الصحيح يصفّر العدّاد. البريد غير الموجود والكلمة الخاطئة رسالة واحدة.
+        /// </summary>
+        public async Task<LoginOutcome> LoginAsync(LoginRequest request)
         {
             var user = await _context.Users
                 .Include(u => u.Role)
@@ -35,11 +43,36 @@ namespace Infrastructure.Persistence.Repositories
                 .Include(u => u.Branch)
                 .FirstOrDefaultAsync(u => u.Email == request.Email);
 
-            if (user == null || !user.IsActive) return null;
+            if (user == null || !user.IsActive) return LoginOutcome.Invalid;
+
+            var now = DateTime.UtcNow;
+            if (user.LockoutUntil > now) return new LoginOutcome(null, user.LockoutUntil);
 
             // التحقق من كلمة المرور باستخدام BCrypt
             if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-                return null;
+            {
+                user.FailedLoginCount++;
+                if (user.FailedLoginCount < LoginRules.MaxFailedAttempts)
+                {
+                    await _context.SaveChangesAsync();
+                    return LoginOutcome.Invalid;
+                }
+                user.FailedLoginCount = 0;
+                user.LockoutUntil = now.AddMinutes(LoginRules.LockoutMinutes);
+                await _context.SaveChangesAsync();
+                await _notifications.AddAsync(new Notification
+                {
+                    UserId = user.Id,
+                    Title = "محاولات دخول خاطئة على حسابك",
+                    Message = $"جرت {LoginRules.MaxFailedAttempts} محاولات دخول خاطئة على حسابك فأُوقف الدخول إليه {LoginRules.LockoutMinutes} دقيقة. إن لم تكن أنت فأبلغ المسؤول عن النظام.",
+                    Type = NotificationType.LoginLocked,
+                    CreatedAt = now
+                });
+                return new LoginOutcome(null, user.LockoutUntil);
+            }
+
+            user.FailedLoginCount = 0;
+            user.LockoutUntil = null;
 
             // جلب أسماء صلاحيات الدور
             var permissions = await _context.RolePermissions
@@ -64,7 +97,7 @@ namespace Infrastructure.Persistence.Repositories
             await _context.UserTokens.AddAsync(userToken);
             await _context.SaveChangesAsync();
 
-            return new LoginResponse
+            return new LoginOutcome(new LoginResponse
             {
                 Token = token,
                 ExpiresAt = expiresAt,
@@ -75,7 +108,7 @@ namespace Infrastructure.Persistence.Repositories
                 DepartmentId = user.DepartmentId,
                 OfficeId = user.OfficeId,
                 Permissions = permissions
-            };
+            }, null);
         }
 
         public async Task<bool> RegisterAsync(RegisterRequest request)
@@ -83,6 +116,8 @@ namespace Infrastructure.Persistence.Repositories
             // التحقق من عدم وجود البريد
             var exists = await _context.Users.AnyAsync(u => u.Email == request.Email);
             if (exists) return false;
+            if (PasswordRules.Problem(request.Password, request.Email) is { } weak)
+                throw new InvalidOperationException(weak);
 
             var branchExists = await _context.Branches.AnyAsync(b => b.Id == request.BranchId);
             var department = await _context.Departments.FirstOrDefaultAsync(d => d.Id == request.DepartmentId);

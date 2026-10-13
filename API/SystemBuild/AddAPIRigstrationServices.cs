@@ -19,6 +19,22 @@ namespace API.SystemBuild
 
             // الإشعارات اللحظية (SignalR)
             services.AddSignalR();
+
+            // حد المحاولات لكل جهاز على الدخول وتغيير كلمة المرور (LoginRules) — 429 برسالة عربية
+            services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+                options.OnRejected = (context, token) => new ValueTask(
+                    context.HttpContext.Response.WriteAsJsonAsync(new { message = LoginRules.TooManyFromDevice }, token));
+                options.AddPolicy(LoginRules.RateLimitPolicy, http => System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+                    http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = LoginRules.AttemptsPerDevicePerMinute,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0
+                    }));
+            });
             services.AddScoped<INotificationPusher, SignalRNotificationPusher>();
             services.AddEndpointsApiExplorer();
 

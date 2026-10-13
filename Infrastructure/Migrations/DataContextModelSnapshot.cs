@@ -1921,12 +1921,18 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<int>("FailedLoginCount")
+                        .HasColumnType("int");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LockoutUntil")
+                        .HasColumnType("datetime2");
 
                     b.Property<int?>("OfficeId")
                         .HasColumnType("int");

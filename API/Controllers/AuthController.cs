@@ -7,6 +7,9 @@ using Application.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Application.Common;
+using Application.Features.Users.Password;
 
 namespace API.Controllers
 {
@@ -49,16 +52,25 @@ namespace API.Controllers
             return Ok(new { message = string.IsNullOrWhiteSpace(dto.Image) ? "تم حذف التوقيع" : "تم حفظ التوقيع" });
         }
 
+        // الحماية من التخمين: 20 محاولة في الدقيقة لكل جهاز (429)، وقفل الحساب بعد 5 محاولات خاطئة (423) — LoginRules
         [HttpPost("login")]
         [AllowAnonymous]
+        [EnableRateLimiting(LoginRules.RateLimitPolicy)]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var result = await _authService.LoginAsync(request);
-            if (result == null)
-                return Unauthorized(new { message = "البريد أو كلمة المرور غير صحيحة" });
-
-            return Ok(result);
+            var outcome = await _authService.LoginAsync(request);
+            if (outcome.Response != null) return Ok(outcome.Response);
+            if (outcome.LockedUntil is DateTime until)
+                return StatusCode(StatusCodes.Status423Locked, new { message = LoginRules.LockedMessage(until) });
+            return Unauthorized(new { message = LoginRules.InvalidCredentials });
         }
+
+        // الموظف يغيّر كلمة مروره بنفسه (لكل مستخدم مسجّل، كـ Me): بعدها تنتهي كل جلساته فيدخل بالكلمة الجديدة
+        [HttpPut("Password")]
+        [Authorize]
+        [EnableRateLimiting(LoginRules.RateLimitPolicy)]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangeMyPasswordCommand command)
+            => Ok(new { message = await _mediator.Send(command) });
 
         [HttpPost("register")]
         [Authorize(Policy = "CreateUser")]

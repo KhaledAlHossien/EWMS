@@ -99,7 +99,12 @@ namespace Application.Features.Users.Commands.Update
             user.IsActive = request.UserDto.IsActive;
 
             if (!string.IsNullOrWhiteSpace(request.UserDto.Password))
+            {
                 user.PasswordHash = _passwordHasher.Hash(request.UserDto.Password);
+                // كلمة مرور جديدة من المسؤول تفك قفل المحاولات الخاطئة
+                user.FailedLoginCount = 0;
+                user.LockoutUntil = null;
+            }
 
             await _userService.UpdateAsync(user);
             if (sensitive) await _userService.RevokeSessionsAsync(user.Id);
