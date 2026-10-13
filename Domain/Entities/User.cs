@@ -31,6 +31,11 @@ namespace Domain.Entities
 
         public bool IsActive { get; set; }=true;
 
+        /// <summary>محاولات الدخول الخاطئة المتتالية (تُصفَّر بالدخول الصحيح أو عند القفل) — LoginRules</summary>
+        public int FailedLoginCount { get; set; }
+        /// <summary>الدخول موقوف حتى هذا الوقت (UTC) بعد محاولات خاطئة متكررة؛ null = غير مقفل</summary>
+        public DateTime? LockoutUntil { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
 

@@ -16,6 +16,8 @@ namespace Application.DTOs.Response
         public int? BranchId { get; set; }
         public string BranchName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
+        /// <summary>الدخول موقوف مؤقتاً حتى (UTC) بعد محاولات خاطئة متكررة — فارغ إن لم يكن مقفلاً الآن</summary>
+        public DateTime? LockedUntil { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

@@ -14,9 +14,12 @@ namespace Application.Features.Users.Commands.Update
                 .NotEmpty().WithMessage("البريد الإلكتروني مطلوب")
                 .EmailAddress().WithMessage("صيغة البريد الإلكتروني غير صحيحة");
 
-            RuleFor(x => x.UserDto.Password)
-                .MinimumLength(6).WithMessage("كلمة المرور يجب أن تكون 6 أحرف على الأقل")
-                .When(x => !string.IsNullOrWhiteSpace(x.UserDto.Password));
+            // عند تعيين كلمة مرور جديدة: سياسة PasswordRules
+            RuleFor(x => x.UserDto.Password).Custom((password, context) =>
+            {
+                if (Application.Common.PasswordRules.Problem(password, context.InstanceToValidate.UserDto.Email) is { } problem)
+                    context.AddFailure(problem);
+            }).When(x => !string.IsNullOrWhiteSpace(x.UserDto.Password));
 
             RuleFor(x => x.UserDto.RoleId).GreaterThan(0).WithMessage("الدور مطلوب");
 

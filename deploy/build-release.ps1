@@ -57,6 +57,10 @@ if (-not $Single) {
     # إعدادات الخادم ومفاتيحه تبقى كما هي على الخادم: لا appsettings في الحزمة، والقالب للمرجع فقط
     Remove-Item (Join-Path $api 'appsettings.json'), (Join-Path $api 'appsettings.Development.json') -ErrorAction SilentlyContinue
     Copy-Item (Join-Path $PSScriptRoot 'appsettings.release.json') (Join-Path $api 'appsettings.template.json') -Force
+    # ترويسات الأمان لملفات الواجهة التي يقدّمها Nginx (docs/DEPLOYMENT.md، القسم A) — بنهايات LF
+    New-Item -ItemType Directory -Force (Join-Path $api 'deploy') | Out-Null
+    $headers = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'linux\ewms-security-headers.conf')) -replace "`r`n", "`n"
+    [IO.File]::WriteAllText((Join-Path $api 'deploy\ewms-security-headers.conf'), $headers, (New-Object Text.UTF8Encoding $false))
     Set-Content -Path (Join-Path $api 'VERSION') -Value $version -Encoding ascii
     New-Archive $api "EWMS-$version-api-linux-x64.tar.gz" $true
 
