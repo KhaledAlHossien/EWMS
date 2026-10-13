@@ -733,11 +733,14 @@ namespace Infrastructure.Persistence.Data
             });
 
             // ==================== العطل الرسمية ====================
+            // عطلة رسمية بفترة (سجل لكل عطلة) — العطل لا تتداخل (يفحصه المعالج)، فبداية العطلة فريدة
             builder.Entity<PublicHoliday>(entity =>
             {
-                entity.Property(h => h.Date).HasColumnType("date");
+                entity.Property(h => h.StartDate).HasColumnType("date");
+                entity.Property(h => h.EndDate).HasColumnType("date");
                 entity.Property(h => h.Name).HasMaxLength(100).IsRequired();
-                entity.HasIndex(h => h.Date).IsUnique();
+                entity.HasIndex(h => h.StartDate).IsUnique();
+                entity.HasIndex(h => new { h.EndDate, h.StartDate });
             });
 
             // ==================== الصيانة: سجل الطلب ====================
@@ -857,6 +860,7 @@ namespace Infrastructure.Persistence.Data
             {
                 entity.Property(i => i.Title).HasMaxLength(200).IsRequired();
                 entity.Property(i => i.Note).HasMaxLength(1000);
+                entity.Property(i => i.Color).HasMaxLength(10);
                 entity.Property(i => i.Repeat).HasConversion<int?>();
                 entity.HasOne(i => i.ToDoList).WithMany(l => l.Items)
                     .HasForeignKey(i => i.ToDoListId).OnDelete(DeleteBehavior.Cascade);

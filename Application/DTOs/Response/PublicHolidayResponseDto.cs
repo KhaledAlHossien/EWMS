@@ -3,9 +3,11 @@ namespace Application.DTOs.Response
     public class PublicHolidayResponseDto
     {
         public int Id { get; set; }
-        public DateTime Date { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
         public string Name { get; set; } = string.Empty;
-        public bool IsFriday { get; set; }   // يقع يوم جمعة أصلاً (لا يغيّر شيئاً في الحساب)
+        public int Days { get; set; }        // أيام العطلة (من–إلى شاملة)
+        public int Fridays { get; set; }     // منها أيام جمعة أصلاً (لا تغيّر شيئاً في الحساب)
     }
 
     /// <summary>معاينة مدة الإجازة في نموذج الطلب</summary>

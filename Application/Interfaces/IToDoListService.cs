@@ -26,6 +26,8 @@ namespace Application.Interfaces
         Task<int> CountItemsAsync(int listId);
         /// <summary>رقم ترتيب بعد آخر بند</summary>
         Task<int> NextSortOrderAsync(int listId);
+        /// <summary>رقم ترتيب يسبق كل بنود القائمة — البنود الجديدة تظهر أولاً (بجانب بطاقة الإضافة)</summary>
+        Task<int> FirstSortOrderAsync(int listId);
         Task SaveChangesAsync();
 
         /// <summary>«مهامي اليوم»: غير المنجزة المستحقة حتى اليوم في قوائم المستخدم غير المؤرشفة (مع القائمة والمهمة المرتبطة)</summary>

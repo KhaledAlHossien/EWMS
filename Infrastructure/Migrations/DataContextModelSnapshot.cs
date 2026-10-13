@@ -1611,7 +1611,7 @@ namespace Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("Date")
+                    b.Property<DateTime>("EndDate")
                         .HasColumnType("date");
 
                     b.Property<string>("Name")
@@ -1619,10 +1619,15 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("date");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Date")
+                    b.HasIndex("StartDate")
                         .IsUnique();
+
+                    b.HasIndex("EndDate", "StartDate");
 
                     b.ToTable("PublicHolidays");
                 });
@@ -1787,6 +1792,11 @@ namespace Infrastructure.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
