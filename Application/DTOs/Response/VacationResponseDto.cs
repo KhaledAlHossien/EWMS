@@ -61,7 +61,7 @@ namespace Application.DTOs.Response
     }
 
     /// <summary>محتوى مرفق للعرض أو التنزيل</summary>
-    public record VacationAttachmentFileDto(string FileName, string ContentType, byte[] Data);
+    public record VacationAttachmentFileDto(string FileName, string ContentType, Stream Content);
 
     public class VacationSegmentDto
     {

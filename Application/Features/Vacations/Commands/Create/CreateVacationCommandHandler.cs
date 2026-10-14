@@ -24,6 +24,7 @@ namespace Application.Features.Vacations.Commands.Create
         private readonly IUserPermissionService _permissions;
         private readonly INotificationService _notificationService;
         private readonly IUserSignatureService _signatures;
+        private readonly IFileStore _files;
         private readonly IMapper _mapper;
 
         public CreateVacationCommandHandler(
@@ -34,6 +35,7 @@ namespace Application.Features.Vacations.Commands.Create
             IUserPermissionService permissions,
             INotificationService notificationService,
             IUserSignatureService signatures,
+            IFileStore files,
             IMapper mapper)
         {
             _vacationService = vacationService;
@@ -43,6 +45,7 @@ namespace Application.Features.Vacations.Commands.Create
             _permissions = permissions;
             _notificationService = notificationService;
             _signatures = signatures;
+            _files = files;
             _mapper = mapper;
         }
 
@@ -105,16 +108,20 @@ namespace Application.Features.Vacations.Commands.Create
                 UpdatedAt = DateTime.UtcNow
             };
 
-            // المرفقات تُحفظ مع الطلب في نفس العملية (النوع من محتوى الملف، والمدقّق رفض ما سواه)
+            // المرفقات تُحفظ مع الطلب (النوع من محتوى الملف، والمدقّق رفض ما سواه): في مجلد المرفقات أولاً إن كان مُفعَّلاً، وإلا في القاعدة
             foreach (var file in request.Attachments)
+            {
+                var key = await _files.SaveAsync(FileAreas.Vacations, file.Data, ct);
                 vacation.Attachments.Add(new VacationAttachment
                 {
                     FileName = VacationAttachmentRules.SafeFileName(file.FileName),
                     ContentType = VacationAttachmentRules.DetectContentType(file.Data)!,
                     Size = file.Data.Length,
                     UploadedAt = DateTime.UtcNow,
-                    Content = new VacationAttachmentContent { Data = file.Data }
+                    StorageKey = key,
+                    Content = key == null ? new VacationAttachmentContent { Data = file.Data } : null
                 });
+            }
 
             await _vacationService.AddAsync(vacation);
 

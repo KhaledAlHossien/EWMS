@@ -47,7 +47,10 @@ namespace Application.Interfaces
             int userId, DateTime start, DateTime end, int? excludeVacationId = null);
 
         /// <summary>مرفق مع إجازته ومحتواه (للعرض/التنزيل بعد التحقق من حق عرض الإجازة)</summary>
+        /// <summary>مع الإجازة، بلا المحتوى</summary>
         Task<VacationAttachment?> GetAttachmentAsync(int attachmentId);
+        /// <summary>محتوى مرفق محفوظ في القاعدة (StorageKey = null)</summary>
+        Task<byte[]?> GetAttachmentDataAsync(int attachmentId);
 
         // ==================== «سجل الموظف» قبل القرار ====================
         /// <summary>آخر إجازة معتمدة بدأت حتى تاريخ معيّن</summary>

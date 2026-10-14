@@ -65,8 +65,8 @@ namespace API.Controllers
         {
             var file = await _mediator.Send(new GetVacationAttachmentQuery(id));
             return download
-                ? File(file.Data, file.ContentType, file.FileName)
-                : File(file.Data, file.ContentType);
+                ? File(file.Content, file.ContentType, file.FileName)
+                : File(file.Content, file.ContentType);
         }
 
         // ========== إلغاء إجازة (من صاحبها، قبل الاعتماد النهائي) ==========

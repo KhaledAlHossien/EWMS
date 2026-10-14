@@ -130,8 +130,8 @@ namespace API.Controllers
             var file = await _mediator.Send(new GetMapEntryFileQuery(id));
             Response.Headers["X-Content-Type-Options"] = "nosniff";
             return download || !file.Previewable
-                ? File(file.Data, file.ContentType, file.FileName)
-                : File(file.Data, file.ContentType);
+                ? File(file.Content, file.ContentType, file.FileName)
+                : File(file.Content, file.ContentType);
         }
 
         /// <summary>حذف ملف معلّق رفعه المستخدم ولم يحفظ سجله بعد</summary>

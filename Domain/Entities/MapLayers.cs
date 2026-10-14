@@ -130,6 +130,8 @@ namespace Domain.Entities
         public User UploadedByUser { get; set; } = null!;
         public DateTime UploadedAt { get; set; }
 
+        /// <summary>مفتاح المحتوى في مجلد المرفقات (FileStorage:Mode=FileSystem)؛ null = المحتوى في جدول المحتوى بالقاعدة</summary>
+        public string? StorageKey { get; set; }
         public MapEntryFileContent? Content { get; set; }
     }
 

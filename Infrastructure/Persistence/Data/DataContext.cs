@@ -208,6 +208,8 @@ namespace Infrastructure.Persistence.Data
                 entity.Property(f => f.FileName).HasMaxLength(200).IsRequired();
                 entity.Property(f => f.ContentType).HasMaxLength(150).IsRequired();
                 entity.Property(f => f.Kind).HasMaxLength(20).IsRequired();
+                entity.Property(f => f.StorageKey).HasMaxLength(80);
+                entity.HasIndex(f => f.StorageKey).IsUnique().HasFilter("[StorageKey] IS NOT NULL");
                 entity.HasOne(f => f.Entry).WithMany(e => e.Files).HasForeignKey(f => f.EntryId).OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne(f => f.Field).WithMany().HasForeignKey(f => f.FieldId).OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne(f => f.UploadedByUser).WithMany().HasForeignKey(f => f.UploadedByUserId).OnDelete(DeleteBehavior.Restrict);
@@ -415,6 +417,8 @@ namespace Infrastructure.Persistence.Data
             {
                 entity.Property(a => a.FileName).HasMaxLength(200).IsRequired();
                 entity.Property(a => a.ContentType).HasMaxLength(150).IsRequired();
+                entity.Property(a => a.StorageKey).HasMaxLength(80);
+                entity.HasIndex(a => a.StorageKey).IsUnique().HasFilter("[StorageKey] IS NOT NULL");
                 entity.HasOne(a => a.AssignedTask).WithMany(t => t.Attachments).HasForeignKey(a => a.AssignedTaskId).OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne(a => a.UploadedByUser).WithMany().HasForeignKey(a => a.UploadedByUserId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(a => a.Content).WithOne().HasForeignKey<AssignedTaskAttachmentContent>(c => c.AttachmentId).OnDelete(DeleteBehavior.Cascade);
@@ -717,6 +721,8 @@ namespace Infrastructure.Persistence.Data
             {
                 entity.Property(a => a.FileName).HasMaxLength(200).IsRequired();
                 entity.Property(a => a.ContentType).HasMaxLength(100).IsRequired();
+                entity.Property(a => a.StorageKey).HasMaxLength(80);
+                entity.HasIndex(a => a.StorageKey).IsUnique().HasFilter("[StorageKey] IS NOT NULL");
                 entity.HasOne(a => a.Vacation)
                     .WithMany(v => v.Attachments)
                     .HasForeignKey(a => a.VacationId)
