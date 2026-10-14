@@ -4,9 +4,11 @@
 #   powershell -ExecutionPolicy Bypass -File F:\EWMSSS\deploy\build-release.ps1 -Single    ← حزمة واحدة مستقلة
 #
 # مجلدان (الطريقة المعتمدة على الخادم الحالي: الخادم في مجلد يُشغَّل بـ dotnet API.dll، والواجهة في مجلد يقدّمه Nginx):
-#   release\EWMS-<v>-api-linux-x64.tar.gz  الخادم (يحتاج .NET 10 على الخادم) — بلا appsettings.json كي لا تُستبدل
+# المخرجات في release\<v>\ (ملفات الرفع فقط: الحزم + بصماتها + الدليل)، والمجلدات الوسيطة في release\_build\:
+#   release\<v>\EWMS-<v>-api-linux-x64.tar.gz  الخادم (يحتاج .NET 10 على الخادم) — بلا appsettings.json كي لا تُستبدل
 #                                           إعدادات الخادم ومفاتيحه؛ appsettings.template.json مرجع للإعدادات فقط
-#   release\EWMS-<v>-web.tar.gz            ملفات الواجهة فقط (تُفك داخل مجلد الواجهة)
+#   release\<v>\EWMS-<v>-web.tar.gz            ملفات الواجهة فقط (تُفك داخل مجلد الواجهة)
+#   release\<v>\EWMS-<v>-deploy-config.tar.gz  ملفات التثبيت المنفصل (systemd + Nginx + قالب الإعدادات + الدليل)
 # حزمة واحدة (-Single): خادم مستقل بذاته (لا يحتاج .NET) والواجهة في wwwroot وملفات systemd/Nginx — للتثبيت الجديد.
 # لا تحتوي أي حزمة أسراراً.
 param(
@@ -21,11 +23,15 @@ $version = ($csproj.Project.PropertyGroup | Where-Object { $_.Version } | Select
 if (-not $version) { throw 'Version not found in API\API.csproj' }
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $OutDir = (Resolve-Path $OutDir).Path
+# ملفات الرفع في مجلد الإصدار، والمجلدات الوسيطة (تُعاد كل بناء) في _build
+$PackDir = Join-Path $OutDir $version
+$BuildDir = Join-Path $OutDir '_build'
+New-Item -ItemType Directory -Force $PackDir, $BuildDir | Out-Null
 # tar ويندوز نفسه: tar الخاص بـ Git (إن سبقه في PATH) يقرأ «F:» كاسم خادم بعيد ويفشل
 $tar = Join-Path $env:SystemRoot 'System32\tar.exe'
 
 function New-Stage([string]$name) {
-    $dir = Join-Path $OutDir $name
+    $dir = Join-Path $BuildDir $name
     if (Test-Path $dir) { Remove-Item $dir -Recurse -Force }
     New-Item -ItemType Directory -Force $dir | Out-Null
     return $dir
@@ -33,12 +39,13 @@ function New-Stage([string]$name) {
 
 # أرشيف tar.gz + بصمته. contentsOnly: محتوى المجلد مباشرة (يُفك فوق مجلد قائم) بدل المجلد نفسه
 function New-Archive([string]$stage, [string]$archiveName, [bool]$contentsOnly) {
-    $archive = Join-Path $OutDir $archiveName
+    $archive = Join-Path $PackDir $archiveName
     if (Test-Path $archive) { Remove-Item $archive -Force }
-    if ($contentsOnly) { & $tar -czf $archive -C $stage . } else { & $tar -czf $archive -C $OutDir (Split-Path $stage -Leaf) }
+    if ($contentsOnly) { & $tar -czf $archive -C $stage . } else { & $tar -czf $archive -C $BuildDir (Split-Path $stage -Leaf) }
     if ($LASTEXITCODE -ne 0) { throw 'tar failed' }
     $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
-    Set-Content -Path "$archive.sha256" -Value "$hash  $archiveName" -Encoding ascii
+    # بنهاية سطر Linux: على الخادم يقرأ sha256sum -c الحرف  جزءاً من اسم الملف فيفشل التحقق
+    [IO.File]::WriteAllText("$archive.sha256", "$hash  $archiveName`n", [Text.Encoding]::ASCII)
     Write-Host "Done: $archive"
     Write-Host "SHA256: $hash"
 }
@@ -69,7 +76,19 @@ if (-not $Single) {
     Copy-Item (Join-Path $uiDist '*') $web -Recurse -Force
     New-Archive $web "EWMS-$version-web.tar.gz" $true
 
-    Copy-Item (Join-Path $root 'docs\DEPLOYMENT.md') (Join-Path $OutDir 'DEPLOYMENT.md') -Force
+    Write-Host '== deploy config (split install)'
+    $cfg = New-Stage "EWMS-$version-deploy-config"
+    Copy-Item (Join-Path $PSScriptRoot 'linux\split\*') $cfg -Force
+    Copy-Item (Join-Path $PSScriptRoot 'linux\ewms-security-headers.conf') $cfg -Force
+    Copy-Item (Join-Path $root 'docs\DEPLOYMENT.md') $cfg -Force
+    # ملفات Linux بنهايات LF مهما كانت إعدادات git على جهاز البناء
+    Get-ChildItem $cfg -File | ForEach-Object {
+        $text = [IO.File]::ReadAllText($_.FullName) -replace "`r`n", "`n"
+        [IO.File]::WriteAllText($_.FullName, $text, (New-Object Text.UTF8Encoding $false))
+    }
+    New-Archive $cfg "EWMS-$version-deploy-config.tar.gz" $true
+
+    Copy-Item (Join-Path $root 'docs\DEPLOYMENT.md') (Join-Path $PackDir 'DEPLOYMENT.md') -Force
     return
 }
 
@@ -97,3 +116,4 @@ Get-ChildItem (Join-Path $stage 'deploy') -File | ForEach-Object {
 Copy-Item (Join-Path $root 'docs\DEPLOYMENT.md') $stage -Force
 Set-Content -Path (Join-Path $stage 'VERSION') -Value $version -Encoding ascii
 New-Archive $stage "$name.tar.gz" $false
+Copy-Item (Join-Path $root 'docs\DEPLOYMENT.md') (Join-Path $PackDir 'DEPLOYMENT.md') -Force
