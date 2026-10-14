@@ -75,6 +75,84 @@ chown -R appuser:appuser /var/www/dmc/EWMS-App/angular
     إن لم تفتح الواجهة بعدها أو ظهرت صفحة بيضاء: احذف سطر الـ include وأعد تحميل Nginx، وأرسل رسالة الكونسول (F12) للمطوّر.
 - **الإصدار 1.1.0:** كل تركيب جهاز صار ملك قسم من أضافه وفرعه، وخريطة كل فرع تُبنى من تركيبات أقسامه. التركيبات القديمة تأخذ قسم من أضافها تلقائياً؛ وما أضافه مدير بلا فرع يظهر «بلا قسم» في صفحة التركيبات — افتحه بالتعديل واختر قسمه فيظهر على خريطة فرعه.
 
+## B. تثبيت جديد منفصل (Ubuntu 24.04 + SQL Server على جهاز مستقل)
+الحزمتان نفسهما (بلا `-Single`): `EWMS-<الإصدار>-api-linux-x64.tar.gz` (framework-dependent، يحتاج **ASP.NET Core Runtime 10**)
+و`EWMS-<الإصدار>-web.tar.gz` (ملفات الواجهة الثابتة). ملفات الإعداد في المستودع: `deploy/linux/split/`
+(`ewms-api.service`، `ewms-api.env.example`، `nginx-ewms.conf`) و`deploy/linux/ewms-security-headers.conf` (موجود أيضاً في حزمة الـ API تحت `deploy/`).
+
+**على جهاز SQL Server:**
+```sql
+CREATE DATABASE EWMS;
+GO
+CREATE LOGIN ewms_app WITH PASSWORD = N'<كلمة مرور قوية>';
+GO
+USE EWMS;
+CREATE USER ewms_app FOR LOGIN ewms_app;
+ALTER ROLE db_owner ADD MEMBER ewms_app;   -- الترحيلات تعدّل البنية عند كل إقلاع بعد تحديث
+GO
+```
+- اسمح بالمنفذ 1433 في جدار الجهاز **من خادم التطبيق فقط**.
+- المرفقات محفوظة داخل القاعدة (انظر «المرفقات» أدناه): راقب حجمها مقابل حد إصدار Express.
+
+**على خادم التطبيق:**
+```bash
+# 0) تحقق من الحزم
+cd /tmp && sha256sum -c EWMS-*-api-linux-x64.tar.gz.sha256 EWMS-*-web.tar.gz.sha256
+
+# 1) مستخدم الخدمة والمجلدات
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin ewms
+sudo mkdir -p /opt/ewms/api /var/www/ewms/web /etc/ewms
+sudo tar -xzf /tmp/EWMS-*-api-linux-x64.tar.gz -C /opt/ewms/api
+sudo tar -xzf /tmp/EWMS-*-web.tar.gz -C /var/www/ewms/web
+sudo chown -R ewms:ewms /opt/ewms/api
+sudo chown -R root:www-data /var/www/ewms/web && sudo chmod -R a+rX /var/www/ewms/web
+
+# 2) الإعدادات والأسرار (نص الاتصال بجهاز SQL، المفتاحان الجديدان، أول مدير)
+sudo cp deploy/linux/split/ewms-api.env.example /etc/ewms/ewms-api.env
+openssl rand -base64 48     # ← JwtSettings__Key
+openssl rand -base64 32     # ← DeviceInventory__PasswordKey (احفظ نسخة خارج الخادم)
+sudo nano /etc/ewms/ewms-api.env
+sudo chown root:ewms /etc/ewms/ewms-api.env && sudo chmod 640 /etc/ewms/ewms-api.env
+
+# 3) الخدمة (الترحيلات تُطبَّق عند أول إقلاع وتنشئ الجداول)
+sudo cp deploy/linux/split/ewms-api.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now ewms-api
+sleep 20 && curl -s http://127.0.0.1:5000/health; echo
+journalctl -u ewms-api -n 50 --no-pager      # إن لم يقلع: السجل يذكر الإعداد الناقص بالعربية
+
+# 4) Nginx
+sudo cp /opt/ewms/api/deploy/ewms-security-headers.conf /etc/nginx/snippets/
+sudo cp deploy/linux/split/nginx-ewms.conf /etc/nginx/sites-available/ewms
+sudo nano /etc/nginx/sites-available/ewms     # server_name = العنوان الذي يكتبه الموظفون
+sudo ln -s /etc/nginx/sites-available/ewms /etc/nginx/sites-enabled/ewms
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
+curl -sI http://127.0.0.1/ | grep -iE "200|content-security-policy"
+```
+- **أول دخول:** بالبريد وكلمة المرور من `Seed__…`، ثم احذف السطرين من `/etc/ewms/ewms-api.env` و`sudo systemctl restart ewms-api`،
+  وغيّر كلمة المرور من «ملفي الشخصي».
+- **التحديث لاحقاً:** كالقسم A مع هذه المسارات: أوقف `ewms-api`، فكّ حزمة الـ API فوق `/opt/ewms/api` (لا تحمل إعدادات فلا تمسّ
+  `/etc/ewms`)، شغّل، ثم استبدل محتوى `/var/www/ewms/web` كاملاً.
+- **HTTPS:** موصى به (أزرار النسخ وإشعارات سطح المكتب لا تعمل في المتصفح على HTTP لغير localhost، والجلسات تمرّ مكشوفة في الشبكة) —
+  الكتلة المعلّقة في `nginx-ewms.conf` + شهادة من جهة شهادات داخلية مثبّتة على أجهزة الموظفين.
+
+### المرفقات المحفوظة داخل SQL Server (الإصدار 1.2.0)
+كل الملفات تُحفظ في القاعدة: جدول بيانات وصفية + جدول للمحتوى (`varbinary(max)`) كي لا تُحمَّل الملفات مع القوائم.
+النوع يُحدَّد من محتوى الملف (توقيعه) لا من امتداده، والملفات التنفيذية والسكربتات وHTML/SVG والمستندات ذات الماكرو مرفوضة دائماً.
+
+| الميزة | الجداول | الأنواع | الحدود |
+|---|---|---|---|
+| مرفقات طلبات الإجازة | `VacationAttachments` + `VacationAttachmentContents` | PDF، JPG، PNG | 3 ملفات × 5 MB لكل طلب |
+| مرفقات مهام لوحة المهام | `AssignedTaskAttachments` + `AssignedTaskAttachmentContents` | PDF، صور، Word، Excel، PowerPoint (بلا ماكرو) | 10 ملفات × 10 MB لكل مهمة |
+| حقول «ملفات» في طبقات خرائط الفروع | `MapEntryFiles` + `MapEntryFileContents` | صور، PDF، Office/ODF، نصوص وCSV، CAD (DWG/DXF)، ملفات خرائط (KML/KMZ/GeoJSON/GPX/SHP)، أرشيف (ZIP/RAR/7Z)، صوت وفيديو | يحددها مسؤول الطبقة: حتى 20 ملفاً لكل حقل، والملف حتى `MapLayers__MaxFileMegabytes` (100 MB افتراضياً) |
+| التواقيع الإلكترونية | `UserSignatures` (نص data-URL) | PNG | نحو 300 KB لكل نسخة توقيع (النسخ القديمة لا تُحذف لأن القرارات الموقّعة تشير إليها) |
+
+- **النسخ الاحتياطي:** نسخة القاعدة تشمل كل الملفات (لا شيء خارجها).
+- **حجم القاعدة:** إصدار SQL Server Express محدود الحجم لكل قاعدة؛ تحقق من الحد في إصداركم ومن حجم القاعدة دورياً
+  (`EXEC sp_spaceused`)، فطبقات الخرائط هي الأكبر عادة (ملفات حتى 100 MB).
+- **التخزين على File Server عبر SMB:** غير مدعوم في هذا الإصدار — الكود يقرأ المحتوى من جداول `…Contents` مباشرة.
+  نقله يحتاج تطويراً (طبقة تخزين ملفات + ترحيل للملفات الموجودة + نسخ احتياطي متزامن للقاعدة ومجلد المشاركة)؛ يُطلب كتعديل منفصل.
+
 ## 0. المتطلبات على الخادم
 - Linux x64 (Ubuntu 22.04+/Debian 12/RHEL 9 أو ما يماثلها) مع **libicu** (موجودة عادة؛ للتحقق: `ldconfig -p | grep libicu`).
 - **SQL Server 2019+** (على الخادم نفسه أو جهاز آخر في الشبكة) — النظام يستعمل ميزات SQL Server (rowversion، sp_getapplock).
