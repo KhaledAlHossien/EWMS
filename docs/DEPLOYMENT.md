@@ -75,6 +75,120 @@ chown -R appuser:appuser /var/www/dmc/EWMS-App/angular
     إن لم تفتح الواجهة بعدها أو ظهرت صفحة بيضاء: احذف سطر الـ include وأعد تحميل Nginx، وأرسل رسالة الكونسول (F12) للمطوّر.
 - **الإصدار 1.1.0:** كل تركيب جهاز صار ملك قسم من أضافه وفرعه، وخريطة كل فرع تُبنى من تركيبات أقسامه. التركيبات القديمة تأخذ قسم من أضافها تلقائياً؛ وما أضافه مدير بلا فرع يظهر «بلا قسم» في صفحة التركيبات — افتحه بالتعديل واختر قسمه فيظهر على خريطة فرعه.
 
+## B. تثبيت جديد منفصل (Ubuntu 24.04 + SQL Server على جهاز مستقل)
+الحزمتان نفسهما (بلا `-Single`): `EWMS-<الإصدار>-api-linux-x64.tar.gz` (framework-dependent، يحتاج **ASP.NET Core Runtime 10**)
+و`EWMS-<الإصدار>-web.tar.gz` (ملفات الواجهة الثابتة). ملفات الإعداد في المستودع: `deploy/linux/split/`
+(`ewms-api.service`، `ewms-api.env.example`، `nginx-ewms.conf`) و`deploy/linux/ewms-security-headers.conf` (موجود أيضاً في حزمة الـ API تحت `deploy/`).
+
+**على جهاز SQL Server:**
+```sql
+CREATE DATABASE EWMS;
+GO
+CREATE LOGIN ewms_app WITH PASSWORD = N'<كلمة مرور قوية>';
+GO
+USE EWMS;
+CREATE USER ewms_app FOR LOGIN ewms_app;
+ALTER ROLE db_owner ADD MEMBER ewms_app;   -- الترحيلات تعدّل البنية عند كل إقلاع بعد تحديث
+GO
+```
+- اسمح بالمنفذ 1433 في جدار الجهاز **من خادم التطبيق فقط**.
+- المرفقات محفوظة داخل القاعدة افتراضياً (انظر «المرفقات» أدناه): راقب حجمها مقابل حد إصدار Express، أو انقل الجديدة منها إلى مشاركة SMB.
+
+**على خادم التطبيق:**
+```bash
+# 0) تحقق من الحزم
+cd /tmp && sha256sum -c EWMS-*-api-linux-x64.tar.gz.sha256 EWMS-*-web.tar.gz.sha256
+
+# 1) مستخدم الخدمة والمجلدات
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin ewms
+sudo mkdir -p /opt/ewms/api /var/www/ewms/web /etc/ewms
+sudo tar -xzf /tmp/EWMS-*-api-linux-x64.tar.gz -C /opt/ewms/api
+sudo tar -xzf /tmp/EWMS-*-web.tar.gz -C /var/www/ewms/web
+sudo chown -R ewms:ewms /opt/ewms/api
+sudo chown -R root:www-data /var/www/ewms/web && sudo chmod -R a+rX /var/www/ewms/web
+
+# 2) الإعدادات والأسرار (نص الاتصال بجهاز SQL، المفتاحان الجديدان، أول مدير)
+sudo cp deploy/linux/split/ewms-api.env.example /etc/ewms/ewms-api.env
+openssl rand -base64 48     # ← JwtSettings__Key
+openssl rand -base64 32     # ← DeviceInventory__PasswordKey (احفظ نسخة خارج الخادم)
+sudo nano /etc/ewms/ewms-api.env
+sudo chown root:ewms /etc/ewms/ewms-api.env && sudo chmod 640 /etc/ewms/ewms-api.env
+
+# 3) الخدمة (الترحيلات تُطبَّق عند أول إقلاع وتنشئ الجداول)
+sudo cp deploy/linux/split/ewms-api.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now ewms-api
+sleep 20 && curl -s http://127.0.0.1:5000/health; echo
+journalctl -u ewms-api -n 50 --no-pager      # إن لم يقلع: السجل يذكر الإعداد الناقص بالعربية
+
+# 4) Nginx
+sudo cp /opt/ewms/api/deploy/ewms-security-headers.conf /etc/nginx/snippets/
+sudo cp deploy/linux/split/nginx-ewms.conf /etc/nginx/sites-available/ewms
+sudo nano /etc/nginx/sites-available/ewms     # server_name = العنوان الذي يكتبه الموظفون
+sudo ln -s /etc/nginx/sites-available/ewms /etc/nginx/sites-enabled/ewms
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
+curl -sI http://127.0.0.1/ | grep -iE "200|content-security-policy"
+```
+- **أول دخول:** بالبريد وكلمة المرور من `Seed__…`، ثم احذف السطرين من `/etc/ewms/ewms-api.env` و`sudo systemctl restart ewms-api`،
+  وغيّر كلمة المرور من «ملفي الشخصي».
+- **التحديث لاحقاً:** كالقسم A مع هذه المسارات: أوقف `ewms-api`، فكّ حزمة الـ API فوق `/opt/ewms/api` (لا تحمل إعدادات فلا تمسّ
+  `/etc/ewms`)، شغّل، ثم استبدل محتوى `/var/www/ewms/web` كاملاً.
+- **HTTPS:** موصى به (أزرار النسخ وإشعارات سطح المكتب لا تعمل في المتصفح على HTTP لغير localhost، والجلسات تمرّ مكشوفة في الشبكة) —
+  الكتلة المعلّقة في `nginx-ewms.conf` + شهادة من جهة شهادات داخلية مثبّتة على أجهزة الموظفين.
+
+### المرفقات (الإصدار 1.2.0)
+افتراضياً كل الملفات في القاعدة: جدول بيانات وصفية + جدول للمحتوى (`varbinary(max)`) كي لا تُحمَّل الملفات مع القوائم.
+أو المحتوى في مجلد على مشاركة SMB (القسم التالي)، والبيانات الوصفية في الجدول نفسه دائماً (العمود `StorageKey`).
+النوع يُحدَّد من محتوى الملف (توقيعه) لا من امتداده، والملفات التنفيذية والسكربتات وHTML/SVG والمستندات ذات الماكرو مرفوضة دائماً.
+
+| الميزة | الجداول | الأنواع | الحدود |
+|---|---|---|---|
+| مرفقات طلبات الإجازة | `VacationAttachments` + `VacationAttachmentContents` | PDF، JPG، PNG | 3 ملفات × 5 MB لكل طلب |
+| مرفقات مهام لوحة المهام | `AssignedTaskAttachments` + `AssignedTaskAttachmentContents` | PDF، صور، Word، Excel، PowerPoint (بلا ماكرو) | 10 ملفات × 10 MB لكل مهمة |
+| حقول «ملفات» في طبقات خرائط الفروع | `MapEntryFiles` + `MapEntryFileContents` | صور، PDF، Office/ODF، نصوص وCSV، CAD (DWG/DXF)، ملفات خرائط (KML/KMZ/GeoJSON/GPX/SHP)، أرشيف (ZIP/RAR/7Z)، صوت وفيديو | يحددها مسؤول الطبقة: حتى 20 ملفاً لكل حقل، والملف حتى `MapLayers__MaxFileMegabytes` (100 MB افتراضياً) |
+| التواقيع الإلكترونية | `UserSignatures` (نص data-URL) | PNG | نحو 300 KB لكل نسخة توقيع (النسخ القديمة لا تُحذف لأن القرارات الموقّعة تشير إليها) |
+
+- **النسخ الاحتياطي:** في وضع `Database` نسخة القاعدة تشمل كل الملفات؛ مع مجلد SMB انظر القسم التالي.
+- **حجم القاعدة:** إصدار SQL Server Express محدود الحجم لكل قاعدة؛ تحقق من الحد في إصداركم ومن حجم القاعدة دورياً
+  (`EXEC sp_spaceused`)، فطبقات الخرائط هي الأكبر عادة (ملفات حتى 100 MB).
+
+### مجلد المرفقات على File Server عبر SMB (اختياري)
+الافتراضي `FileStorage__Mode=Database`: المحتوى في القاعدة كما في الجدول أعلاه. مع `FileSystem` تُحفظ **المرفقات الجديدة** (الإجازات والمهام وملفات الطبقات)
+في مجلد على الخادم — مشاركة SMB يركّبها النظام كمسار عادي؛ التطبيق لا يتعامل مع SMB نفسه. التواقيع تبقى في القاعدة دائماً.
+
+**1) على File Server:** مشاركة (مثلاً `ewms-files`) وحساب مخصص للتطبيق، صلاحيته قراءة وكتابة وحذف على هذه المشاركة **وحدها**.
+فحص مكافحة الفيروسات على المشاركة مسموح (الملف لا يُعدَّل بعد كتابته).
+
+**2) على خادم التطبيق:**
+```bash
+sudo apt install -y cifs-utils
+sudo mkdir -p /mnt/ewms-files /etc/ewms
+sudo install -m 600 /dev/null /etc/ewms/smb-credentials
+sudo nano /etc/ewms/smb-credentials        # ثلاثة أسطر: username=…  password=…  domain=… (domain إن وُجد)
+# سطر في /etc/fstab (seal = تشفير الاتصال، _netdev,nofail = لا يتعطل الإقلاع إن غاب File Server):
+# //FILE_SERVER/ewms-files  /mnt/ewms-files  cifs  credentials=/etc/ewms/smb-credentials,vers=3.1.1,seal,uid=ewms,gid=ewms,file_mode=0600,dir_mode=0700,_netdev,nofail  0  0
+sudo nano /etc/fstab
+sudo systemctl daemon-reload && sudo mount /mnt/ewms-files
+sudo -u ewms touch /mnt/ewms-files/.t && sudo -u ewms rm /mnt/ewms-files/.t && echo writable
+```
+
+**3) الإعدادات:** `FileStorage__Mode=FileSystem` و`FileStorage__Root=/mnt/ewms-files` (في `/etc/ewms/ewms-api.env` للتثبيت المنفصل،
+أو `"FileStorage": { "Mode": "FileSystem", "Root": "/mnt/ewms-files" }` في `appsettings.json` على الخادم الحالي)، وأضف إلى قسم `[Unit]`
+في ملف الخدمة `RequiresMountsFor=/mnt/ewms-files` (لا تبدأ الخدمة قبل تركيب المشاركة)، ثم `sudo systemctl daemon-reload` وأعد التشغيل.
+- إن لم يكن المجلد موجوداً أو لا يقبل الكتابة **يتوقف الإقلاع** برسالة عربية في `journalctl`، و`/health` يصبح Unhealthy إن انقطعت المشاركة لاحقاً.
+
+**كيف يعمل:**
+- اسم الملف على القرص عشوائي: `vacations|tasks|map-files/<سنة>/<شهر>/<معرّف>`؛ الاسم الأصلي في القاعدة فقط. لا يقدّم Nginx المجلد أبداً:
+  كل تنزيل يمرّ عبر الـ API بالصلاحيات نفسها.
+- **الملفات السابقة للتحويل تبقى في القاعدة** وتُقرأ منها كما هي (لا أداة لنقلها — قرار 2026-10-14). لا ترجع إلى `Database` بعد وجود ملفات
+  في المجلد إلا مع إبقاء `FileStorage__Root` مضبوطاً (الملفات ذات المفتاح تُقرأ منه دائماً).
+- ملف سجلٍ محذوف (حذف مهمة أو سجل طبقة، ملف معلّق انتهت مهلته…) أو ملف كُتب ثم فشل حفظ سجله: تحذفه خدمة الخلفية **بعد 24 ساعة على الأقل**
+  (تفحص المجلد كل 6 ساعات). لا تضع ملفات أخرى في المجلد؛ ما لا يطابق شكل المفاتيح لا يُمسّ.
+
+**النسخ الاحتياطي:** نسخة القاعدة **أولاً** ثم نسخة المجلد (rsync أو لقطة على File Server). الملفات لا تُعدَّل أبداً، فنسخة مجلد بعد نسخة القاعدة
+تحوي كل ما تشير إليه. الاستعادة: القاعدة ثم المجلد. بعد استعادة قاعدة أقدم تصبح الملفات الأحدث منها بلا سجل فتحذفها خدمة الخلفية بعد 24 ساعة —
+انسخ المجلد جانباً قبل الاستعادة إن احتجت إليها.
+
 ## 0. المتطلبات على الخادم
 - Linux x64 (Ubuntu 22.04+/Debian 12/RHEL 9 أو ما يماثلها) مع **libicu** (موجودة عادة؛ للتحقق: `ldconfig -p | grep libicu`).
 - **SQL Server 2019+** (على الخادم نفسه أو جهاز آخر في الشبكة) — النظام يستعمل ميزات SQL Server (rowversion، sp_getapplock).
@@ -177,7 +291,7 @@ sudo nginx -t && sudo systemctl reload nginx
 # /etc/cron.d/ewms-backup — كل يوم 02:30، ويحتفظ بآخر 14 نسخة
 30 2 * * * mssql /opt/mssql-tools18/bin/sqlcmd -S localhost -U backup_user -P '<...>' -C -Q "BACKUP DATABASE [EWMS] TO DISK=N'/var/opt/mssql/backup/EWMS_$(date +\%F).bak' WITH COMPRESSION, CHECKSUM, INIT" && find /var/opt/mssql/backup -name 'EWMS_*.bak' -mtime +14 -delete
 ```
-انقل النسخ إلى جهاز آخر، وجرّب الاستعادة دورياً. النسخة تحوي كلمات سر الأجهزة **مشفّرة** (لا تُقرأ دون المفتاح).
+مع مجلد مرفقات على SMB: انسخ المجلد **بعد** نسخة القاعدة (انظر «مجلد المرفقات على File Server»). انقل النسخ إلى جهاز آخر، وجرّب الاستعادة دورياً. النسخة تحوي كلمات سر الأجهزة **مشفّرة** (لا تُقرأ دون المفتاح).
 
 **تحديث النسخة** (الترحيلات تعدّل البنية عند الإقلاع — النسخة الاحتياطية أولاً):
 ```bash

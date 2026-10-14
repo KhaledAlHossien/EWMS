@@ -185,16 +185,16 @@ namespace Infrastructure.Persistence.Repositories
             || await _context.MapEntryFiles.AnyAsync(f => f.UploadedByUserId == userId);
     }
 
-    /// <summary>ملفات حقول «ملفات» (1.2.0): البيانات في MapEntryFiles، والمحتوى في MapEntryFileContents</summary>
+    /// <summary>ملفات حقول «ملفات» (1.2.0): البيانات في MapEntryFiles، والمحتوى في MapEntryFileContents أو في مجلد المرفقات (StorageKey)</summary>
     public class MapEntryFileService : IMapEntryFileService
     {
         private readonly DataContext _context;
 
         public MapEntryFileService(DataContext context) => _context = context;
 
-        public async Task AddPendingAsync(MapEntryFile file, byte[] data)
+        public async Task AddPendingAsync(MapEntryFile file, byte[]? data)
         {
-            file.Content = new MapEntryFileContent { Data = data };
+            if (data != null) file.Content = new MapEntryFileContent { Data = data };
             _context.MapEntryFiles.Add(file);
             await _context.SaveChangesAsync();
         }

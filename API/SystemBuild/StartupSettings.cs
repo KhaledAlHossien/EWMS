@@ -22,6 +22,10 @@ namespace API.SystemBuild
             if (!IsBase64Key(configuration["DeviceInventory:PasswordKey"], 32))
                 problems.Add("مفتاح تشفير كلمات سر الأجهزة (DeviceInventory__PasswordKey): 32 بايت بصيغة Base64");
 
+            // مجلد المرفقات (FileStorage:Mode=FileSystem): موجود ويقبل الكتابة — مشاركة لم تُركَّب توقف الإقلاع بدل أن تفشل الرفوع لاحقاً
+            if (new Infrastructure.Files.FileStorageSettings(configuration).Problem() is string files)
+                problems.Add(files);
+
             if (problems.Count > 0)
                 throw new InvalidOperationException(
                     "إعدادات ناقصة أو غير صالحة، لا يمكن تشغيل الخادم:\n- " + string.Join("\n- ", problems)

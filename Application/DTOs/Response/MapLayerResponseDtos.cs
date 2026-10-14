@@ -97,7 +97,7 @@ namespace Application.DTOs.Response
     }
 
     /// <summary>محتوى ملف للتنزيل أو المعاينة</summary>
-    public record MapEntryFileContentDto(string FileName, string ContentType, byte[] Data, bool Previewable);
+    public record MapEntryFileContentDto(string FileName, string ContentType, Stream Content, bool Previewable);
 
     /// <summary>إعدادات رفع الملفات: سقف النظام ومجموعات الصيغ (لمنشئ الحقول ونموذج السجل)</summary>
     public class MapFileOptionsDto

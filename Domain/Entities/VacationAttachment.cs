@@ -16,7 +16,9 @@ namespace Domain.Entities
         public int Size { get; set; }
         public DateTime UploadedAt { get; set; }
 
-        public VacationAttachmentContent Content { get; set; } = null!;
+        /// <summary>مفتاح المحتوى في مجلد المرفقات (FileStorage:Mode=FileSystem)؛ null = المحتوى في جدول المحتوى بالقاعدة</summary>
+        public string? StorageKey { get; set; }
+        public VacationAttachmentContent? Content { get; set; }
     }
 
     /// <summary>محتوى المرفق (يُقرأ فقط عند فتحه أو تنزيله)</summary>

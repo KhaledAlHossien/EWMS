@@ -87,6 +87,18 @@ namespace API.Background
                     _logger.LogError(ex, "تعذّر حذف الملفات المعلّقة — تُعاد المحاولة في الدورة التالية");
                 }
 
+                try
+                {
+                    // مجلد المرفقات: حذف ما لم يعد له سجل (مرة كل 6 ساعات على الأكثر، وفي وضع FileSystem فقط)
+                    using var store = _scopes.CreateScope();
+                    var swept = await store.ServiceProvider.GetRequiredService<IFileStoreSweeper>().SweepAsync(stoppingToken);
+                    if (swept > 0) _logger.LogInformation("حُذف {Count} ملفاً لا سجل له من مجلد المرفقات", swept);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "تعذّر تنظيف مجلد المرفقات — تُعاد المحاولة لاحقاً");
+                }
+
                 try { await Task.Delay(_interval, stoppingToken); } catch (OperationCanceledException) { return; }
             }
         }

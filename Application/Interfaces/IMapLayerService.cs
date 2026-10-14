@@ -89,7 +89,8 @@ namespace Application.Interfaces
     /// <summary>ملفات حقول «ملفات»: تُرفع معلّقة ثم تُربط بالسجل عند حفظه</summary>
     public interface IMapEntryFileService
     {
-        Task AddPendingAsync(MapEntryFile file, byte[] data);
+        /// <summary>data = المحتوى في القاعدة، أو null إن حُفظ في مجلد المرفقات (file.StorageKey)</summary>
+        Task AddPendingAsync(MapEntryFile file, byte[]? data);
         /// <summary>متتبَّعة، بلا المحتوى</summary>
         Task<List<MapEntryFile>> GetByIdsAsync(IReadOnlyCollection<int> ids);
         /// <summary>مع السجل (لفحص الحد) ومن رفعه، بلا المحتوى</summary>

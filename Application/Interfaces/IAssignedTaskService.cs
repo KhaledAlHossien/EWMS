@@ -17,7 +17,10 @@ namespace Application.Interfaces
 
         // ===== المرفقات =====
         /// <summary>مع المحتوى والمهمة (ومهمتها الأصل)</summary>
+        /// <summary>مع المهمة، بلا المحتوى</summary>
         Task<AssignedTaskAttachment?> GetAttachmentAsync(int id);
+        /// <summary>محتوى مرفق محفوظ في القاعدة (StorageKey = null)</summary>
+        Task<byte[]?> GetAttachmentDataAsync(int id);
         Task AddAttachmentsAsync(IEnumerable<AssignedTaskAttachment> attachments);
         Task DeleteAttachmentAsync(AssignedTaskAttachment attachment);
         Task<int> CountAttachmentsAsync(int taskId);
