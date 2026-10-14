@@ -44,7 +44,7 @@ function New-Archive([string]$stage, [string]$archiveName, [bool]$contentsOnly) 
     if ($contentsOnly) { & $tar -czf $archive -C $stage . } else { & $tar -czf $archive -C $BuildDir (Split-Path $stage -Leaf) }
     if ($LASTEXITCODE -ne 0) { throw 'tar failed' }
     $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLower()
-    # بنهاية سطر Linux: على الخادم يقرأ sha256sum -c الحرف  جزءاً من اسم الملف فيفشل التحقق
+    # بنهاية سطر Linux: على الخادم يقرأ sha256sum -c حرف CR جزءاً من اسم الملف فيفشل التحقق
     [IO.File]::WriteAllText("$archive.sha256", "$hash  $archiveName`n", [Text.Encoding]::ASCII)
     Write-Host "Done: $archive"
     Write-Host "SHA256: $hash"
