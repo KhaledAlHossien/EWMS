@@ -13,12 +13,14 @@ namespace Application.Features.Vacations.Queries.Attachments
         private readonly IVacationService _service;
         private readonly IUserService _userService;
         private readonly IUserPermissionService _permissions;
+        private readonly IFileStore _files;
 
-        public GetVacationAttachmentQueryHandler(IVacationService service, IUserService userService, IUserPermissionService permissions)
+        public GetVacationAttachmentQueryHandler(IVacationService service, IUserService userService, IUserPermissionService permissions, IFileStore files)
         {
             _service = service;
             _userService = userService;
             _permissions = permissions;
+            _files = files;
         }
 
         public async Task<VacationAttachmentFileDto> Handle(GetVacationAttachmentQuery request, CancellationToken ct)
@@ -30,7 +32,8 @@ namespace Application.Features.Vacations.Queries.Attachments
             if (!VacationAccess.CanView(viewer, attachment.Vacation))
                 throw new UnauthorizedAccessException("لا تملك صلاحية عرض مرفقات هذه الإجازة");
 
-            return new VacationAttachmentFileDto(attachment.FileName, attachment.ContentType, attachment.Content.Data);
+            var content = await StoredFiles.OpenAsync(_files, attachment.StorageKey, () => _service.GetAttachmentDataAsync(attachment.Id));
+            return new VacationAttachmentFileDto(attachment.FileName, attachment.ContentType, content);
         }
     }
 }

@@ -90,9 +90,12 @@ namespace Infrastructure.Persistence.Repositories
         // ═════════ المرفقات ═════════
         public Task<AssignedTaskAttachment?> GetAttachmentAsync(int id) =>
             _context.AssignedTaskAttachments
-                .Include(a => a.Content)
                 .Include(a => a.AssignedTask)
                 .FirstOrDefaultAsync(a => a.Id == id);
+
+        public Task<byte[]?> GetAttachmentDataAsync(int id) =>
+            _context.AssignedTaskAttachmentContents.AsNoTracking()
+                .Where(c => c.AttachmentId == id).Select(c => c.Data).FirstOrDefaultAsync();
 
         public async Task AddAttachmentsAsync(IEnumerable<AssignedTaskAttachment> attachments)
         {

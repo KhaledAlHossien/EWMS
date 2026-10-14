@@ -240,8 +240,11 @@ IF @r < 0 THROW 50001, N'vacation lock timeout', 1;", $"vacation-user-{userId}")
         public async Task<VacationAttachment?> GetAttachmentAsync(int attachmentId) =>
             await _context.VacationAttachments.AsNoTracking()
                 .Include(a => a.Vacation)
-                .Include(a => a.Content)
                 .FirstOrDefaultAsync(a => a.Id == attachmentId);
+
+        public Task<byte[]?> GetAttachmentDataAsync(int attachmentId) =>
+            _context.VacationAttachmentContents.AsNoTracking()
+                .Where(c => c.AttachmentId == attachmentId).Select(c => c.Data).FirstOrDefaultAsync();
 
         // ==================== «سجل الموظف» قبل القرار ====================
 

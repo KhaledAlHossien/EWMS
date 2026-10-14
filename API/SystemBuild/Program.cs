@@ -12,7 +12,7 @@ StartupSettings.EnsureValid(builder.Configuration);
 
 // ==================== 1. تسجيل كل الخدمات ====================
 builder.Services.AddAPIServices(builder.Configuration);
-builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
+builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database").AddCheck<FileStoreHealthCheck>("files");
 
 // ==================== 2. CORS ====================
 // العناوين من الإعدادات Cors:AllowedOrigins (التطوير: localhost:4200). فارغة = الواجهة من نفس عنوان الخادم فقط.

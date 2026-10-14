@@ -188,6 +188,10 @@ namespace Infrastructure.Migrations
                     b.Property<int>("Size")
                         .HasColumnType("int");
 
+                    b.Property<string>("StorageKey")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
                     b.Property<DateTime>("UploadedAt")
                         .HasColumnType("datetime2");
 
@@ -197,6 +201,10 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AssignedTaskId");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique()
+                        .HasFilter("[StorageKey] IS NOT NULL");
 
                     b.HasIndex("UploadedByUserId");
 
@@ -1348,6 +1356,10 @@ namespace Infrastructure.Migrations
                     b.Property<long>("Size")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("StorageKey")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
                     b.Property<DateTime>("UploadedAt")
                         .HasColumnType("datetime2");
 
@@ -1357,6 +1369,10 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("FieldId");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique()
+                        .HasFilter("[StorageKey] IS NOT NULL");
 
                     b.HasIndex("UploadedAt");
 
@@ -2205,6 +2221,10 @@ namespace Infrastructure.Migrations
                     b.Property<int>("Size")
                         .HasColumnType("int");
 
+                    b.Property<string>("StorageKey")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
                     b.Property<DateTime>("UploadedAt")
                         .HasColumnType("datetime2");
 
@@ -2212,6 +2232,10 @@ namespace Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique()
+                        .HasFilter("[StorageKey] IS NOT NULL");
 
                     b.HasIndex("VacationId");
 
@@ -3223,8 +3247,7 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Domain.Entities.AssignedTaskAttachment", b =>
                 {
-                    b.Navigation("Content")
-                        .IsRequired();
+                    b.Navigation("Content");
                 });
 
             modelBuilder.Entity("Domain.Entities.AssignedTaskTemplate", b =>
@@ -3268,8 +3291,7 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Domain.Entities.VacationAttachment", b =>
                 {
-                    b.Navigation("Content")
-                        .IsRequired();
+                    b.Navigation("Content");
                 });
 
             modelBuilder.Entity("Domain.Entities.WorkTask", b =>

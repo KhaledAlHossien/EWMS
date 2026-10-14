@@ -28,10 +28,12 @@ namespace Application.Features.MapLayers
         private readonly IMapLayerSettings _settings;
         private readonly IUserService _users;
         private readonly IUserPermissionService _permissions;
+        private readonly IFileStore _store;
 
         public MapEntryFileHandler(IMapEntryFileService files, IMapLayerService layers, IMapLayerSettings settings,
-            IUserService users, IUserPermissionService permissions)
+            IUserService users, IUserPermissionService permissions, IFileStore store)
         {
+            _store = store;
             _files = files;
             _layers = layers;
             _settings = settings;
@@ -67,9 +69,11 @@ namespace Application.Features.MapLayers
                 Kind = kind,
                 Size = request.File.Data.LongLength,
                 UploadedByUserId = viewer.Id,
-                UploadedAt = DateTime.UtcNow
+                UploadedAt = DateTime.UtcNow,
+                // في مجلد المرفقات أولاً إن كان مُفعَّلاً، وإلا في القاعدة
+                StorageKey = await _store.SaveAsync(FileAreas.MapFiles, request.File.Data, ct)
             };
-            await _files.AddPendingAsync(file, request.File.Data);
+            await _files.AddPendingAsync(file, file.StorageKey == null ? request.File.Data : null);
             var dto = MapFileRules.ToDto(file);
             dto.UploadedByName = viewer.User.FullName;
             return dto;
@@ -86,8 +90,8 @@ namespace Application.Features.MapLayers
             }
             else EnsureEntry(viewer, file.Entry);
 
-            var data = await _files.GetDataAsync(file.Id) ?? throw new KeyNotFoundException("الملف غير موجود");
-            return new MapEntryFileContentDto(file.FileName, file.ContentType, data, MapFileRules.IsPreviewable(file.ContentType));
+            var content = await StoredFiles.OpenAsync(_store, file.StorageKey, () => _files.GetDataAsync(file.Id));
+            return new MapEntryFileContentDto(file.FileName, file.ContentType, content, MapFileRules.IsPreviewable(file.ContentType));
         }
 
         public async Task<Unit> Handle(DeletePendingMapEntryFileCommand request, CancellationToken ct)

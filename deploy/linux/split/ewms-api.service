@@ -5,6 +5,8 @@
 Description=EWMS API - نظام إدارة سير العمل
 After=network-online.target
 Wants=network-online.target
+# مع FileStorage__Mode=FileSystem على مشاركة SMB: لا تبدأ الخدمة قبل تركيبها (docs/DEPLOYMENT.md)
+#RequiresMountsFor=/mnt/ewms-files
 
 [Service]
 WorkingDirectory=/opt/ewms/api

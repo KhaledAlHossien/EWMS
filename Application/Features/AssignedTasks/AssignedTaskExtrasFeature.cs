@@ -18,7 +18,7 @@ namespace Application.Features.AssignedTasks
     public record DeleteChecklistItemCommand(int ItemId) : IRequest<AssignedTaskDetailDto>;
     public record ClaimAssignedTaskCommand(int TaskId, bool Claim) : IRequest<AssignedTaskDetailDto>;
 
-    public record TaskAttachmentFileDto(string FileName, string ContentType, byte[] Data, bool Previewable);
+    public record TaskAttachmentFileDto(string FileName, string ContentType, Stream Content, bool Previewable);
 
     public class AddChecklistItemCommandValidator : AbstractValidator<AddChecklistItemCommand>
     {
@@ -47,13 +47,16 @@ namespace Application.Features.AssignedTasks
         private readonly IUserService _users;
         private readonly IUserPermissionService _permissions;
         private readonly INotificationService _notifications;
+        private readonly IFileStore _files;
 
-        public AssignedTaskExtrasHandler(IAssignedTaskService tasks, IUserService users, IUserPermissionService permissions, INotificationService notifications)
+        public AssignedTaskExtrasHandler(IAssignedTaskService tasks, IUserService users, IUserPermissionService permissions,
+            INotificationService notifications, IFileStore files)
         {
             _tasks = tasks;
             _users = users;
             _permissions = permissions;
             _notifications = notifications;
+            _files = files;
         }
 
         private Task<Viewer> CurrentAsync() => Viewer.CurrentAsync(_users, _permissions);
@@ -91,6 +94,11 @@ namespace Application.Features.AssignedTasks
             foreach (var file in request.Files)
             {
                 if (TaskAttachmentRules.Problem(file) is string problem) throw new InvalidOperationException(problem);
+            }
+            foreach (var file in request.Files)
+            {
+                // في مجلد المرفقات أولاً إن كان مُفعَّلاً، وإلا في القاعدة
+                var key = await _files.SaveAsync(FileAreas.Tasks, file.Data, ct);
                 created.Add(new AssignedTaskAttachment
                 {
                     AssignedTaskId = task.Id,
@@ -99,7 +107,8 @@ namespace Application.Features.AssignedTasks
                     Size = file.Data.Length,
                     UploadedByUserId = viewer.Id,
                     UploadedAt = now,
-                    Content = new AssignedTaskAttachmentContent { Data = file.Data }
+                    StorageKey = key,
+                    Content = key == null ? new AssignedTaskAttachmentContent { Data = file.Data } : null
                 });
             }
             await _tasks.AddAttachmentsAsync(created);
@@ -130,7 +139,8 @@ namespace Application.Features.AssignedTasks
             if (!allowed)
                 throw new UnauthorizedAccessException("لا تملك صلاحية عرض مرفقات هذه المهمة");
 
-            return new TaskAttachmentFileDto(attachment.FileName, attachment.ContentType, attachment.Content.Data,
+            var content = await StoredFiles.OpenAsync(_files, attachment.StorageKey, () => _tasks.GetAttachmentDataAsync(attachment.Id));
+            return new TaskAttachmentFileDto(attachment.FileName, attachment.ContentType, content,
                 TaskAttachmentRules.IsPreviewable(attachment.ContentType));
         }
 

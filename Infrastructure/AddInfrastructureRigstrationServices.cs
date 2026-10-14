@@ -40,6 +40,10 @@ namespace Infrastructure
             // مزوّدات طبقات الخرائط من بيانات النظام — ميزة جديدة سجلاتها على المواقع = مزوّد جديد هنا
             services.AddScoped<IMapLayerProvider, DevicesMapLayerProvider>();
             services.AddSingleton<IMapLayerSettings>(new MapLayerSettings(configuration));
+            // محتوى المرفقات: القاعدة (الافتراضي) أو مجلد/مشاركة SMB (FileStorage:Mode=FileSystem)
+            services.AddSingleton(new Infrastructure.Files.FileStorageSettings(configuration));
+            services.AddSingleton<IFileStore, Infrastructure.Files.FileStore>();
+            services.AddScoped<IFileStoreSweeper, Infrastructure.Files.FileStoreSweeper>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IRoleService, RoleService>();
             services.AddScoped<IPermissionService, PermissionService>();
