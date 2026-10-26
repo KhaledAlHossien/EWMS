@@ -64,6 +64,22 @@ namespace Application.Features.Attendance
             return AreaLimit.Nothing;
         }
 
+        /// <summary>حدّ الجدولة: منطقتي (وحداتها وأشخاصها) أو الكل</summary>
+        public static AreaLimit ScheduleLimit(Viewer viewer)
+        {
+            if (viewer.IsSuperAdmin || viewer.Has(ScheduleOrganizationAttendance)) return AreaLimit.Everything;
+            if (viewer.Has(ScheduleAreaAttendance) && MyAreaOf(viewer) is int area) return new AreaLimit(false, area);
+            return AreaLimit.Nothing;
+        }
+
+        /// <summary>حدّ التصحيح وإعادة الحساب: أشخاص منطقتي أو الكل</summary>
+        public static AreaLimit CorrectLimit(Viewer viewer)
+        {
+            if (viewer.IsSuperAdmin || viewer.Has(CorrectOrganizationAttendance)) return AreaLimit.Everything;
+            if (viewer.Has(CorrectAreaAttendance) && MyAreaOf(viewer) is int area) return new AreaLimit(false, area);
+            return AreaLimit.Nothing;
+        }
+
         /// <summary>منطقة الشخص: منطقة العامل المحددة، وإلا منطقة فرعه</summary>
         public static int? HomeAreaOf(User user, AttendanceProfile? profile) =>
             profile?.AreaId ?? user.Branch?.AttendanceAreaId;

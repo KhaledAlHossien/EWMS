@@ -45,4 +45,27 @@ namespace Application.DTOs.Request
         public List<AttendanceShiftDayRequestDto> Days { get; set; } = [];
         public byte[]? RowVersion { get; set; }
     }
+
+    /// <summary>إسناد وردية: TargetType 1 منطقة، 2 فرع، 3 قسم، 4 مكتب، 5 شخص</summary>
+    public class AttendanceScheduleRequestDto
+    {
+        public int TargetType { get; set; }
+        public int TargetId { get; set; }
+        public int ShiftId { get; set; }
+        public DateTime FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+        public string? Note { get; set; }
+        public byte[]? RowVersion { get; set; }
+    }
+
+    /// <summary>جدولة مؤقتة: جدول بديل أو راحة (TimetableId فارغ) لأيام محددة</summary>
+    public class AttendanceTemporaryRequestDto
+    {
+        public int TargetType { get; set; }
+        public int TargetId { get; set; }
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+        public int? TimetableId { get; set; }
+        public string? Note { get; set; }
+    }
 }
