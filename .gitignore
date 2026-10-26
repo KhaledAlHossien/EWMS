@@ -363,3 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 # حزم الإصدار (deploy/build-release.ps1)
 /release/
+
+# سجل تشخيص أجهزة البصمة (Attendance:RawLogFolder في التطوير)
+API/logs/

@@ -14,6 +14,19 @@ namespace API.SystemBuild
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             });
 
+            // منفذ أجهزة البصمة المباشر (التطوير: Kestrel على Attendance:DevicePort): لا يخدم إلا /iclock
+            var devicePort = app.ApplicationServices.GetRequiredService<Application.Interfaces.IAttendanceSettings>().DevicePort;
+            if (devicePort > 0)
+                app.Use(async (context, next) =>
+                {
+                    if (context.Connection.LocalPort == devicePort && !context.Request.Path.StartsWithSegments("/iclock"))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status404NotFound;
+                        return;
+                    }
+                    await next();
+                });
+
             // 1. ترويسات الأمان على كل رد (حتى ردود الأخطاء)، ثم معالج الأخطاء
             app.UseMiddleware<SecurityHeadersMiddleware>();
             app.UseMiddleware<ExceptionMiddleware>();
@@ -34,7 +47,8 @@ namespace API.SystemBuild
             }
 
             // 4. HTTPS + Auth
-            app.UseHttpsRedirection();
+            // أجهزة البصمة تتصل بـ HTTP على منفذها (لا تُحوَّل إلى HTTPS)
+            app.UseWhen(context => !context.Request.Path.StartsWithSegments("/iclock"), branch => branch.UseHttpsRedirection());
             app.UseAuthentication();
             app.UseAuthorization();
 

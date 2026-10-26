@@ -89,6 +89,11 @@ namespace Infrastructure
             services.AddSingleton(new Infrastructure.Attendance.AttendanceSettings(configuration));
             services.AddSingleton<IAttendanceSettings>(sp => sp.GetRequiredService<Infrastructure.Attendance.AttendanceSettings>());
             services.AddScoped<IAttendanceAreaService, AttendanceAreaService>();
+            services.AddSingleton<Infrastructure.Attendance.AttendanceDeviceCache>();
+            services.AddSingleton<IAttendanceTemplateProtector, Infrastructure.Security.AttendanceTemplateProtector>();
+            services.AddScoped<IAttendancePushStore, AttendancePushStore>();
+            services.AddScoped<IAttendanceDeviceService, AttendanceDeviceService>();
+            services.AddScoped<IAttendancePunchService, AttendancePunchService>();
 
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();

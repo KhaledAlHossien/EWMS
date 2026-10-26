@@ -82,6 +82,26 @@ namespace Application.Features.Attendance
             return digits;
         }
 
+        /// <summary>رقم كما وصل من الجهاز بصيغة رقم البصمة المحفوظة (بلا أصفار بادئة) لمطابقته بصاحبه</summary>
+        public static string PinKey(string pin)
+        {
+            var trimmed = pin.Trim();
+            if (trimmed.Length == 0 || !trimmed.All(char.IsAsciiDigit)) return trimmed;
+            var digits = trimmed.TrimStart('0');
+            return digits.Length == 0 ? trimmed : digits;
+        }
+
+        /// <summary>طريقة التحقق في سطر البصمة: مفتاح أيقونة الواجهة واسمها</summary>
+        public static (string Key, string Name) Verify(int code) => code switch
+        {
+            1 => ("finger", "إصبع"),
+            15 => ("face", "وجه"),
+            2 or 4 => ("card", "بطاقة"),
+            0 or 3 => ("password", "كلمة سر"),
+            25 => ("palm", "كف"),
+            _ => ("other", "أخرى")
+        };
+
         public static string? NormalizeCard(string? value)
         {
             if (string.IsNullOrWhiteSpace(value)) return null;

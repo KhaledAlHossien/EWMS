@@ -23,8 +23,10 @@ namespace Application.Interfaces
         public const string Vacations = "vacations";
         public const string Tasks = "tasks";
         public const string MapFiles = "map-files";
+        /// <summary>صور لحظة البصم (تُحذف بعد مدة الاحتفاظ)</summary>
+        public const string AttendancePhotos = "attendance-photos";
 
-        public static readonly string[] All = [Vacations, Tasks, MapFiles];
+        public static readonly string[] All = [Vacations, Tasks, MapFiles, AttendancePhotos];
     }
 
     /// <summary>صيانة المخزن من خدمة الخلفية</summary>

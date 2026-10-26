@@ -53,7 +53,7 @@ if (app.Environment.WebRootPath is { } webRoot && File.Exists(Path.Combine(webRo
     };
     app.UseDefaultFiles();
     app.UseStaticFiles(spaFiles);
-    app.MapFallbackToFile("{*path:nonfile:regex(^(?!api/|hubs/|health|swagger).*$)}", "index.html", spaFiles);
+    app.MapFallbackToFile("{*path:nonfile:regex(^(?!api/|hubs/|iclock/|health|swagger).*$)}", "index.html", spaFiles);
 }
 
 // ==================== 4. Migrations + Seeding ====================

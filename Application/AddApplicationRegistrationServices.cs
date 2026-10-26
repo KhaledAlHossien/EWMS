@@ -32,6 +32,9 @@ namespace Application
             services.AddScoped<Application.Features.AssignedTasks.AssignedTaskCreator>();
             services.AddScoped<Application.Features.AssignedTasks.TaskLinkResolver>();
 
+            // الحضور: طلبات أجهزة البصمة (Push/ADMS)
+            services.AddScoped<Application.Features.Attendance.Push.AttendancePushHandler>();
+
             return services;
         }
     }

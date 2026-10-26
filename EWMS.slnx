@@ -3,4 +3,10 @@
   <Project Path="Application/Application.csproj" />
   <Project Path="Domain/Domain.csproj" />
   <Project Path="Infrastructure/Infrastructure.csproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/Attendance.Tests/Attendance.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/AttendanceDeviceSimulator/AttendanceDeviceSimulator.csproj" />
+  </Folder>
 </Solution>
