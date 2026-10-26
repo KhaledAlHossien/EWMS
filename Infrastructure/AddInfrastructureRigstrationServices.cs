@@ -94,6 +94,7 @@ namespace Infrastructure
             services.AddScoped<IAttendancePushStore, AttendancePushStore>();
             services.AddScoped<IAttendanceDeviceService, AttendanceDeviceService>();
             services.AddScoped<IAttendancePunchService, AttendancePunchService>();
+            services.AddScoped<IAttendanceSyncService, AttendanceSyncService>();
 
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();

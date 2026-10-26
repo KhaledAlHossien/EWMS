@@ -9,7 +9,7 @@ namespace Application.Interfaces
         int OfflineMinutes { get; }
         /// <summary>فترة استطلاع الجهاز للخادم بالثواني (Delay في المصافحة، الافتراضي 10)</summary>
         int PollSeconds { get; }
-        /// <summary>أقصى عدد أوامر في رد استطلاع واحد (الافتراضي 20)</summary>
+        /// <summary>أقصى عدد أوامر في رد استطلاع واحد (الافتراضي 50)</summary>
         int CommandsPerPoll { get; }
         /// <summary>مدة الاحتفاظ بصور لحظة البصم بالأيام (الافتراضي 90)</summary>
         int PhotoRetentionDays { get; }

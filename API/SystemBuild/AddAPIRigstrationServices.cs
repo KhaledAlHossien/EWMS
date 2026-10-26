@@ -72,6 +72,7 @@ namespace API.SystemBuild
             services.AddInfrastructureServices(configuration);
             services.AddHttpContextAccessor();
             services.AddHostedService<API.Background.TaskReminderWorker>();   // تذكيرات مواعيد المهام
+            services.AddHostedService<API.Background.AttendanceWorker>();     // مزامنة أجهزة البصمة واتصالها (مع Attendance:Enabled)
 
             services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
             services.AddAuthorization(options =>

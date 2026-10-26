@@ -12,7 +12,7 @@ namespace Infrastructure.Attendance
             Enabled = section.GetValue("Enabled", false);
             OfflineMinutes = Math.Clamp(section.GetValue("OfflineMinutes", 10), 2, 1440);
             PollSeconds = Math.Clamp(section.GetValue("PollSeconds", 10), 5, 300);
-            CommandsPerPoll = Math.Clamp(section.GetValue("CommandsPerPoll", 20), 1, 200);
+            CommandsPerPoll = Math.Clamp(section.GetValue("CommandsPerPoll", 50), 1, 200);
             PhotoRetentionDays = Math.Clamp(section.GetValue("PhotoRetentionDays", 90), 1, 3650);
             TimeZoneHours = Math.Clamp(section.GetValue("TimeZoneHours", 3), -12, 14);
             RequireGateway = section.GetValue("RequireGateway", true);
