@@ -8,7 +8,7 @@ using System.Text;
 
 namespace Infrastructure.Persistence.Data
 {
-    public class DataContext : DbContext
+    public partial class DataContext : DbContext
     {
         public DataContext(DbContextOptions<DataContext> options) : base(options) { }
 
@@ -67,6 +67,7 @@ namespace Infrastructure.Persistence.Data
         public DbSet<UserSignature> UserSignatures { get; set; }
         public DbSet<ToDoList> ToDoLists { get; set; }
         public DbSet<ToDoItem> ToDoItems { get; set; }
+        // الحضور والانصراف: DataContext.Attendance.cs
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -892,6 +893,9 @@ namespace Infrastructure.Persistence.Data
                     .HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
                 entity.HasIndex(s => s.UserId).IsUnique().HasFilter("[IsCurrent] = 1");
             });
+
+            // ==================== الحضور والانصراف ====================
+            ConfigureAttendance(builder);
         }
     }
 }

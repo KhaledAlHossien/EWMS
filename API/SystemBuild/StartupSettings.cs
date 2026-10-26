@@ -26,6 +26,10 @@ namespace API.SystemBuild
             if (new Infrastructure.Files.FileStorageSettings(configuration).Problem() is string files)
                 problems.Add(files);
 
+            // وحدة الحضور (Attendance:Enabled): مفتاح تشفير قوالب البصمة
+            if (new Infrastructure.Attendance.AttendanceSettings(configuration).Problem() is string attendance)
+                problems.Add(attendance);
+
             if (problems.Count > 0)
                 throw new InvalidOperationException(
                     "إعدادات ناقصة أو غير صالحة، لا يمكن تشغيل الخادم:\n- " + string.Join("\n- ", problems)

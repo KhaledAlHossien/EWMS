@@ -185,6 +185,29 @@ namespace Application.Common
             new("ExportMapEntriesReport",     "سحب تقرير سجلات طبقة خريطة (السجلات التي يراها من طبقات فرعه)"),
             new("ExportTasksReport",          "تصدير مهام لوحة المهام إلى Excel (المهام التي يراها في اللوحة)"),
             new("ViewReportLog",              "عرض سجل سحب التقارير (سحوبات موظفي فرعه، والمؤسسة كلها لنظرة المؤسسة)"),
+
+            // الحضور والانصراف (2026-10-26): «منطقتي» = منطقة الدوام للفرع الذي أتبع له؛ «كل المناطق» لمن يملك ViewOrganizationAttendance
+            new("ViewMyAttendance",           "عرض بصماتي وحضوري"),
+            new("ViewDepartmentAttendance",   "عرض حضور أشخاص قسمي وبصماتهم"),
+            new("ViewBranchAttendance",       "عرض حضور أشخاص فرعي وبصماتهم"),
+            new("ViewAreaAttendance",         "عرض حضور أشخاص منطقتي (فروعها وعمالها) وبصمات أجهزتها"),
+            new("ViewOrganizationAttendance", "عرض حضور كل الأشخاص في كل المناطق وبصماتهم (ويوسّع حدّ إدارة الأشخاص إلى كل المناطق)"),
+            new("ViewAttendancePhotos",       "عرض صور لحظة البصم للبصمات التي أراها"),
+            new("EditAttendanceProfile",      "تعديل بيانات حضور أشخاص منطقتي: رقم البصمة والبطاقة والمناطق الإضافية والقوالب (كل المناطق مع عرض حضور كل المناطق)"),
+            new("CreateDailyWorker",          "إضافة عمال المياومة في منطقتي واستيراد الأشخاص من Excel (كل المناطق مع عرض حضور كل المناطق)"),
+            new("EditDailyWorker",            "تعديل عمال المياومة في منطقتي (كل المناطق مع عرض حضور كل المناطق)"),
+            new("DeleteDailyWorker",          "حذف عمال المياومة في منطقتي إن لم تكن لهم بصمات (كل المناطق مع عرض حضور كل المناطق)"),
+            new("ViewAttendanceAreas",        "عرض مناطق الدوام وفروعها (كل المناطق)"),
+            new("CreateAttendanceArea",       "إضافة منطقة دوام"),
+            new("EditAttendanceArea",         "تعديل منطقة دوام وتحديد فروعها"),
+            new("DeleteAttendanceArea",       "حذف منطقة دوام (إن لم تكن لها فروع أو أجهزة أو عمال)"),
+            new("ViewAreaAttendanceDevices",  "عرض حالة أجهزة البصمة في منطقتي"),
+            new("ViewAttendanceDevices",      "عرض كل أجهزة البصمة وتفاصيلها وسجلها"),
+            new("SendAreaAttendanceDeviceCommand", "إرسال الأوامر التشغيلية لأجهزة منطقتي (مزامنة، سحب السجلات، ضبط الوقت، إعادة التشغيل)"),
+            new("SendAttendanceDeviceCommand",     "إرسال الأوامر التشغيلية لكل أجهزة البصمة"),
+            new("ApproveAttendanceDevice",    "قبول جهاز بصمة جديد أو رفضه وتحديد منطقته (كل الأجهزة)"),
+            new("EditAttendanceDevice",       "تعديل اسم جهاز البصمة ومنطقته وملاحظاته (كل الأجهزة)"),
+            new("DeleteAttendanceDevice",     "إزالة جهاز بصمة من السجل (تبقى بصماته، وإن اتصل ثانية عاد بانتظار الموافقة)"),
         ];
 
         /// <summary>
@@ -223,6 +246,21 @@ namespace Application.Common
                 "ExportInstallationsReport", "ExportSitesReport", "ExportMapEntriesReport"],
             ["AnySiteView"] = ["ViewSites", "CreateSite", "EditSite", "DeleteSite", "ViewDevices", "ViewBranchDevices", "CreateDevice", "EditDevice", "DeleteDevice",
                 "ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry"],
+            // الحضور: البصمات الخام بحدود صلاحيات العرض (الـ handler يجمع حدود ما يملكه المستخدم)
+            ["AnyAttendanceView"] = ["ViewMyAttendance", "ViewDepartmentAttendance", "ViewBranchAttendance", "ViewAreaAttendance", "ViewOrganizationAttendance"],
+            // قائمة الأشخاص: لمن يرى حضور غيره، ولمن يدير بيانات الحضور أو العمال
+            ["AnyAttendancePeople"] = ["ViewDepartmentAttendance", "ViewBranchAttendance", "ViewAreaAttendance", "ViewOrganizationAttendance",
+                "EditAttendanceProfile", "CreateDailyWorker", "EditDailyWorker", "DeleteDailyWorker"],
+            ["AnyAttendancePeopleWrite"] = ["EditAttendanceProfile", "CreateDailyWorker", "EditDailyWorker"],
+            ["AnyAttendanceDeviceView"] = ["ViewAreaAttendanceDevices", "ViewAttendanceDevices", "SendAreaAttendanceDeviceCommand", "SendAttendanceDeviceCommand",
+                "ApproveAttendanceDevice", "EditAttendanceDevice", "DeleteAttendanceDevice"],
+            ["AnyAttendanceDeviceCommand"] = ["SendAreaAttendanceDeviceCommand", "SendAttendanceDeviceCommand"],
+            // قائمة المناطق (السجل كله): لمن يديرها، ولمن يختار منطقة في نموذج (قبول جهاز، عامل، مناطق إضافية) أو فلتر
+            ["AnyAttendanceAreaRead"] = ["ViewAttendanceAreas", "CreateAttendanceArea", "EditAttendanceArea", "DeleteAttendanceArea",
+                "ApproveAttendanceDevice", "EditAttendanceDevice", "ViewAttendanceDevices", "EditAttendanceProfile", "CreateDailyWorker", "EditDailyWorker",
+                "ViewAreaAttendance", "ViewOrganizationAttendance"],
+            // اختيار فروع المنطقة (كل الفروع بأسمائها ومناطقها)
+            ["AnyAttendanceAreaWrite"] = ["CreateAttendanceArea", "EditAttendanceArea"],
         };
 
         // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة
@@ -255,5 +293,22 @@ namespace Application.Common
         public const string SignMaintenanceReceipt = "SignMaintenanceReceipt";
         public const string IssueSparePart = "IssueSparePart";
         public const string ReceiveSpareParts = "ReceiveSpareParts";
+        public const string ViewMyAttendance = "ViewMyAttendance";
+        public const string ViewDepartmentAttendance = "ViewDepartmentAttendance";
+        public const string ViewBranchAttendance = "ViewBranchAttendance";
+        public const string ViewAreaAttendance = "ViewAreaAttendance";
+        public const string ViewOrganizationAttendance = "ViewOrganizationAttendance";
+        public const string ViewAttendancePhotos = "ViewAttendancePhotos";
+        public const string EditAttendanceProfile = "EditAttendanceProfile";
+        public const string CreateDailyWorker = "CreateDailyWorker";
+        public const string EditDailyWorker = "EditDailyWorker";
+        public const string DeleteDailyWorker = "DeleteDailyWorker";
+        public const string ViewAreaAttendanceDevices = "ViewAreaAttendanceDevices";
+        public const string ViewAttendanceDevices = "ViewAttendanceDevices";
+        public const string SendAreaAttendanceDeviceCommand = "SendAreaAttendanceDeviceCommand";
+        public const string SendAttendanceDeviceCommand = "SendAttendanceDeviceCommand";
+        public const string ApproveAttendanceDevice = "ApproveAttendanceDevice";
+        public const string EditAttendanceDevice = "EditAttendanceDevice";
+        public const string DeleteAttendanceDevice = "DeleteAttendanceDevice";
     }
 }

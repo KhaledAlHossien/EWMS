@@ -85,6 +85,11 @@ namespace Infrastructure
             services.AddScoped<IToDoListService, ToDoListService>();
             services.AddScoped<ISparePartService, SparePartService>();
 
+            // الحضور والانصراف
+            services.AddSingleton(new Infrastructure.Attendance.AttendanceSettings(configuration));
+            services.AddSingleton<IAttendanceSettings>(sp => sp.GetRequiredService<Infrastructure.Attendance.AttendanceSettings>());
+            services.AddScoped<IAttendanceAreaService, AttendanceAreaService>();
+
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();
 
