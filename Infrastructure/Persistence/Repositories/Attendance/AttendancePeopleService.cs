@@ -178,6 +178,11 @@ namespace Infrastructure.Persistence.Repositories
                 || await _context.AttendanceDeviceCommands.AnyAsync(c => c.CreatedByUserId == userId)
                 || await _context.AttendanceDevices.AnyAsync(d => d.ApprovedByUserId == userId))
                 return "لهذا الموظف آثار في سجل أجهزة البصمة — عطّل حسابه بدلاً من حذفه";
+            if (await _context.AttendanceCorrections.AnyAsync(c => c.UserId == userId || c.CreatedByUserId == userId || c.CancelledByUserId == userId))
+                return "لهذا الشخص تصحيحات حضور (له أو أجراها) — عطّله بدلاً من حذفه";
+            if (await _context.AttendanceSchedules.AnyAsync(s => s.CreatedByUserId == userId || s.UpdatedByUserId == userId)
+                || await _context.AttendanceTemporarySchedules.AnyAsync(s => s.CreatedByUserId == userId))
+                return "لهذا الموظف إسنادات ورديات أجراها — عطّل حسابه بدلاً من حذفه";
             return null;
         }
 

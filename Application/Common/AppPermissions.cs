@@ -208,6 +208,15 @@ namespace Application.Common
             new("ApproveAttendanceDevice",    "قبول جهاز بصمة جديد أو رفضه وتحديد منطقته (كل الأجهزة)"),
             new("EditAttendanceDevice",       "تعديل اسم جهاز البصمة ومنطقته وملاحظاته (كل الأجهزة)"),
             new("DeleteAttendanceDevice",     "إزالة جهاز بصمة من السجل (تبقى بصماته، وإن اتصل ثانية عاد بانتظار الموافقة)"),
+            new("ViewAttendanceShifts",       "عرض الجداول الزمنية والورديات (مكتبة مشتركة للمؤسسة)"),
+            new("CreateAttendanceShift",      "إضافة جدول زمني أو وردية"),
+            new("EditAttendanceShift",        "تعديل جدول زمني أو وردية أو تعطيلهما (يُعاد حساب من يستعملهما من يوم التعديل)"),
+            new("DeleteAttendanceShift",      "حذف جدول زمني أو وردية غير مستعملين"),
+            new("ScheduleAreaAttendance",     "إسناد الورديات لمنطقتي وفروعها وأقسامها ومكاتبها وأشخاصها، والجدولة المؤقتة"),
+            new("ScheduleOrganizationAttendance", "إسناد الورديات لكل المناطق ووحداتها وأشخاصها، والجدولة المؤقتة"),
+            new("CorrectAreaAttendance",      "تصحيح حضور أشخاص منطقتي: بصمة يدوية، تجاهل بصمة، تبرير يوم أو فترة، وإعادة الحساب"),
+            new("CorrectOrganizationAttendance", "تصحيح حضور كل الأشخاص في كل المناطق"),
+            new("CreateDepartmentStaffVacation", "تقديم إجازات موظفي قسمي الذين لا يدخلون النظام (تبدأ عند الاعتماد النهائي في الفرع)"),
         ];
 
         /// <summary>
@@ -261,6 +270,11 @@ namespace Application.Common
                 "ViewAreaAttendance", "ViewOrganizationAttendance"],
             // اختيار فروع المنطقة (كل الفروع بأسمائها ومناطقها)
             ["AnyAttendanceAreaWrite"] = ["CreateAttendanceArea", "EditAttendanceArea"],
+            // مكتبة الورديات: لمن يديرها، ولمن يجدول (يختار الوردية والجدول المؤقت)
+            ["AnyAttendanceShiftRead"] = ["ViewAttendanceShifts", "CreateAttendanceShift", "EditAttendanceShift", "DeleteAttendanceShift",
+                "ScheduleAreaAttendance", "ScheduleOrganizationAttendance"],
+            ["AnyAttendanceSchedule"] = ["ScheduleAreaAttendance", "ScheduleOrganizationAttendance"],
+            ["AnyAttendanceCorrect"] = ["CorrectAreaAttendance", "CorrectOrganizationAttendance"],
         };
 
         // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة
@@ -310,5 +324,10 @@ namespace Application.Common
         public const string ApproveAttendanceDevice = "ApproveAttendanceDevice";
         public const string EditAttendanceDevice = "EditAttendanceDevice";
         public const string DeleteAttendanceDevice = "DeleteAttendanceDevice";
+        public const string ScheduleAreaAttendance = "ScheduleAreaAttendance";
+        public const string ScheduleOrganizationAttendance = "ScheduleOrganizationAttendance";
+        public const string CorrectAreaAttendance = "CorrectAreaAttendance";
+        public const string CorrectOrganizationAttendance = "CorrectOrganizationAttendance";
+        public const string CreateDepartmentStaffVacation = "CreateDepartmentStaffVacation";
     }
 }

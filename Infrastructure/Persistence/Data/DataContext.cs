@@ -896,6 +896,7 @@ namespace Infrastructure.Persistence.Data
 
             // ==================== الحضور والانصراف ====================
             ConfigureAttendance(builder);
+            ConfigureAttendanceShifts(builder);
         }
     }
 }

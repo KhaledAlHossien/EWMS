@@ -22,6 +22,9 @@ namespace Application.Features.Attendance
         public const int CardNumberMaxLength = 20;
         public const int MaxExtraAreas = 10;
 
+        /// <summary>الوقت المحلي (توقيت الأجهزة والبصمات)</summary>
+        public static DateTime LocalNow(IAttendanceSettings settings) => DateTime.UtcNow.AddHours(settings.TimeZoneHours);
+
         public static int? MyAreaOf(Viewer viewer) => viewer.User.Branch?.AttendanceAreaId;
 
         private static bool SeesAll(Viewer viewer) => viewer.IsSuperAdmin || viewer.Has(ViewOrganizationAttendance);
