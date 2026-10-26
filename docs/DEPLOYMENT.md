@@ -189,6 +189,49 @@ sudo -u ewms touch /mnt/ewms-files/.t && sudo -u ewms rm /mnt/ewms-files/.t && e
 تحوي كل ما تشير إليه. الاستعادة: القاعدة ثم المجلد. بعد استعادة قاعدة أقدم تصبح الملفات الأحدث منها بلا سجل فتحذفها خدمة الخلفية بعد 24 ساعة —
 انسخ المجلد جانباً قبل الاستعادة إن احتجت إليها.
 
+### الحضور والانصراف: أجهزة البصمة على المنفذ 8081 (معطّلة افتراضياً)
+أجهزة البصمة (ZKTeco، طريقة Push/ADMS) تتصل بالخادم بنفسها على منفذ مستقل لا يخدم إلا `/iclock/`، وبلا تسجيل دخول:
+الجهاز يعرّف نفسه برقمه التسلسلي، فالجهاز الجديد يظهر «بانتظار الموافقة» في صفحة «أجهزة البصمة» ولا تُقبل بياناته حتى يُقبل
+وتُحدَّد منطقته. بدون `Attendance__Enabled=true` يعيد `/iclock` 404 ولا تعمل خدمة المزامنة.
+
+**1) الإعدادات** (في `/etc/ewms/ewms-api.env`، أو القسم `"Attendance"` في `appsettings.json` على الخادم الحالي):
+```bash
+openssl rand -base64 32        # مفتاح تشفير قوالب الوجه والإصبع — احفظ نسخة منه خارج الخادم مع مفتاح كلمات سر الأجهزة
+```
+| الإعداد | الافتراضي | المعنى |
+|---|---|---|
+| `Attendance__Enabled` | `false` | تفعيل الوحدة (الأجهزة والخدمة الخلفية) |
+| `Attendance__TemplateKey` | — | 32 بايت Base64، **إلزامي مع التفعيل** (يتوقف الإقلاع بدونه). ضياعه لا يوقف الأجهزة (كل جهاز يحتفظ بقوالبه) لكن يلزم سحب القوالب من الأجهزة من جديد |
+| `Attendance__RequireGateway` | `true` | لا يُقبل `/iclock` إلا عبر Nginx الأجهزة (الترويسة `X-EWMS-Device-Gateway`) |
+| `Attendance__OfflineMinutes` | `10` | جهاز بلا اتصال منذ هذه المدة يُعدّ منقطعاً ويُرسل إشعاره |
+| `Attendance__PollSeconds` | `10` | فترة استطلاع الجهاز للخادم |
+| `Attendance__CommandsPerPoll` | `50` | أقصى عدد أوامر في رد استطلاع واحد |
+| `Attendance__PhotoRetentionDays` | `90` | مدة الاحتفاظ بصور لحظة البصم (البصمة نفسها لا تُحذف أبداً) |
+| `Attendance__TimeZoneHours` | `3` | توقيت الأجهزة عن UTC |
+| `Attendance__RawLogFolder` | فارغ | مجلد سجل تشخيص لكل طلب خام من الأجهزة — للتحقق من موديل جديد فقط، ثم يُفرَّغ |
+
+**2) Nginx والجدار الناري:** الملفان `ewms-devices.conf` و`ewms-devices-allow.conf` (في `deploy/` بحزمة الـ API وفي حزمة إعدادات التثبيت المنفصل):
+```bash
+sudo cp ewms-devices.conf /etc/nginx/sites-available/ewms-devices
+sudo cp ewms-devices-allow.conf /etc/nginx/snippets/          # اكتب فيه شبكات الفروع (allow …؛ deny all)
+sudo ln -s /etc/nginx/sites-available/ewms-devices /etc/nginx/sites-enabled/ewms-devices
+sudo nginx -t && sudo systemctl reload nginx
+sudo ufw allow from 10.20.0.0/16 to any port 8081 proto tcp   # سطر لكل شبكة فرع
+```
+وفي إعداد Nginx للواجهة (المنفذ 80) الكتلة `location /iclock/ { return 404; }` كي لا يصل أحد إلى `/iclock` من منفذ الواجهة —
+أضفها إلى إعداد الخادم الحالي إن لم تكن فيه.
+
+**3) على الجهاز** (القائمة ← Comm/الاتصال ← Cloud Server Setting؛ الأسماء تختلف قليلاً بين الإصدارات):
+وضع الخادم ADMS، «Enable Domain Name» معطّل، عنوان الخادم = IP خادم EWMS، المنفذ `8081`، HTTPS والوكيل (Proxy) معطّلان.
+خلال دقيقة يظهر الجهاز «بانتظار الموافقة» ويصل إشعار لمن يملك قبول الأجهزة: اقبله وحدد اسمه ومنطقته، فيُحمَّل عليه أشخاص منطقته
+(من لهم رقم بصمة) خلال دقيقة، وتُسحب السجلات المسجّلة عليه قبل قبوله.
+- **نقل جهاز من BioTime:** الجهاز يرسل إلى خادم واحد فقط؛ بعد تغيير العنوان لا يصل شيء إلى BioTime. انقل الأجهزة واحداً واحداً.
+- **لا يظهر الجهاز:** `sudo tail -f /var/log/nginx/ewms-devices.access.log` — لا سطر = الشبكة أو الجدار الناري أو `allow`؛
+  403 من Nginx = الشبكة غير مسموحة؛ 404 = `Attendance__Enabled` غير مفعّل أو الطلب لم يمر عبر بوابة الأجهزة.
+
+**النسخ الاحتياطي:** البصمات والقوالب في القاعدة (جداول `Attendance…`). صور لحظة البصم في القاعدة، أو في مجلد المرفقات
+(`attendance-photos/…`) مع `FileStorage__Mode=FileSystem`.
+
 ## 0. المتطلبات على الخادم
 - Linux x64 (Ubuntu 22.04+/Debian 12/RHEL 9 أو ما يماثلها) مع **libicu** (موجودة عادة؛ للتحقق: `ldconfig -p | grep libicu`).
 - **SQL Server 2019+** (على الخادم نفسه أو جهاز آخر في الشبكة) — النظام يستعمل ميزات SQL Server (rowversion، sp_getapplock).

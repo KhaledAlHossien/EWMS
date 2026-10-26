@@ -80,6 +80,9 @@ if (-not $Single) {
     $cfg = New-Stage "EWMS-$version-deploy-config"
     Copy-Item (Join-Path $PSScriptRoot 'linux\split\*') $cfg -Force
     Copy-Item (Join-Path $PSScriptRoot 'linux\ewms-security-headers.conf') $cfg -Force
+    # بوابة أجهزة البصمة (المنفذ 8081) وقائمة شبكات الفروع
+    Copy-Item (Join-Path $PSScriptRoot 'linux\ewms-devices.conf') $cfg -Force
+    Copy-Item (Join-Path $PSScriptRoot 'linux\ewms-devices-allow.conf') $cfg -Force
     Copy-Item (Join-Path $root 'docs\DEPLOYMENT.md') $cfg -Force
     # ملفات Linux بنهايات LF مهما كانت إعدادات git على جهاز البناء
     Get-ChildItem $cfg -File | ForEach-Object {
