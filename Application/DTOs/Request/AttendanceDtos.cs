@@ -30,6 +30,47 @@ namespace Application.DTOs.Request
         public DateTime? To { get; set; }
     }
 
+    /// <summary>قائمة الأشخاص: فلاتر اختيارية ضمن حد المستخدم. Missing: number / face / finger / templates</summary>
+    public class AttendancePeopleSearchDto
+    {
+        public int? Kind { get; set; }
+        public int? AreaId { get; set; }
+        public int? BranchId { get; set; }
+        public int? DepartmentId { get; set; }
+        /// <summary>الاسم أو الرقم الذاتي أو رقم البصمة أو البطاقة</summary>
+        public string? Query { get; set; }
+        public string? Missing { get; set; }
+        public bool? Active { get; set; }
+        public int Page { get; set; } = 1;
+        public int PageSize { get; set; } = 50;
+    }
+
+    /// <summary>بيانات حضور شخص: رقم البصمة (أرقام فقط، فريد)، البطاقة، مدير على الجهاز، مناطق إضافية، فترة العمل</summary>
+    public class AttendanceProfileRequestDto
+    {
+        public string? AttendanceNumber { get; set; }
+        public string? CardNumber { get; set; }
+        public bool IsDeviceAdmin { get; set; }
+        public List<int> ExtraAreaIds { get; set; } = [];
+        public DateTime? ActiveFrom { get; set; }
+        public DateTime? ActiveTo { get; set; }
+        /// <summary>اربط البصمات التي وصلت بهذا الرقم ولا صاحب لها بهذا الشخص</summary>
+        public bool LinkUnknownPunches { get; set; }
+    }
+
+    /// <summary>عامل مياومة: يتبع المنطقة التي يعمل فيها (إلزامية)، والفرع والقسم والمكتب اختيارية (الفرع داخل المنطقة)</summary>
+    public class DailyWorkerRequestDto : AttendanceProfileRequestDto
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
+        public string? PersonalIdNumber { get; set; }
+        public int? AreaId { get; set; }
+        public int? BranchId { get; set; }
+        public int? DepartmentId { get; set; }
+        public int? OfficeId { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+
     /// <summary>بحث البصمات الخام: الفترة (الافتراضي اليوم) وفلاتر اختيارية — كلها ضمن حدّ صلاحيات العرض</summary>
     public class AttendancePunchSearchDto
     {

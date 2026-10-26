@@ -113,6 +113,74 @@ namespace API.Controllers
             Ok(await _mediator.Send(new GetAttendanceDeviceUsersQuery(id)));
     }
 
+    /// <summary>الأشخاص في الحضور: القائمة، بيانات الحضور، عمال المياومة، والاستيراد من Excel (الحدود في الـ handlers)</summary>
+    [ApiController]
+    [Route("api/AttendancePeople")]
+    [Authorize]
+    public class AttendancePeopleController : ControllerBase
+    {
+        private const string Xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        private readonly IMediator _mediator;
+        public AttendancePeopleController(IMediator mediator) => _mediator = mediator;
+
+        [HttpGet("Search")]
+        [Authorize(Policy = "AnyAttendancePeople")]
+        public async Task<ActionResult<PagedResultDto<AttendancePersonDto>>> Search([FromQuery] AttendancePeopleSearchDto dto) =>
+            Ok(await _mediator.Send(new SearchAttendancePeopleQuery(dto)));
+
+        [HttpGet("Get/{userId:int}")]
+        [Authorize(Policy = "AnyAttendancePeople")]
+        public async Task<ActionResult<AttendancePersonDto>> Get(int userId) =>
+            Ok(await _mediator.Send(new GetAttendancePersonQuery(userId)));
+
+        [HttpPut("Profile/{userId:int}")]
+        [Authorize(Policy = "EditAttendanceProfile")]
+        public async Task<ActionResult<AttendanceProfileSavedDto>> Profile(int userId, [FromBody] AttendanceProfileRequestDto dto) =>
+            Ok(await _mediator.Send(new UpdateAttendanceProfileCommand(userId, dto)));
+
+        [HttpDelete("Biometrics/{userId:int}")]
+        [Authorize(Policy = "EditAttendanceProfile")]
+        public async Task<ActionResult<AttendancePersonDto>> ClearBiometrics(int userId) =>
+            Ok(await _mediator.Send(new ClearPersonBiometricsCommand(userId)));
+
+        [HttpPost("Workers")]
+        [Authorize(Policy = "CreateDailyWorker")]
+        public async Task<ActionResult<AttendanceProfileSavedDto>> CreateWorker([FromBody] DailyWorkerRequestDto dto) =>
+            Ok(await _mediator.Send(new CreateDailyWorkerCommand(dto)));
+
+        [HttpPut("Worker/{userId:int}")]
+        [Authorize(Policy = "EditDailyWorker")]
+        public async Task<ActionResult<AttendanceProfileSavedDto>> UpdateWorker(int userId, [FromBody] DailyWorkerRequestDto dto) =>
+            Ok(await _mediator.Send(new UpdateDailyWorkerCommand(userId, dto)));
+
+        [HttpDelete("Worker/{userId:int}")]
+        [Authorize(Policy = "DeleteDailyWorker")]
+        public async Task<ActionResult> DeleteWorker(int userId)
+        {
+            await _mediator.Send(new DeleteDailyWorkerCommand(userId));
+            return Ok(new { message = "حُذف العامل" });
+        }
+
+        [HttpGet("ImportTemplate")]
+        [Authorize(Policy = "AnyAttendancePeopleWrite")]
+        public async Task<IActionResult> ImportTemplate() =>
+            File(await _mediator.Send(new GetPeopleImportTemplateQuery()), Xlsx, "attendance-people-template.xlsx");
+
+        /// <summary>dryRun=true معاينة بلا حفظ، false يحفظ الأسطر الصالحة فقط</summary>
+        [HttpPost("Import")]
+        [Authorize(Policy = "AnyAttendancePeopleWrite")]
+        [RequestSizeLimit(6 * 1024 * 1024)]
+        public async Task<ActionResult<PeopleImportReportDto>> Import(IFormFile? file, [FromQuery] bool dryRun = true)
+        {
+            if (file == null || file.Length == 0) return BadRequest(new { message = "اختر ملف Excel" });
+            if (file.Length > 5 * 1024 * 1024) return BadRequest(new { message = "حجم الملف يتجاوز 5MB" });
+            await using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+            return Ok(await _mediator.Send(new ImportAttendancePeopleCommand(stream, dryRun)));
+        }
+    }
+
     /// <summary>البصمات الخام بحدود صلاحيات العرض، وبصماتي</summary>
     [ApiController]
     [Route("api/AttendancePunches")]

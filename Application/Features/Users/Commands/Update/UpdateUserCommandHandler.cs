@@ -18,6 +18,7 @@ namespace Application.Features.Users.Commands.Update
         private readonly ICurrentUserService _currentUserService;
         private readonly IPasswordHasher _passwordHasher;
         private readonly IUserPermissionService _permissions;
+        private readonly IAttendanceSyncService _attendanceSync;
         private readonly IMapper _mapper;
 
         public UpdateUserCommandHandler(
@@ -30,6 +31,7 @@ namespace Application.Features.Users.Commands.Update
             ICurrentUserService currentUserService,
             IPasswordHasher passwordHasher,
             IUserPermissionService permissions,
+            IAttendanceSyncService attendanceSync,
             IMapper mapper)
         {
             _userService = userService;
@@ -41,6 +43,7 @@ namespace Application.Features.Users.Commands.Update
             _currentUserService = currentUserService;
             _passwordHasher = passwordHasher;
             _permissions = permissions;
+            _attendanceSync = attendanceSync;
             _mapper = mapper;
         }
 
@@ -84,6 +87,7 @@ namespace Application.Features.Users.Commands.Update
                 roleId);
 
             // تغيير النوع أو الدور أو المكان أو التعطيل أو كلمة المرور يُنهي جلسات الموظف المفتوحة
+            var previousBranch = user.BranchId;
             var sensitive = user.Kind != request.UserDto.Kind
                 || user.RoleId != roleId
                 || user.BranchId != placement.BranchId
@@ -119,6 +123,8 @@ namespace Application.Features.Users.Commands.Update
             }
 
             await _userService.UpdateAsync(user);
+            // أجهزة البصمة: الاسم أو الفرع أو التفعيل تغيّر — تُعاد مزامنة أجهزة منطقته الحالية والسابقة
+            await _attendanceSync.MarkUsersAsync([user.Id], previousBranch is int oldBranch ? [oldBranch] : null);
             if (sensitive) await _userService.RevokeSessionsAsync(user.Id);
             var updated = await _userService.GetWithDetailsAsync(user.Id) ?? user;
             return _mapper.Map<UserResponseDto>(updated);

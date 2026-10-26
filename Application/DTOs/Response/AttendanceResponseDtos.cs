@@ -127,6 +127,72 @@ namespace Application.DTOs.Response
         public string Devices { get; set; } = string.Empty;
     }
 
+    public class AttendancePersonDto
+    {
+        public int UserId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        /// <summary>1 حساب نظام، 2 موظف بلا دخول، 3 عامل مياومة</summary>
+        public int Kind { get; set; }
+        public string KindName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public string? PersonalIdNumber { get; set; }
+        public string? PhoneNumber { get; set; }
+        public int? BranchId { get; set; }
+        public string? BranchName { get; set; }
+        public int? DepartmentId { get; set; }
+        public string? DepartmentName { get; set; }
+        public int? OfficeId { get; set; }
+        public string? OfficeName { get; set; }
+        public string? AttendanceNumber { get; set; }
+        public string? CardNumber { get; set; }
+        public bool IsDeviceAdmin { get; set; }
+        /// <summary>منطقة الشخص: منطقة العامل المحددة، وإلا منطقة فرعه</summary>
+        public int? AreaId { get; set; }
+        public string AreaName { get; set; } = string.Empty;
+        /// <summary>المنطقة المحددة للعامل (فارغة للموظف)</summary>
+        public int? WorkerAreaId { get; set; }
+        public List<IdNameDto> ExtraAreas { get; set; } = [];
+        public DateTime? ActiveFrom { get; set; }
+        public DateTime? ActiveTo { get; set; }
+        public int Faces { get; set; }
+        public int Fingers { get; set; }
+        public bool HasBioPhoto { get; set; }
+        /// <summary>الأجهزة التي وضعناه عليها، والأجهزة المقبولة في مناطقه</summary>
+        public int OnDevices { get; set; }
+        public int ExpectedDevices { get; set; }
+        public bool CanEditProfile { get; set; }
+        public bool CanEditWorker { get; set; }
+        public bool CanDeleteWorker { get; set; }
+    }
+
+    public class AttendanceProfileSavedDto
+    {
+        public AttendancePersonDto Person { get; set; } = new();
+        /// <summary>بصمات سابقة بالرقم رُبطت بالشخص</summary>
+        public int LinkedPunches { get; set; }
+    }
+
+    public class PeopleImportReportDto
+    {
+        public bool DryRun { get; set; }
+        public int Total { get; set; }
+        public int Valid { get; set; }
+        public int Imported { get; set; }
+        public List<PeopleImportRowDto> Rows { get; set; } = [];
+    }
+
+    public class PeopleImportRowDto
+    {
+        public int Row { get; set; }
+        public bool Ok { get; set; }
+        /// <summary>جديد: موظف بلا دخول / جديد: عامل مياومة / تحديث</summary>
+        public string Action { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string AttendanceNumber { get; set; } = string.Empty;
+        /// <summary>سبب الرفض للسطر المرفوض</summary>
+        public string Message { get; set; } = string.Empty;
+    }
+
     /// <summary>فرع مع منطقته الحالية (لاختيار فروع المنطقة)</summary>
     public class AreaBranchOptionDto
     {

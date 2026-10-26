@@ -16,6 +16,8 @@ namespace Application.Features.Users.Commands.Delete
         private readonly IMapLayerService _mapLayers;
         private readonly IMapEntryService _mapEntries;
         private readonly IReportLogService _reportLog;
+        private readonly IAttendancePeopleService _attendancePeople;
+        private readonly IAttendanceSyncService _attendanceSync;
 
         public DeleteUserCommandHandler(
             IUserService userService,
@@ -28,9 +30,13 @@ namespace Application.Features.Users.Commands.Delete
             IDeviceInventoryLogService deviceLog,
             IMapLayerService mapLayers,
             IMapEntryService mapEntries,
-            IReportLogService reportLog)
+            IReportLogService reportLog,
+            IAttendancePeopleService attendancePeople,
+            IAttendanceSyncService attendanceSync)
         {
             _reportLog = reportLog;
+            _attendancePeople = attendancePeople;
+            _attendanceSync = attendanceSync;
             _mapLayers = mapLayers;
             _mapEntries = mapEntries;
             _sparePartService = sparePartService;
@@ -78,6 +84,11 @@ namespace Application.Features.Users.Commands.Delete
                 throw new InvalidOperationException("لا يمكن حذف موظف له سحوبات في سجل التقارير — عطّل حسابه بدلاً من ذلك");
 
 
+            if (await _attendancePeople.DeleteBlockerAsync(user.Id) is string attendance)
+                throw new InvalidOperationException(attendance);
+
+            // تُعلَّم أجهزة البصمة قبل الحذف (بعده لا تُعرف منطقته) فتزيله المزامنة منها
+            await _attendanceSync.MarkUsersAsync([user.Id]);
             return await _userService.DeleteAsync(user);
         }
     }
