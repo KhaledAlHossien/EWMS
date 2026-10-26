@@ -38,7 +38,7 @@ namespace Application.Features.Users.Password
         public async Task<string> Handle(ChangeMyPasswordCommand request, CancellationToken ct)
         {
             var user = await _users.GetByIdAsync(_users.UserId) ?? throw new UnauthorizedAccessException("المستخدم غير مصادق");
-            if (!_hasher.Verify(request.CurrentPassword, user.PasswordHash))
+            if (user.PasswordHash == null || !_hasher.Verify(request.CurrentPassword, user.PasswordHash))
                 throw new InvalidOperationException("كلمة المرور الحالية غير صحيحة");
             if (PasswordRules.Problem(request.NewPassword, user.Email) is { } problem)
                 throw new InvalidOperationException(problem);

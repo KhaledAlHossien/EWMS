@@ -110,6 +110,9 @@ namespace Application.Features.Maintenance
             if (!target.IsActive)
                 throw new InvalidOperationException("لا يمكن الإسناد إلى حساب معطّل");
 
+            if (!target.HasLogin)
+                throw new InvalidOperationException("لا يمكن الإسناد إلى من لا يدخل النظام");
+
             if (target.DepartmentId == null)
                 throw new InvalidOperationException("الموظف المحدد لا يتبع لأي قسم");
 
@@ -130,7 +133,7 @@ namespace Application.Features.Maintenance
                     ? await userService.GetByDepartmentAsync(own)
                     : [];
 
-            return users.Where(u => u.IsActive && u.DepartmentId != null).ToList();
+            return users.Where(u => u.IsActive && u.HasLogin && u.DepartmentId != null).ToList();
         }
 
         public static Expression<Func<MaintenanceRequest, bool>> RequestFilter(Boundary? b)

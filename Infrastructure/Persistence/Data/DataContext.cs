@@ -73,9 +73,14 @@ namespace Infrastructure.Persistence.Data
             base.OnModelCreating(builder);
 
             // ==================== الفهارس الفريدة (Unique Indexes) ====================
+            // البريد فريد لمن له بريد: من لا يدخل النظام بلا بريد (NULL) فلا يتعارضون فيما بينهم
             builder.Entity<User>()
                 .HasIndex(u => u.Email)
-                .IsUnique();
+                .IsUnique()
+                .HasFilter("[Email] IS NOT NULL");
+            builder.Entity<User>()
+                .Property(u => u.Kind)
+                .HasConversion<int>();
 
             // الرقم الذاتي: فريد لمن سُجّل له، والحسابات بلا رقم (NULL) لا تتعارض فيما بينها
             builder.Entity<User>()

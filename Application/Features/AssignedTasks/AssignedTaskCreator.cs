@@ -159,7 +159,7 @@ namespace Application.Features.AssignedTasks
                 case AssignedTaskTargetType.User:
                     var assignee = await _userService.GetByIdAsync(targetId)
                         ?? throw new KeyNotFoundException("الموظف غير موجود");
-                    if (officeLimit == null || assignee.OfficeId != officeLimit || assignee.Id == user.Id || !assignee.IsActive)
+                    if (officeLimit == null || assignee.OfficeId != officeLimit || assignee.Id == user.Id || !assignee.IsActive || !assignee.HasLogin)
                         throw new UnauthorizedAccessException(parent != null
                             ? "يمكنك التفويض لموظفي مكتب المهمة فقط" : "يمكنك إسناد المهام لموظفي مكتبك فقط");
                     task.BranchId = assignee.BranchId ?? 0;

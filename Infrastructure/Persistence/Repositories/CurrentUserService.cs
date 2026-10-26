@@ -31,7 +31,7 @@ namespace Infrastructure.Persistence.Repositories
                 .FirstOrDefaultAsync(u => u.Id == UserId);
 
             // حساب حُذف أو عُطّل أثناء الجلسة: لا يُعامَل كمستخدم صالح
-            if (user == null || !user.IsActive)
+            if (user == null || !user.IsActive || !user.HasLogin)
                 throw new UnauthorizedAccessException("الحساب غير موجود أو غير فعّال");
 
             return _user = user;

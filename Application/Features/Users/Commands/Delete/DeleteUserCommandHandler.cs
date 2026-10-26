@@ -52,6 +52,7 @@ namespace Application.Features.Users.Commands.Delete
                 throw new InvalidOperationException("لا يمكنك حذف حسابك الحالي");
 
             await UserRules.EnsureCanChangeExistingUserAsync(_currentUserService, user);
+            UserRules.EnsureNotDailyWorker(user);
 
             // أسند مهام أو أُسندت إليه أو شارك في سجلها — يُعطَّل الحساب بدل حذفه
             if (await _vacationService.ExistsForUserAsync(user.Id))

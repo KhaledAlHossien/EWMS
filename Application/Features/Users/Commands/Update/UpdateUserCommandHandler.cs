@@ -2,6 +2,7 @@ using Application.Common;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using AutoMapper;
+using Domain.Enums;
 using MediatR;
 
 namespace Application.Features.Users.Commands.Update
@@ -49,12 +50,20 @@ namespace Application.Features.Users.Commands.Update
                 ?? throw new KeyNotFoundException("المستخدم غير موجود");
 
             await UserRules.EnsureCanChangeExistingUserAsync(_currentUserService, user);
+            UserRules.EnsureNotDailyWorker(user);
+
+            // البريد وكلمة المرور والدور لحساب النظام وحده: التحويل إلى «بلا دخول» يمحوها، والتحويل إلى حساب يطلب كلمة مرور
+            var account = request.UserDto.Kind == UserKind.Account;
+            var email = account ? request.UserDto.Email!.Trim() : null;
+            var roleId = account ? request.UserDto.RoleId : null;
+            if (account && user.PasswordHash == null && string.IsNullOrWhiteSpace(request.UserDto.Password))
+                throw new InvalidOperationException("كلمة المرور مطلوبة لتحويل الموظف إلى حساب يدخل النظام");
 
             var personalId = UserRules.NormalizePersonalIdNumber(request.UserDto.PersonalIdNumber);
             if (personalId != null && !await _userService.IsPersonalIdNumberUniqueAsync(personalId, request.Id))
                 throw new InvalidOperationException("الرقم الذاتي مسجّل لموظف آخر");
 
-            if (!await _userService.IsEmailUniqueAsync(request.UserDto.Email, request.Id))
+            if (email != null && !await _userService.IsEmailUniqueAsync(email, request.Id))
                 throw new InvalidOperationException("البريد الإلكتروني مستخدم مسبقاً");
 
             var placement = await UserRules.EnsureUserReferencesAsync(
@@ -65,28 +74,31 @@ namespace Application.Features.Users.Commands.Update
                 request.UserDto.BranchId,
                 request.UserDto.DepartmentId,
                 request.UserDto.OfficeId,
-                request.UserDto.RoleId);
+                roleId);
 
             await UserRules.EnsureCanManageUserAsync(
                 _currentUserService,
                 _roleService,
                 _rolePermissionService,
                 placement.BranchId,
-                request.UserDto.RoleId);
+                roleId);
 
-            // تغيير الدور أو المكان أو التعطيل أو كلمة المرور يُنهي جلسات الموظف المفتوحة
-            var sensitive = user.RoleId != request.UserDto.RoleId
+            // تغيير النوع أو الدور أو المكان أو التعطيل أو كلمة المرور يُنهي جلسات الموظف المفتوحة
+            var sensitive = user.Kind != request.UserDto.Kind
+                || user.RoleId != roleId
                 || user.BranchId != placement.BranchId
                 || user.DepartmentId != placement.DepartmentId
                 || user.OfficeId != placement.OfficeId
                 || (user.IsActive && !request.UserDto.IsActive)
                 || !string.IsNullOrWhiteSpace(request.UserDto.Password);
 
+            user.Kind = request.UserDto.Kind;
             user.FullName = request.UserDto.FullName;
-            user.Email = request.UserDto.Email;
+            user.Email = email;
             user.PersonalIdNumber = personalId;
             user.PhoneNumber = Application.Common.PhoneRules.ToStored(request.UserDto.PhoneNumber);
-            user.RoleId = request.UserDto.RoleId;
+            user.RoleId = roleId;
+            if (!account) user.PasswordHash = null;
             user.DepartmentId = placement.DepartmentId;
             user.OfficeId = placement.OfficeId;
             user.BranchId = placement.BranchId;
@@ -98,7 +110,7 @@ namespace Application.Features.Users.Commands.Update
 
             user.IsActive = request.UserDto.IsActive;
 
-            if (!string.IsNullOrWhiteSpace(request.UserDto.Password))
+            if (account && !string.IsNullOrWhiteSpace(request.UserDto.Password))
             {
                 user.PasswordHash = _passwordHasher.Hash(request.UserDto.Password);
                 // كلمة مرور جديدة من المسؤول تفك قفل المحاولات الخاطئة

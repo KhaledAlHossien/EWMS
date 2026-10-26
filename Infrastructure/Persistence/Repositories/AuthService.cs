@@ -43,7 +43,8 @@ namespace Infrastructure.Persistence.Repositories
                 .Include(u => u.Branch)
                 .FirstOrDefaultAsync(u => u.Email == request.Email);
 
-            if (user == null || !user.IsActive) return LoginOutcome.Invalid;
+            // من لا يدخل النظام (موظف بلا دخول، عامل مياومة) لا حساب له: نفس رسالة البيانات الخاطئة
+            if (user == null || !user.IsActive || !user.HasLogin || user.PasswordHash == null) return LoginOutcome.Invalid;
 
             var now = DateTime.UtcNow;
             if (user.LockoutUntil > now) return new LoginOutcome(null, user.LockoutUntil);
@@ -102,8 +103,8 @@ namespace Infrastructure.Persistence.Repositories
                 Token = token,
                 ExpiresAt = expiresAt,
                 FullName = user.FullName,
-                Email = user.Email,
-                Role = user.Role.Name,
+                Email = user.Email ?? string.Empty,
+                Role = user.Role?.Name ?? string.Empty,
                 BranchId = user.BranchId,
                 DepartmentId = user.DepartmentId,
                 OfficeId = user.OfficeId,

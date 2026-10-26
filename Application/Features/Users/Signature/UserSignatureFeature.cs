@@ -52,7 +52,7 @@ namespace Application.Features.Users.Signature
             // (401 يُخرج المستخدم من الواجهة)
             var user = await _userService.GetByIdAsync(_userService.UserId)
                 ?? throw new KeyNotFoundException("المستخدم غير موجود");
-            if (!_passwordHasher.Verify(request.Password, user.PasswordHash))
+            if (user.PasswordHash == null || !_passwordHasher.Verify(request.Password, user.PasswordHash))
                 throw new InvalidOperationException("كلمة المرور غير صحيحة");
 
             var image = string.IsNullOrWhiteSpace(request.Image) ? null : request.Image;

@@ -2,6 +2,7 @@ using Application.Common;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using Infrastructure.Persistence.Data;
+using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using static Application.Features.Reports.ReportFilters;
 using Ct = Application.DTOs.Response.ReportColumnType;
@@ -37,8 +38,8 @@ namespace Infrastructure.Reports
             // الأدوار التي يحملها موظفو حدّي فقط (لا أدوار الفروع الأخرى)، وكلها لنظرة المؤسسة
             var roles = limit == null
                 ? await Db.Roles.AsNoTracking().OrderBy(r => r.Name).Select(r => new ReportOptionDto(r.Id.ToString(), r.Name, null)).ToListAsync(ct)
-                : (await Db.Users.AsNoTracking().Where(u => u.BranchId == limit).Select(u => new { u.RoleId, u.Role.Name }).Distinct().ToListAsync(ct))
-                    .OrderBy(r => r.Name).Select(r => new ReportOptionDto(r.RoleId.ToString(), r.Name)).ToList();
+                : (await Db.Users.AsNoTracking().Where(u => u.BranchId == limit && u.RoleId != null).Select(u => new { u.RoleId, u.Role!.Name }).Distinct().ToListAsync(ct))
+                    .OrderBy(r => r.Name).Select(r => new ReportOptionDto($"{r.RoleId}", r.Name)).ToList();
             filters.Add(Select(Role, "الدور", roles));
             filters.Add(Select(Status, "الحالة", [new("1", "نشط"), new("0", "موقوف")]));
             filters.Add(Text(Name, "الموظف", "الاسم أو الرقم الذاتي"));
@@ -49,7 +50,8 @@ namespace Infrastructure.Reports
         {
             var f = run.Filters;
             var limit = StructureScope.BranchOf(run.Viewer);
-            var query = Db.Users.AsNoTracking().Where(u => limit == null || u.BranchId == limit);
+            // الموظفون الرسميون (بدخول وبلا دخول)؛ عمال المياومة في تقارير الحضور
+            var query = Db.Users.AsNoTracking().Where(u => u.Kind != UserKind.DailyWorker && (limit == null || u.BranchId == limit));
             if (f.Int(Branch) is int branch) query = query.Where(u => u.BranchId == branch);
             if (f.Int(Department) is int department) query = query.Where(u => u.DepartmentId == department);
             if (f.Int(Office) is int office) query = query.Where(u => u.OfficeId == office);
@@ -65,7 +67,7 @@ namespace Infrastructure.Reports
                 .OrderBy(u => u.Branch!.Name).ThenBy(u => u.Department!.Name).ThenBy(u => u.FullName)
                 .Select(u => new
                 {
-                    u.FullName, u.Email, u.PersonalIdNumber, u.PhoneNumber, Role = u.Role.Name,
+                    u.FullName, u.Email, u.PersonalIdNumber, u.PhoneNumber, Role = u.Role != null ? u.Role.Name : "بلا دخول",
                     Branch = u.Branch != null ? u.Branch.Name : null,
                     Department = u.Department != null ? u.Department.Name : null,
                     Office = u.Office != null ? u.Office.Name : null,
@@ -116,7 +118,7 @@ namespace Infrastructure.Reports
                 .OrderBy(d => d.Name).Select(d => new { d.Id, d.Name, d.BranchId }).ToListAsync(ct);
             var offices = await Db.Offices.AsNoTracking().Where(o => limit == null || o.Department.BranchId == limit)
                 .OrderBy(o => o.Name).Select(o => new { o.Id, o.Name, o.DepartmentId }).ToListAsync(ct);
-            var counts = await Db.Users.AsNoTracking().Where(u => u.BranchId != null && (limit == null || u.BranchId == limit))
+            var counts = await Db.Users.AsNoTracking().Where(u => u.Kind != UserKind.DailyWorker && u.BranchId != null && (limit == null || u.BranchId == limit))
                 .GroupBy(u => new { u.BranchId, u.DepartmentId, u.OfficeId, u.IsActive })
                 .Select(g => new { g.Key.BranchId, g.Key.DepartmentId, g.Key.OfficeId, g.Key.IsActive, Count = g.Count() })
                 .ToListAsync(ct);

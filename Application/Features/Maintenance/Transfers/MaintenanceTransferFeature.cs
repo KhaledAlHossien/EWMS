@@ -216,7 +216,7 @@ namespace Application.Features.Maintenance.Transfers
             var user = await MaintenanceRules.CurrentUserAsync(_users);
             if (user.DepartmentId is not int departmentId) return [];
             return (await _users.GetByDepartmentAsync(departmentId))
-                .Where(u => u.IsActive && u.Id != user.Id)
+                .Where(u => u.IsActive && u.HasLogin && u.Id != user.Id)
                 .OrderBy(u => u.FullName)
                 .Select(u => new TechnicianOptionDto { Id = u.Id, FullName = u.FullName })
                 .ToList();

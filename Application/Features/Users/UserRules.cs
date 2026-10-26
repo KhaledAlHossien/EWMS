@@ -20,13 +20,17 @@ namespace Application.Features.Users
             int? branchId,
             int? departmentId,
             int? officeId,
-            int roleId)
+            int? roleId)
         {
-            var role = await roleService.GetByIdAsync(roleId)
-                ?? throw new KeyNotFoundException("الدور غير موجود");
+            // من لا يدخل النظام بلا دور (UserKind.NoLogin)، فلا يكون SuperAdmin
+            if (roleId != null)
+            {
+                var role = await roleService.GetByIdAsync(roleId.Value)
+                    ?? throw new KeyNotFoundException("الدور غير موجود");
 
-            if (role.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
-                return (null, null, null);
+                if (role.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+                    return (null, null, null);
+            }
 
             int? office = officeId is > 0 ? officeId : null;
             int? department = departmentId is > 0 ? departmentId : null;
@@ -62,24 +66,34 @@ namespace Application.Features.Users
             IRoleService roleService,
             IRolePermissionService rolePermissionService,
             int? branchId,
-            int roleId)
+            int? roleId)
         {
             var me = await currentUserService.GetUserAsync();
             if (OrganizationRole.IsSystemAdmin(me))
                 return;
 
-            var role = await roleService.GetByIdAsync(roleId)
-                ?? throw new KeyNotFoundException("الدور غير موجود");
+            if (roleId != null)
+            {
+                var role = await roleService.GetByIdAsync(roleId.Value)
+                    ?? throw new KeyNotFoundException("الدور غير موجود");
 
-            if (role.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
-                throw new UnauthorizedAccessException("لا يمكنك منح دور SuperAdmin");
+                if (role.Name.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+                    throw new UnauthorizedAccessException("لا يمكنك منح دور SuperAdmin");
 
-            var rolePermissions = await rolePermissionService.GetByRoleAsync(roleId);
-            if (rolePermissions.Any(rp => AppPermissions.IsBranchManagement(rp.Permission.Name)))
-                throw new UnauthorizedAccessException("لا يمكنك منح صلاحية إدارة الفروع");
+                var rolePermissions = await rolePermissionService.GetByRoleAsync(roleId.Value);
+                if (rolePermissions.Any(rp => AppPermissions.IsBranchManagement(rp.Permission.Name)))
+                    throw new UnauthorizedAccessException("لا يمكنك منح صلاحية إدارة الفروع");
+            }
 
             if (!OrganizationRole.InBranch(me, branchId))
                 throw new UnauthorizedAccessException("لا يمكنك إدارة مستخدم خارج فرعك");
+        }
+
+        /// <summary>عامل المياومة يُدار من صفحة الأشخاص في الحضور (بصلاحياته وحدّ منطقته)، لا من صفحة المستخدمين</summary>
+        public static void EnsureNotDailyWorker(User user)
+        {
+            if (user.Kind == Domain.Enums.UserKind.DailyWorker)
+                throw new InvalidOperationException("عامل المياومة يُدار من صفحة الأشخاص في الحضور والانصراف");
         }
 
         /// <summary>الرقم الذاتي: بلا فراغات وبحروف كبيرة (m201160 = M201160)، والفارغ = null</summary>

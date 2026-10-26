@@ -30,7 +30,8 @@ namespace Infrastructure.Persistence.Repositories
             _vacationService = vacationService;
         }
 
-        private IQueryable<User> ActiveUsers => _context.Users.AsNoTracking().Where(u => u.IsActive);
+        // الكادر الفعّال: حسابات النظام والموظفون بلا دخول (موظفون رسميون)، لا عمال المياومة
+        private IQueryable<User> ActiveUsers => _context.Users.AsNoTracking().Where(u => u.IsActive && u.Kind != UserKind.DailyWorker);
         private IQueryable<Vacation> Vacations => _context.Vacation.AsNoTracking();
 
         /// <summary>موظف "لديه مهام": مسنَد لمهمة فعّالة من فرعه الحالي</summary>
@@ -195,7 +196,7 @@ namespace Infrastructure.Persistence.Repositories
             var users = ActiveUsers.Where(u => u.OfficeId == officeId);
 
             var members = await users.OrderBy(u => u.FullName)
-                .Select(u => new { u.Id, u.FullName, u.Email, RoleName = u.Role.Name, u.CreatedAt })
+                .Select(u => new { u.Id, u.FullName, u.Email, RoleName = u.Role != null ? u.Role.Name : "", u.CreatedAt })
                 .ToListAsync();
             var memberIds = members.Select(m => m.Id).ToList();
             var assignments = await _context.UserWorkTasks.AsNoTracking()
@@ -223,7 +224,7 @@ namespace Infrastructure.Persistence.Repositories
                 {
                     UserId = m.Id,
                     FullName = m.FullName,
-                    Email = m.Email,
+                    Email = m.Email ?? "",
                     RoleName = m.RoleName,
                     JoinedAt = m.CreatedAt,
                     TaskNames = assignments.Where(a => a.UserId == m.Id).Select(a => a.Name).OrderBy(n => n).ToList()
@@ -266,7 +267,7 @@ namespace Infrastructure.Persistence.Repositories
                 PaidDaysLeftThisMonth = Math.Max(0, limit - paidUsed),
                 TeamName = user.Office?.Name ?? user.Department?.Name ?? "",
                 Team = team == null ? [] : await team.Where(u => u.Id != userId).OrderBy(u => u.FullName)
-                    .Select(u => new TeamMemberDto { FullName = u.FullName, RoleName = u.Role.Name, Email = u.Email })
+                    .Select(u => new TeamMemberDto { FullName = u.FullName, RoleName = u.Role != null ? u.Role.Name : "", Email = u.Email ?? "" })
                     .ToListAsync()
             };
         }
@@ -340,7 +341,7 @@ namespace Infrastructure.Persistence.Repositories
         /// <summary>الموظفون حسب الدور (اسم الدور كما في النظام — الواجهة تترجمه)</summary>
         private static async Task<List<DashboardCountItemDto>> EmployeesByRoleAsync(IQueryable<User> users)
         {
-            return await users.GroupBy(u => u.Role.Name)
+            return await users.GroupBy(u => u.Role != null ? u.Role.Name : "")
                 .Select(g => new DashboardCountItemDto { Label = g.Key, Count = g.Count() })
                 .OrderByDescending(x => x.Count)
                 .ToListAsync();
@@ -352,7 +353,7 @@ namespace Infrastructure.Persistence.Repositories
         private async Task<List<DashboardActivityDto>> RecentActivityAsync(
             Expression<Func<User, bool>> inScope, int? branchId, bool includeTaskCreation)
         {
-            var joined = await _context.Users.AsNoTracking().Where(inScope)
+            var joined = await _context.Users.AsNoTracking().Where(u => u.Kind != UserKind.DailyWorker).Where(inScope)
                 .OrderByDescending(u => u.CreatedAt).Take(ListSize)
                 .Select(u => new
                 {

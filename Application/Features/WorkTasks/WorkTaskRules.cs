@@ -16,7 +16,9 @@ namespace Application.Features.WorkTasks
         {
             if (userIds.Count == 0) return;
 
+            // مهام العمل لمن يدخل النظام (صفحتها في النظام)
             var branchUserIds = (await userService.GetByBranchAsync(branchId))
+                .Where(u => u.HasLogin)
                 .Select(u => u.Id)
                 .ToHashSet();
 

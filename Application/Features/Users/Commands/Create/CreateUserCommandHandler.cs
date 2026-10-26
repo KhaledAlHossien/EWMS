@@ -2,6 +2,7 @@ using Application.DTOs.Response;
 using Application.Interfaces;
 using AutoMapper;
 using Domain.Entities;
+using Domain.Enums;
 using MediatR;
 
 namespace Application.Features.Users.Commands.Create
@@ -42,7 +43,12 @@ namespace Application.Features.Users.Commands.Create
 
         public async Task<UserResponseDto> Handle(CreateUserCommand request, CancellationToken cancellationToken)
         {
-            if (!await _userService.IsEmailUniqueAsync(request.UserDto.Email))
+            // البريد وكلمة المرور والدور لحساب النظام وحده؛ الموظف بلا دخول يُحفظ بدونها مهما أُرسل
+            var account = request.UserDto.Kind == UserKind.Account;
+            var email = account ? request.UserDto.Email!.Trim() : null;
+            var roleId = account ? request.UserDto.RoleId : null;
+
+            if (email != null && !await _userService.IsEmailUniqueAsync(email))
                 throw new InvalidOperationException("البريد الإلكتروني مستخدم مسبقاً");
 
             var personalId = UserRules.NormalizePersonalIdNumber(request.UserDto.PersonalIdNumber);
@@ -57,23 +63,24 @@ namespace Application.Features.Users.Commands.Create
                 request.UserDto.BranchId,
                 request.UserDto.DepartmentId,
                 request.UserDto.OfficeId,
-                request.UserDto.RoleId);
+                roleId);
 
             await UserRules.EnsureCanManageUserAsync(
                 _currentUserService,
                 _roleService,
                 _rolePermissionService,
                 placement.BranchId,
-                request.UserDto.RoleId);
+                roleId);
 
             var user = new User
             {
+                Kind = request.UserDto.Kind,
                 FullName = request.UserDto.FullName,
-                Email = request.UserDto.Email,
+                Email = email,
                 PersonalIdNumber = personalId,
                 PhoneNumber = Application.Common.PhoneRules.ToStored(request.UserDto.PhoneNumber),
-                PasswordHash = _passwordHasher.Hash(request.UserDto.Password),
-                RoleId = request.UserDto.RoleId,
+                PasswordHash = account ? _passwordHasher.Hash(request.UserDto.Password!) : null,
+                RoleId = roleId,
                 DepartmentId = placement.DepartmentId,
                 OfficeId = placement.OfficeId,
                 BranchId = placement.BranchId,

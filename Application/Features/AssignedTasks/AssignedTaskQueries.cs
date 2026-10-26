@@ -195,7 +195,7 @@ namespace Application.Features.AssignedTasks
 
         private async Task<List<TaskTargetOptionDto>> UsersAsync(int officeId, int excludeUserId) =>
             (await _userService.GetByOfficeAsync(officeId))
-                .Where(u => u.IsActive && u.Id != excludeUserId).OrderBy(u => u.FullName)
+                .Where(u => u.IsActive && u.HasLogin && u.Id != excludeUserId).OrderBy(u => u.FullName)
                 .Select(u => new TaskTargetOptionDto { Id = u.Id, Name = u.FullName })
                 .ToList();
     }

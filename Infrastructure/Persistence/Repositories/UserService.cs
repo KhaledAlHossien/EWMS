@@ -1,5 +1,6 @@
 ﻿using Application.Interfaces;
 using Domain.Entities;
+using Domain.Enums;
 using Infrastructure.Persistence.Data;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -47,14 +48,20 @@ namespace Infrastructure.Persistence.Repositories
                 .FirstOrDefaultAsync(u => u.Id == id);
         }
 
+        /// <summary>
+        /// الكادر (حسابات النظام والموظفون بلا دخول) مع وحداتهم — قوائم المستخدمين والاختيار. عمال المياومة ليسوا موظفين
+        /// رسميين فلا يظهرون هنا: يُدارون من صفحة الأشخاص في الحضور. قوائم الإسناد تأخذ منها من يدخل النظام فقط (User.HasLogin).
+        /// </summary>
+        private IQueryable<User> Staff => _context.Users
+            .Include(u => u.Role)
+            .Include(u => u.Department)
+            .Include(u => u.Office)
+            .Include(u => u.Branch)
+            .Where(u => u.Kind != UserKind.DailyWorker);
+
         public async Task<List<User>> GetAllAsync()
         {
-            return await _context.Users
-                .Include(u => u.Role)
-                .Include(u => u.Department)
-                .Include(u => u.Office)
-                .Include(u => u.Branch)
-                .ToListAsync();
+            return await Staff.ToListAsync();
         }
 
         public async Task AddAsync(User user)
@@ -114,35 +121,17 @@ namespace Infrastructure.Persistence.Repositories
 
         public async Task<List<User>> GetByDepartmentAsync(int departmentId)
         {
-            return await _context.Users
-                .Include(u => u.Role)
-                .Include(u => u.Department)
-                .Include(u => u.Office)
-                .Include(u => u.Branch)
-                .Where(u => u.DepartmentId == departmentId)
-                .ToListAsync();
+            return await Staff.Where(u => u.DepartmentId == departmentId).ToListAsync();
         }
 
         public async Task<List<User>> GetByOfficeAsync(int officeId)
         {
-            return await _context.Users
-                .Include(u => u.Role)
-                .Include(u => u.Department)
-                .Include(u => u.Office)
-                .Include(u => u.Branch)
-                .Where(u => u.OfficeId == officeId)
-                .ToListAsync();
+            return await Staff.Where(u => u.OfficeId == officeId).ToListAsync();
         }
 
         public async Task<List<User>> GetByBranchAsync(int branchId)
         {
-            return await _context.Users
-                .Include(u => u.Role)
-                .Include(u => u.Department)
-                .Include(u => u.Office)
-                .Include(u => u.Branch)
-                .Where(u => u.BranchId == branchId)
-                .ToListAsync();
+            return await Staff.Where(u => u.BranchId == branchId).ToListAsync();
         }
 
 

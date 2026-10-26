@@ -4,10 +4,12 @@ namespace Application.DTOs.Response
     {
         public int Id { get; set; }
         public string FullName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
+        /// <summary>1 حساب نظام، 2 موظف بلا دخول، 3 عامل مياومة (Domain.Enums.UserKind)</summary>
+        public int Kind { get; set; }
+        public string? Email { get; set; }
         public string? PersonalIdNumber { get; set; }
         public string? PhoneNumber { get; set; }
-        public int RoleId { get; set; }
+        public int? RoleId { get; set; }
         public string RoleName { get; set; } = string.Empty;
         public int? DepartmentId { get; set; }
         public string DepartmentName { get; set; } = string.Empty;
