@@ -18,6 +18,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
+    <!-- مرجع مباشر لسدّ ثغرتي .NET (CVE-2026-84008 وCVE-2026-70162، حتى 10.0.12): Microsoft.Data.SqlClient يجلب 9.0.11،
+         ونسخة ASP.NET Core Runtime 10.0.12 المضمّنة مصابة أيضاً؛ النسخة الأعلى تُحمَّل عند التشغيل.
+         يُحذف حين يعتمد SqlClient على نسخة مصلَحة. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
   </ItemGroup>
 
   <ItemGroup>
