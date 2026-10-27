@@ -28,6 +28,7 @@ namespace Application.Features.Vacations.Commands.Approve
         private readonly IUserPermissionService _permissions;
         private readonly IUserSignatureService _signatures;
         private readonly INotificationService _notificationService;
+        private readonly IAttendanceRecalcQueue _attendanceRecalc;
 
         public ApproveVacationCommandHandler(
             IVacationService service,
@@ -36,8 +37,10 @@ namespace Application.Features.Vacations.Commands.Approve
             IUserService userService,
             IUserPermissionService permissions,
             IUserSignatureService signatures,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IAttendanceRecalcQueue attendanceRecalc)
         {
+            _attendanceRecalc = attendanceRecalc;
             _service = service;
             _vacationTypes = vacationTypes;
             _holidays = holidays;
@@ -125,8 +128,12 @@ namespace Application.Features.Vacations.Commands.Approve
             else
             {
                 if (request.Dto.Approve)
+                {
                     await VacationNotifier.NotifyApprovedFinalAsync(
                         _notificationService, vacation, employeeFullName);
+                    // الحضور: أيام الإجازة المعتمدة تُحسب «إجازة» بدل الغياب
+                    await _attendanceRecalc.EnqueueAsync(vacation.UserId, vacation.StartVac, vacation.EndVac, "اعتماد إجازة");
+                }
                 else
                     await VacationNotifier.NotifyRejectedByBranchManagerAsync(
                         _notificationService, vacation, employeeFullName, request.Dto.Reason);

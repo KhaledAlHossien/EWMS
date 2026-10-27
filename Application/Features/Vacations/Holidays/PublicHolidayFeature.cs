@@ -68,11 +68,16 @@ namespace Application.Features.Vacations.Holidays
         IRequestHandler<PreviewVacationDaysQuery, VacationDaysPreviewDto>
     {
         private readonly IPublicHolidayService _service;
+        private readonly IAttendanceRecalcQueue _attendanceRecalc;
 
-        public PublicHolidayHandler(IPublicHolidayService service)
+        public PublicHolidayHandler(IPublicHolidayService service, IAttendanceRecalcQueue attendanceRecalc)
         {
             _service = service;
+            _attendanceRecalc = attendanceRecalc;
         }
+
+        /// <summary>الحضور: أيام العطلة تُحسب «عطلة رسمية» — يُعاد حساب كل الأشخاص في أيامها (ما بعد اليوم لا يُحسب)</summary>
+        private Task RecalcAsync(DateTime start, DateTime end) => _attendanceRecalc.EnqueueAsync(null, start, end, "تعديل العطل الرسمية");
 
         private static PublicHolidayResponseDto ToDto(PublicHoliday h)
         {
@@ -112,6 +117,7 @@ namespace Application.Features.Vacations.Holidays
 
             var holiday = new PublicHoliday { StartDate = start, EndDate = end, Name = request.Dto.Name.Trim() };
             await _service.AddAsync(holiday);
+            await RecalcAsync(start, end);
             return ToDto(holiday);
         }
 
@@ -119,6 +125,7 @@ namespace Application.Features.Vacations.Holidays
         public async Task<PublicHolidayResponseDto> Handle(UpdatePublicHolidayCommand request, CancellationToken ct)
         {
             var holiday = await LoadAsync(request.Id);
+            var (oldStart, oldEnd) = (holiday.StartDate.Date, holiday.EndDate.Date);
             var start = request.Dto.StartDate.Date;
             var end = (request.Dto.EndDate ?? request.Dto.StartDate).Date;
             await EnsureNoOverlapAsync(start, end, holiday.Id);
@@ -127,12 +134,15 @@ namespace Application.Features.Vacations.Holidays
             holiday.EndDate = end;
             holiday.Name = request.Dto.Name.Trim();
             await _service.UpdateAsync(holiday);
+            await RecalcAsync(start < oldStart ? start : oldStart, end > oldEnd ? end : oldEnd);
             return ToDto(holiday);
         }
 
         public async Task<Unit> Handle(DeletePublicHolidayCommand request, CancellationToken ct)
         {
-            await _service.DeleteAsync(await LoadAsync(request.Id));
+            var deleted = await LoadAsync(request.Id);
+            await _service.DeleteAsync(deleted);
+            await RecalcAsync(deleted.StartDate.Date, deleted.EndDate.Date);
             return Unit.Value;
         }
 

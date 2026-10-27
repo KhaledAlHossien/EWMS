@@ -20,9 +20,12 @@ namespace Infrastructure.Persistence.Repositories
         private readonly AttendanceDeviceCache _cache;
         private readonly IAttendanceTemplateProtector _protector;
         private readonly IFileStore _files;
+        private readonly IAttendanceRecalcQueue _recalc;
 
-        public AttendancePushStore(DataContext context, AttendanceDeviceCache cache, IAttendanceTemplateProtector protector, IFileStore files)
+        public AttendancePushStore(DataContext context, AttendanceDeviceCache cache, IAttendanceTemplateProtector protector, IFileStore files,
+            IAttendanceRecalcQueue recalc)
         {
+            _recalc = recalc;
             _context = context;
             _cache = cache;
             _protector = protector;
@@ -204,6 +207,10 @@ namespace Infrastructure.Persistence.Repositories
                             _context.ChangeTracker.Clear();
                         }
                     }
+                    // الحساب: يوم كل بصمة واليوم الذي قبله (الجدول الليلي ينتهي في اليوم التالي)
+                    var touched = rows.Where(r => r.UserId != null).GroupBy(r => r.UserId!.Value)
+                        .Select(g => (g.Key, g.Min(r => r.PunchTime).Date.AddDays(-1), g.Max(r => r.PunchTime).Date)).ToList();
+                    if (touched.Count > 0) await _recalc.EnqueueManyAsync(touched, "بصمات جديدة");
                 }
             }
             await SetStampAsync(device, stamp, Stamp.AttLog, ct);

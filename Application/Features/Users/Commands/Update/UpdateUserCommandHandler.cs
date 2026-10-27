@@ -19,6 +19,8 @@ namespace Application.Features.Users.Commands.Update
         private readonly IPasswordHasher _passwordHasher;
         private readonly IUserPermissionService _permissions;
         private readonly IAttendanceSyncService _attendanceSync;
+        private readonly IAttendanceRecalcQueue _attendanceRecalc;
+        private readonly IAttendanceSettings _attendanceSettings;
         private readonly IMapper _mapper;
 
         public UpdateUserCommandHandler(
@@ -32,8 +34,12 @@ namespace Application.Features.Users.Commands.Update
             IPasswordHasher passwordHasher,
             IUserPermissionService permissions,
             IAttendanceSyncService attendanceSync,
+            IAttendanceRecalcQueue attendanceRecalc,
+            IAttendanceSettings attendanceSettings,
             IMapper mapper)
         {
+            _attendanceRecalc = attendanceRecalc;
+            _attendanceSettings = attendanceSettings;
             _userService = userService;
             _branchService = branchService;
             _departmentService = departmentService;
@@ -125,6 +131,9 @@ namespace Application.Features.Users.Commands.Update
             await _userService.UpdateAsync(user);
             // أجهزة البصمة: الاسم أو الفرع أو التفعيل تغيّر — تُعاد مزامنة أجهزة منطقته الحالية والسابقة
             await _attendanceSync.MarkUsersAsync([user.Id], previousBranch is int oldBranch ? [oldBranch] : null);
+            // الحضور: وحدته أو تفعيله تغيّر — يُعاد حساب اليوم بوحدته الحالية (الأيام الماضية تبقى كما حُسبت)
+            var attendanceToday = Application.Features.Attendance.AttendanceRules.LocalNow(_attendanceSettings).Date;
+            await _attendanceRecalc.EnqueueAsync(user.Id, attendanceToday, attendanceToday, "تعديل المستخدم");
             if (sensitive) await _userService.RevokeSessionsAsync(user.Id);
             var updated = await _userService.GetWithDetailsAsync(user.Id) ?? user;
             return _mapper.Map<UserResponseDto>(updated);

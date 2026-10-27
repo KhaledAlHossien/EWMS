@@ -37,11 +37,15 @@ namespace Application.Features.Attendance
         private readonly IDepartmentService _departments;
         private readonly IOfficeService _offices;
         private readonly IRoleService _roles;
+        private readonly IAttendanceRecalcQueue _recalc;
+        private readonly IAttendanceSettings _settings;
 
         public AttendancePeopleImportHandler(IAttendancePeopleSpreadsheet sheet, IAttendancePeopleService people, IAttendanceSyncService sync,
             IUserService users, IUserPermissionService permissions, IBranchService branches, IDepartmentService departments, IOfficeService offices,
-            IRoleService roles)
+            IRoleService roles, IAttendanceRecalcQueue recalc, IAttendanceSettings settings)
         {
+            _recalc = recalc;
+            _settings = settings;
             _sheet = sheet;
             _people = people;
             _sync = sync;
@@ -197,7 +201,12 @@ namespace Application.Features.Attendance
                     result.Message = ex.Message;
                 }
             }
-            if (touched.Count > 0) await _sync.MarkUsersAsync(touched);
+            if (touched.Count > 0)
+            {
+                await _sync.MarkUsersAsync(touched);
+                var today = AttendanceRules.LocalNow(_settings).Date;
+                await _recalc.EnqueueManyAsync(touched.Select(id => (id, today.AddDays(-AttendanceRules.RecentDays), today)), "استيراد الأشخاص");
+            }
             report.Valid = report.Rows.Count(r => r.Ok);
             return report;
         }

@@ -67,10 +67,15 @@ namespace Application.Features.Attendance
         private readonly IDepartmentService _departments;
         private readonly IOfficeService _offices;
         private readonly IRoleService _roles;
+        private readonly IAttendanceRecalcQueue _recalc;
+        private readonly IAttendanceSettings _settings;
 
         public AttendancePeopleHandler(IAttendancePeopleService people, IAttendanceSyncService sync, IUserService users,
-            IUserPermissionService permissions, IBranchService branches, IDepartmentService departments, IOfficeService offices, IRoleService roles)
+            IUserPermissionService permissions, IBranchService branches, IDepartmentService departments, IOfficeService offices, IRoleService roles,
+            IAttendanceRecalcQueue recalc, IAttendanceSettings settings)
         {
+            _recalc = recalc;
+            _settings = settings;
             _people = people;
             _sync = sync;
             _users = users;
@@ -82,6 +87,21 @@ namespace Application.Features.Attendance
         }
 
         private Task<Viewer> ViewerAsync() => Viewer.CurrentAsync(_users, _permissions);
+
+        /// <summary>
+        /// تغيّر في بيانات حضور شخص: يُعاد حسابه من أول يوم يمسّه التغيير — حدود فترة العمل التي تغيّرت، وآخر
+        /// RecentDays يوماً لرقم بصمة جديد (بصماته المربوطة) — وإلا اليوم وحده (الأيام الماضية لا تُحسب بوحدته الجديدة).
+        /// </summary>
+        private Task RecalcAsync(int userId, DateTime? oldFrom, DateTime? oldTo, AttendanceProfile profile, bool numberChanged)
+        {
+            var today = AttendanceRules.LocalNow(_settings).Date;
+            var from = today;
+            void Take(DateTime? day) { if (day != null && day.Value < from) from = day.Value; }
+            if (oldFrom != profile.ActiveFrom) { Take(oldFrom); Take(profile.ActiveFrom); }
+            if (oldTo != profile.ActiveTo) { Take(oldTo); Take(profile.ActiveTo); }
+            if (numberChanged) Take(today.AddDays(-AttendanceRules.RecentDays));
+            return _recalc.EnqueueAsync(userId, from, today, "تعديل بيانات الحضور");
+        }
 
         private static bool ManagesPeople(Viewer v) =>
             v.IsSuperAdmin || v.Has(EditAttendanceProfile) || v.Has(CreateDailyWorker) || v.Has(EditDailyWorker) || v.Has(DeleteDailyWorker);
@@ -204,6 +224,7 @@ namespace Application.Features.Attendance
             var isNew = profile == null;
             profile ??= new AttendanceProfile { UserId = request.UserId };
             var previousAreas = AreasOf(isNew ? null : profile);
+            var (oldFrom, oldTo) = (profile.ActiveFrom, profile.ActiveTo);
             var previousNumber = profile.AttendanceNumber;
             var extras = await ApplyProfileAsync(profile, request.Dto, request.UserId, row.HomeAreaId);
             await _people.SaveProfileAsync(profile, isNew, extras);
@@ -211,6 +232,7 @@ namespace Application.Features.Attendance
             var linked = request.Dto.LinkUnknownPunches && profile.AttendanceNumber != null && profile.AttendanceNumber != previousNumber
                 ? await _people.LinkUnknownPunchesAsync(profile.AttendanceNumber, request.UserId) : 0;
             await _sync.MarkUsersAsync([request.UserId], previousAreaIds: previousAreas);
+            await RecalcAsync(request.UserId, oldFrom, oldTo, profile, profile.AttendanceNumber != previousNumber);
             return new AttendanceProfileSavedDto { Person = await DtoAsync(request.UserId, viewer), LinkedPunches = linked };
         }
 
@@ -249,6 +271,7 @@ namespace Application.Features.Attendance
             var linked = dto.LinkUnknownPunches && profile.AttendanceNumber != null
                 ? await _people.LinkUnknownPunchesAsync(profile.AttendanceNumber, user.Id) : 0;
             await _sync.MarkUsersAsync([user.Id]);
+            await RecalcAsync(user.Id, null, null, profile, profile.AttendanceNumber != null);
             return new AttendanceProfileSavedDto { Person = await DtoAsync(user.Id, viewer), LinkedPunches = linked };
         }
 
@@ -273,6 +296,7 @@ namespace Application.Features.Attendance
 
             var previousAreas = AreasOf(profile);
             var previousBranch = user.BranchId;
+            var (oldFrom, oldTo) = (profile.ActiveFrom, profile.ActiveTo);
             var previousNumber = profile.AttendanceNumber;
 
             user.FullName = dto.FullName.Trim();
@@ -289,6 +313,7 @@ namespace Application.Features.Attendance
             var linked = dto.LinkUnknownPunches && profile.AttendanceNumber != null && profile.AttendanceNumber != previousNumber
                 ? await _people.LinkUnknownPunchesAsync(profile.AttendanceNumber, user.Id) : 0;
             await _sync.MarkUsersAsync([user.Id], previousBranch is int b ? [b] : null, previousAreas);
+            await RecalcAsync(user.Id, oldFrom, oldTo, profile, profile.AttendanceNumber != previousNumber);
             return new AttendanceProfileSavedDto { Person = await DtoAsync(user.Id, viewer), LinkedPunches = linked };
         }
 

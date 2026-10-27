@@ -21,6 +21,8 @@ namespace Application.Features.Attendance
         public const int AttendanceNumberMaxDigits = 9;
         public const int CardNumberMaxLength = 20;
         public const int MaxExtraAreas = 10;
+        /// <summary>رقم بصمة جديد أو استيراد: يُعاد حساب هذه الأيام الأخيرة (بصماته التي رُبطت به)</summary>
+        public const int RecentDays = 62;
 
         /// <summary>الوقت المحلي (توقيت الأجهزة والبصمات)</summary>
         public static DateTime LocalNow(IAttendanceSettings settings) => DateTime.UtcNow.AddHours(settings.TimeZoneHours);

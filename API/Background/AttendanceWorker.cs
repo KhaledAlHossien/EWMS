@@ -7,6 +7,7 @@ namespace API.Background
     /// خدمة الحضور الخلفية (تعمل مع Attendance:Enabled فقط)، كل 30 ثانية:
     /// - مزامنة الأجهزة المعلَّمة «تحتاج مزامنة»، وتسوية كل الأجهزة كل 30 دقيقة (تلتقط أي تغيير لم يُعلِّم جهازه).
     /// - اكتشاف الانقطاع والعودة وإشعارهما — بعد أن يعمل الخادم مدة الانقطاع نفسها، كي لا تُعدّ كل الأجهزة منقطعة عند الإقلاع.
+    /// - حساب الحضور: طابور إعادة الحساب في كل دورة، وأمس واليوم لكل المراقَبين كل 10 دقائق.
     /// - كل ساعة: حذف صور البصم الأقدم من مدة الاحتفاظ، وإنهاء مهلة الأوامر بلا رد، وتنظيف سجل الأوامر القديم.
     /// أي خطأ يُسجَّل ويُعاد في الدورة التالية دون إيقاف الخادم.
     /// </summary>
@@ -15,6 +16,7 @@ namespace API.Background
         private static readonly TimeSpan Every = TimeSpan.FromSeconds(30);
         private static readonly TimeSpan FullSyncEvery = TimeSpan.FromMinutes(30);
         private static readonly TimeSpan CleanupEvery = TimeSpan.FromHours(1);
+        private static readonly TimeSpan TodayEvery = TimeSpan.FromMinutes(10);
 
         private readonly IServiceScopeFactory _scopes;
         private readonly IAttendanceSettings _settings;
@@ -33,6 +35,7 @@ namespace API.Background
             var started = DateTime.UtcNow;
             var lastFullSync = DateTime.MinValue;
             var lastCleanup = DateTime.UtcNow;   // أول تنظيف بعد ساعة من الإقلاع
+            var lastToday = DateTime.MinValue;
 
             try { await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken); } catch (OperationCanceledException) { return; }
 
@@ -63,6 +66,20 @@ namespace API.Background
                                 await AttendanceNotifier.DeviceOfflineAsync(permissions, notifications, areas, change.DeviceId, change.Name, change.AreaId, _settings.OfflineMinutes);
                         }
                     });
+
+                await StepAsync("حساب الحضور", async services =>
+                {
+                    var calculation = services.GetRequiredService<IAttendanceCalculationService>();
+                    await calculation.ProcessQueueAsync(stoppingToken);
+                    // أمس واليوم للجميع كل 10 دقائق: «جارٍ» يصير حاضراً أو غائباً حين تُغلق النوافذ، ولو لم يبصم أحد
+                    if (now - lastToday >= TodayEvery)
+                    {
+                        var today = now.AddHours(_settings.TimeZoneHours).Date;
+                        var changed = await calculation.RecalculateAsync(null, today.AddDays(-1), today, stoppingToken);
+                        lastToday = now;
+                        if (changed > 0) _logger.LogInformation("حُدِّثت نتائج {Count} يوم حضور", changed);
+                    }
+                });
 
                 if (now - lastCleanup >= CleanupEvery)
                     await StepAsync("تنظيف بيانات الحضور", async services =>

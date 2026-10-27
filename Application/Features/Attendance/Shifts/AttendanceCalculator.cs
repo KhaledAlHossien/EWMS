@@ -196,9 +196,10 @@ namespace Application.Features.Attendance.Shifts
             if (effStart >= effEnd)
                 return new PartResult(order, t, start, end, null, null, AttendanceDayStatus.Excused, 0, 0, 0, 0, required);
 
+            // النوافذ تمتد مع التبرير: إذن صباحي يُبقي نافذة الدخول مفتوحة حتى ما بعد نهايته
             var inFrom = start.AddMinutes(-t.CheckInBefore);
-            var inTo = start.AddMinutes(t.CheckInAfter);
-            var outFrom = end.AddMinutes(-t.CheckOutBefore);
+            var inTo = effStart.AddMinutes(t.CheckInAfter);
+            var outFrom = effEnd.AddMinutes(-t.CheckOutBefore);
             var outTo = end.AddMinutes(t.CheckOutAfter);
 
             DateTime? checkIn = input.Punches.Where(p => p >= inFrom && p <= inTo).OrderBy(p => p).Cast<DateTime?>().FirstOrDefault();
