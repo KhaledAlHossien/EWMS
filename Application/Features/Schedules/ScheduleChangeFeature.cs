@@ -260,11 +260,9 @@ namespace Application.Features.Schedules
             delay.Actions = (dto.Actions ?? string.Empty).Trim();
             delay.ApprovalAuthority = dto.ApprovalAuthority!.Trim();
             delay.ApprovalDate = dto.ApprovalDate!.Value.Date;
-            delay.ApprovalDocumentVersionId = version.Id;
-            delay.ApprovalDocumentVersion = version;
+            delay.ApprovalDocumentVersionId = version.Id;     // المفتاح فقط: إسناد الكيان المقروء بلا تتبّع يُدخل نسخة ثانية من المشروع في التتبّع
             delay.AffectsCriticalWork = dto.AffectsCriticalWork;
             delay.DecidedByUserId = null;
-            delay.DecidedByUser = null;
             delay.DecidedAt = null;
             delay.DecisionNote = string.Empty;
 
@@ -291,7 +289,6 @@ namespace Application.Features.Schedules
 
             delay.Status = dto.Approve ? DelayStatus.Approved : DelayStatus.Rejected;
             delay.DecidedByUserId = viewer.Id;
-            delay.DecidedByUser = viewer.User;
             delay.DecidedAt = DateTime.UtcNow;
             delay.DecisionNote = (dto.Note ?? string.Empty).Trim();
 
@@ -304,7 +301,7 @@ namespace Application.Features.Schedules
                 $"{(dto.Approve ? "اعتمد" : "رفض")} {viewer.User.FullName} تبرير تأخير البند «{delay.Task.Name}» في المشروع {ScheduleNotifier.Label(project)}"
                 + (delay.DecisionNote.Length > 0 ? $" — {delay.DecisionNote}" : string.Empty));
 
-            return await DelayDetailAsync(viewer, delay);
+            return await DelayDetailAsync(viewer, await LoadDelayAsync(viewer, delay.Id));
         }
 
         /// <summary>البنود المتأثرة من الجدول نفسه، غير البند المتأخر نفسه، وبلا تكرار</summary>
@@ -541,7 +538,6 @@ namespace Application.Features.Schedules
 
             extension.Status = dto.Approve ? ExtensionStatus.Approved : ExtensionStatus.Rejected;
             extension.DecidedByUserId = viewer.Id;
-            extension.DecidedByUser = viewer.User;
             extension.DecidedAt = DateTime.UtcNow;
             extension.DecisionNote = (dto.Note ?? string.Empty).Trim();
 
@@ -554,7 +550,7 @@ namespace Application.Features.Schedules
                 $"{(dto.Approve ? "اعتمد" : "رفض")} {viewer.User.FullName} طلب التمديد على جدول المشروع {ScheduleNotifier.Label(project)}"
                 + (extension.DecisionNote.Length > 0 ? $" — {extension.DecisionNote}" : string.Empty));
 
-            return await ExtensionDetailAsync(viewer, extension);
+            return await ExtensionDetailAsync(viewer, await LoadExtensionAsync(viewer, extension.Id));
         }
 
         // ───────── مساعدات التمديد ─────────
