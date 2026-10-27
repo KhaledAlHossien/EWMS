@@ -46,6 +46,24 @@ public sealed class ApiClient
         return Send<T>(new HttpRequestMessage(HttpMethod.Post, path) { Content = form });
     }
 
+    public Task<ApiResult<T>> PutForm<T>(string path, IEnumerable<KeyValuePair<string, string>> fields)
+    {
+        var form = new MultipartFormDataContent();
+        foreach (var (key, value) in fields) form.Add(new StringContent(value), key);
+        return Send<T>(new HttpRequestMessage(HttpMethod.Put, path) { Content = form });
+    }
+
+    /// <summary>نداء خام لمصفوفة الصلاحيات: الحالة والنص فقط، بجسم JSON فارغ للتغييرات</summary>
+    public async Task<(HttpStatusCode Status, string Body)> Probe(HttpMethod method, string path, bool form = false)
+    {
+        using var request = new HttpRequestMessage(method, path);
+        if (form) request.Content = new MultipartFormDataContent();
+        else if (method != HttpMethod.Get && method != HttpMethod.Delete)
+            request.Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
+        using var response = await _http.SendAsync(request);
+        return (response.StatusCode, await response.Content.ReadAsStringAsync());
+    }
+
     /// <summary>جزء من ملف مرفوع بالرفع المجزّأ (جسم خام)</summary>
     public Task<ApiResult<T>> PutBytes<T>(string path, byte[] bytes)
     {

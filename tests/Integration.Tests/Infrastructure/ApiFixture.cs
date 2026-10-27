@@ -91,7 +91,7 @@ public sealed class ApiFixture : IAsyncLifetime
         AllowAutoRedirect = false
     });
 
-    private async Task<ApiClient> LoginAsync(string email, string password)
+    public async Task<ApiClient> LoginAsync(string email, string password)
     {
         var anonymous = new ApiClient(NewHttpClient());
         var login = (await anonymous.Post<LoginResponse>("/api/Auth/login", new { email, password })).Ok();

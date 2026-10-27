@@ -20,6 +20,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- المصفوفة الذهبية: تُنسخ إلى مجلد الإخراج ليقرأها الاختبار -->
+    <None Update="permission-matrix.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\API\API.csproj" />
   </ItemGroup>
 

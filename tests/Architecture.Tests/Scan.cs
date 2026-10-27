@@ -24,14 +24,32 @@ internal static class Scan
 
     public sealed record ActionInfo(Type Controller, MethodInfo Method)
     {
+        /// <summary>HTTP verb + route كاملاً كما يُستدعى (مثل GET api/Projects/Get/{id})</summary>
+        public string Route
+        {
+            get
+            {
+                var verb = Method.GetCustomAttributes<HttpMethodAttribute>().First();
+                var prefix = Controller.GetCustomAttribute<RouteAttribute>()?.Template ?? string.Empty;
+                var template = verb.Template ?? string.Empty;
+                return $"{verb.HttpMethods.First()} {(prefix + (template.Length > 0 ? "/" + template : string.Empty)).TrimStart('/')}";
+            }
+        }
+
         public string Name => $"{Controller.Name.Replace("Controller", string.Empty)}.{Method.Name}";
 
         public bool AllowsAnonymous => Method.GetCustomAttributes<AllowAnonymousAttribute>().Any();
 
-        /// <summary>السياسة الفعلية: سياسة الدالة إن وُجدت وإلا سياسة المتحكم؛ null = بلا سياسة (مصادقة فقط أو لا شيء)</summary>
-        public string? Policy =>
-            Method.GetCustomAttributes<AuthorizeAttribute>().Select(a => a.Policy).FirstOrDefault(p => p != null)
-            ?? Controller.GetCustomAttributes<AuthorizeAttribute>().Select(a => a.Policy).FirstOrDefault(p => p != null);
+        /// <summary>
+        /// السياسات الفعلية: سياسات المتحكم ثم الدالة، وهي كلها لازمة معاً (ASP.NET يجمع سمات Authorize: الاجتياز يحتاج كل واحدة).
+        /// مثال: AssignedTasks/Export تحتاج ViewTaskBoard (المتحكم) وExportTasksReport (الدالة).
+        /// </summary>
+        public IReadOnlyList<string> Policies =>
+            Controller.GetCustomAttributes<AuthorizeAttribute>().Concat(Method.GetCustomAttributes<AuthorizeAttribute>())
+                .Select(a => a.Policy).Where(p => p != null).Select(p => p!).Distinct().ToList();
+
+        /// <summary>السياسات مضمومة للعرض («A + B»)؛ null = بلا سياسة (مصادقة فقط أو لا شيء)</summary>
+        public string? Policy => Policies.Count == 0 ? null : string.Join(" + ", Policies);
 
         public bool Authenticated =>
             Method.GetCustomAttributes<AuthorizeAttribute>().Any() || Controller.GetCustomAttributes<AuthorizeAttribute>().Any();

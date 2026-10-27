@@ -46,7 +46,7 @@ public partial class ApiContractTests
     public void Every_policy_used_by_a_controller_exists()
     {
         var known = KnownPolicies();
-        var unknown = Scan.Actions().Where(a => a.Policy != null && !known.Contains(a.Policy)).Select(a => $"{a.Name} → {a.Policy}").ToList();
+        var unknown = Scan.Actions().SelectMany(a => a.Policies.Where(p => !known.Contains(p)).Select(p => $"{a.Name} → {p}")).ToList();
         Assert.True(unknown.Count == 0, $"سياسات غير معرّفة في AppPermissions (لن تُسجَّل فتفشل كل الطلبات عليها):\n{Scan.Lines(unknown)}");
     }
 
