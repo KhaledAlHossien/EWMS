@@ -1,0 +1,51 @@
+name: CI
+
+# بوابة الجودة للباكاند: كل push وكل طلب دمج. الفرع الذي لا يمر لا يُدمج (يُفعَّل «Require status checks» على master من إعدادات المستودع).
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: بناء واختبارات الباكاند
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: استرجاع الحزم
+        run: dotnet restore EWMS.slnx
+
+      # التحذيرات أخطاء (Directory.Build.props) والثغرات المعروفة في الحزم تُفشل البناء (NuGet audit)
+      - name: بناء (Release)
+        run: dotnet build EWMS.slnx -c Release --no-restore
+
+      - name: اختبارات الوحدة والمعمارية
+        run: dotnet test EWMS.slnx -c Release --no-build --logger "trx;LogFileName=results.trx"
+
+      # تغيير كيان أو إعداد في DataContext دون هجرة يُفشل هنا بدل أن يظهر عند أول تشغيل على الخادم
+      - name: النموذج متسق مع الهجرات
+        run: |
+          dotnet tool install --global dotnet-ef
+          dotnet ef migrations has-pending-model-changes -p Infrastructure -s API --configuration Release --no-build
+
+      - name: نتائج الاختبارات
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/results.trx'
+          if-no-files-found: ignore
+          retention-days: 7
