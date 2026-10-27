@@ -100,6 +100,8 @@ namespace Infrastructure
             services.AddScoped<IAttendanceRecalcQueue, AttendanceRecalcQueue>();
             services.AddScoped<IAttendanceCalculationService, AttendanceCalculationService>();
             services.AddScoped<IAttendanceScheduleService, AttendanceScheduleService>();
+            services.AddScoped<IAttendanceDayService, AttendanceDayService>();
+            services.AddScoped<IAttendanceCorrectionService, AttendanceCorrectionService>();
             services.AddSingleton<IAttendancePeopleSpreadsheet, Infrastructure.Files.AttendancePeopleSpreadsheet>();
 
             services.AddScoped<ICurrentUserService, CurrentUserService>();

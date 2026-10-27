@@ -68,4 +68,36 @@ namespace Application.DTOs.Request
         public int? TimetableId { get; set; }
         public string? Note { get; set; }
     }
+
+    /// <summary>إعادة حساب يدوية: شخص، أو كل أشخاص حدّي (UserId فارغ) في فترة</summary>
+    public class AttendanceRecalculateRequestDto
+    {
+        public int? UserId { get; set; }
+        public DateTime From { get; set; }
+        public DateTime To { get; set; }
+    }
+
+    /// <summary>
+    /// تصحيح: Kind 1 بصمة يدوية (PunchTime)، 2 تجاهل بصمة (PunchId)، 3 تبرير (ExcuseKind 1 مهمة رسمية، 2 إذن، 3 دورة، 4 أخرى):
+    /// أيام كاملة (WholeDays + FromDate/ToDate) أو فترة من يوم (FromAt/ToAt). السبب إلزامي.
+    /// </summary>
+    public class AttendanceCorrectionRequestDto
+    {
+        public int UserId { get; set; }
+        public int Kind { get; set; }
+        public DateTime? PunchTime { get; set; }
+        public long? PunchId { get; set; }
+        public int? ExcuseKind { get; set; }
+        public bool WholeDays { get; set; }
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+        public DateTime? FromAt { get; set; }
+        public DateTime? ToAt { get; set; }
+        public string Reason { get; set; } = string.Empty;
+    }
+
+    public class CancelAttendanceCorrectionDto
+    {
+        public string Reason { get; set; } = string.Empty;
+    }
 }

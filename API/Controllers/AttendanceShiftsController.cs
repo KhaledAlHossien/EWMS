@@ -99,6 +99,64 @@ namespace API.Controllers
             Ok(await _mediator.Send(new GetUnscheduledPeopleQuery(date)));
     }
 
+    /// <summary>نتائج الحساب: الحضور اليومي وكشف الشخص («دوامي» للنفس)، وإعادة الحساب اليدوية</summary>
+    [ApiController]
+    [Route("api/AttendanceDays")]
+    [Authorize]
+    public class AttendanceDaysController : ControllerBase
+    {
+        private readonly IMediator _mediator;
+        public AttendanceDaysController(IMediator mediator) => _mediator = mediator;
+
+        [HttpGet("Daily")]
+        [Authorize(Policy = "AnyAttendanceView")]
+        public async Task<ActionResult<AttendanceDailyDto>> Daily([FromQuery] DateTime? date, [FromQuery] int? areaId, [FromQuery] int? branchId,
+            [FromQuery] int? departmentId, [FromQuery] string? status, [FromQuery] string? query, [FromQuery] int page = 1, [FromQuery] int pageSize = 50) =>
+            Ok(await _mediator.Send(new GetAttendanceDailyQuery(date, areaId, branchId, departmentId, status, query, page, pageSize)));
+
+        /// <summary>كشف شهر لشخص (month = yyyy-MM، الفارغ = الحالي)</summary>
+        [HttpGet("Person/{userId:int}")]
+        [Authorize(Policy = "AnyAttendanceView")]
+        public async Task<ActionResult<AttendanceSheetDto>> Person(int userId, [FromQuery] string? month) =>
+            Ok(await _mediator.Send(new GetAttendanceSheetQuery(userId, month)));
+
+        [HttpGet("My")]
+        [Authorize(Policy = "ViewMyAttendance")]
+        public async Task<ActionResult<AttendanceSheetDto>> My([FromQuery] string? month) =>
+            Ok(await _mediator.Send(new GetMyAttendanceSheetQuery(month)));
+
+        /// <summary>يضع الطلب في طابور الحساب؛ يعيد عدد الأشخاص</summary>
+        [HttpPost("Recalculate")]
+        [Authorize(Policy = "AnyAttendanceCorrect")]
+        public async Task<ActionResult> Recalculate([FromBody] AttendanceRecalculateRequestDto dto)
+        {
+            var people = await _mediator.Send(new RecalculateAttendanceCommand(dto));
+            return Ok(new { people, message = $"سيُعاد حساب {people} شخص خلال دقيقة" });
+        }
+    }
+
+    /// <summary>التصحيح اليدوي: بصمة يدوية، تجاهل بصمة، تبرير — بحد منطقتي أو الكل، ويُلغى بسبب ولا يُحذف</summary>
+    [ApiController]
+    [Route("api/AttendanceCorrections")]
+    [Authorize(Policy = "AnyAttendanceCorrect")]
+    public class AttendanceCorrectionsController : ControllerBase
+    {
+        private readonly IMediator _mediator;
+        public AttendanceCorrectionsController(IMediator mediator) => _mediator = mediator;
+
+        [HttpGet("Person/{userId:int}")]
+        public async Task<ActionResult<List<AttendanceCorrectionDto>>> Person(int userId, [FromQuery] DateTime from, [FromQuery] DateTime to) =>
+            Ok(await _mediator.Send(new GetAttendanceCorrectionsQuery(userId, from, to)));
+
+        [HttpPost("Create")]
+        public async Task<ActionResult<AttendanceCorrectionDto>> Create([FromBody] AttendanceCorrectionRequestDto dto) =>
+            Ok(await _mediator.Send(new CreateAttendanceCorrectionCommand(dto)));
+
+        [HttpPut("Cancel/{id:long}")]
+        public async Task<ActionResult<AttendanceCorrectionDto>> Cancel(long id, [FromBody] CancelAttendanceCorrectionDto dto) =>
+            Ok(await _mediator.Send(new CancelAttendanceCorrectionCommand(id, dto.Reason)));
+    }
+
     /// <summary>الورديات: دورة أيام لكل يوم فيها جدول أو أكثر</summary>
     [ApiController]
     [Route("api/AttendanceShifts")]

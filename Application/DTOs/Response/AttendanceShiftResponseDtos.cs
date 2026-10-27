@@ -146,4 +146,164 @@ namespace Application.DTOs.Response
         public string? BranchName { get; set; }
         public string? DepartmentName { get; set; }
     }
+
+    public class AttendanceDayPartDto
+    {
+        public string TimetableName { get; set; } = string.Empty;
+        public int Kind { get; set; }
+        public DateTime PlannedStart { get; set; }
+        public DateTime PlannedEnd { get; set; }
+        public DateTime? CheckIn { get; set; }
+        public DateTime? CheckOut { get; set; }
+        public int Status { get; set; }
+        public string StatusName { get; set; } = string.Empty;
+        public int LateMinutes { get; set; }
+        public int EarlyMinutes { get; set; }
+        public int ShortMinutes { get; set; }
+        public int WorkMinutes { get; set; }
+        public int RequiredMinutes { get; set; }
+    }
+
+    /// <summary>سطر في «الحضور اليومي»</summary>
+    public class AttendanceDailyRowDto
+    {
+        public int UserId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string KindName { get; set; } = string.Empty;
+        public string Number { get; set; } = string.Empty;
+        public string? BranchName { get; set; }
+        public string? DepartmentName { get; set; }
+        public string? ShiftName { get; set; }
+        public int Type { get; set; }
+        /// <summary>1 جارٍ، 2 حاضر، 3 غائب، 4 بصمة ناقصة، 5 مبرَّر، 6 راحة، 7 عطلة، 8 إجازة</summary>
+        public int Status { get; set; }
+        public string StatusName { get; set; } = string.Empty;
+        public DateTime? FirstIn { get; set; }
+        public DateTime? LastOut { get; set; }
+        public int LateMinutes { get; set; }
+        public int EarlyMinutes { get; set; }
+        public int ShortMinutes { get; set; }
+        public int WorkMinutes { get; set; }
+        public int RequiredMinutes { get; set; }
+        public bool HasExcuse { get; set; }
+        public List<AttendanceDayPartDto> Parts { get; set; } = [];
+    }
+
+    public class AttendanceDailyCountsDto
+    {
+        public int Total { get; set; }
+        public int Present { get; set; }
+        public int Late { get; set; }
+        public int Early { get; set; }
+        public int Absent { get; set; }
+        public int Incomplete { get; set; }
+        public int Excused { get; set; }
+        public int Pending { get; set; }
+        public int Vacation { get; set; }
+        public int Holiday { get; set; }
+        public int Rest { get; set; }
+    }
+
+    public class AttendanceDailyDto
+    {
+        public DateTime Date { get; set; }
+        public AttendanceDailyCountsDto Counts { get; set; } = new();
+        public PagedResultDto<AttendanceDailyRowDto> Rows { get; set; } = new();
+        /// <summary>يملك التصحيح (منطقتي أو الكل)</summary>
+        public bool CanCorrect { get; set; }
+    }
+
+    public class SheetPunchDto
+    {
+        public long? PunchId { get; set; }
+        public long? CorrectionId { get; set; }
+        public DateTime Time { get; set; }
+        public string? DeviceName { get; set; }
+        public string Verify { get; set; } = string.Empty;
+        public string VerifyName { get; set; } = string.Empty;
+        /// <summary>بصمة يدوية من تصحيح</summary>
+        public bool Manual { get; set; }
+        /// <summary>متجاهلة بتصحيح (تبقى في السجل الخام)</summary>
+        public bool Ignored { get; set; }
+    }
+
+    public class AttendanceSheetDayDto
+    {
+        public DateTime Date { get; set; }
+        /// <summary>false = لا نتيجة: غير مجدول، أو خارج فترة العمل، أو لم يأتِ بعد</summary>
+        public bool Calculated { get; set; }
+        public bool Future { get; set; }
+        public int? Type { get; set; }
+        public int? Status { get; set; }
+        public string StatusName { get; set; } = string.Empty;
+        public string? ShiftName { get; set; }
+        public DateTime? FirstIn { get; set; }
+        public DateTime? LastOut { get; set; }
+        public int LateMinutes { get; set; }
+        public int EarlyMinutes { get; set; }
+        public int ShortMinutes { get; set; }
+        public int WorkMinutes { get; set; }
+        public int RequiredMinutes { get; set; }
+        public bool HasExcuse { get; set; }
+        public List<AttendanceDayPartDto> Parts { get; set; } = [];
+        public List<SheetPunchDto> Punches { get; set; } = [];
+    }
+
+    public class AttendanceSheetTotalsDto
+    {
+        public int WorkDays { get; set; }
+        public int Present { get; set; }
+        public int LateDays { get; set; }
+        public int LateMinutes { get; set; }
+        public int EarlyMinutes { get; set; }
+        public int ShortMinutes { get; set; }
+        public int Absent { get; set; }
+        public int Incomplete { get; set; }
+        public int Excused { get; set; }
+        public int Vacation { get; set; }
+        public int Holiday { get; set; }
+        public int Rest { get; set; }
+        public int WorkMinutes { get; set; }
+        public int RequiredMinutes { get; set; }
+    }
+
+    /// <summary>كشف شهر لشخص يوماً بيوم</summary>
+    public class AttendanceSheetDto
+    {
+        public int UserId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Number { get; set; } = string.Empty;
+        public string KindName { get; set; } = string.Empty;
+        public string? BranchName { get; set; }
+        public string? DepartmentName { get; set; }
+        public string Month { get; set; } = string.Empty;
+        public List<AttendanceSheetDayDto> Days { get; set; } = [];
+        public AttendanceSheetTotalsDto Totals { get; set; } = new();
+        public bool CanCorrect { get; set; }
+    }
+
+    public class AttendanceCorrectionDto
+    {
+        public long Id { get; set; }
+        public int UserId { get; set; }
+        public int Kind { get; set; }
+        public string KindName { get; set; } = string.Empty;
+        /// <summary>«بصمة يدوية 08:05» / «تجاهل بصمة 07:12» / «إذن 08:00 – 10:00» …</summary>
+        public string Summary { get; set; } = string.Empty;
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+        public DateTime? PunchTime { get; set; }
+        public long? PunchId { get; set; }
+        public int? ExcuseKind { get; set; }
+        public bool WholeDays { get; set; }
+        public DateTime? FromAt { get; set; }
+        public DateTime? ToAt { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public string CreatedByName { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public bool Cancelled { get; set; }
+        public string? CancelledByName { get; set; }
+        public DateTime? CancelledAt { get; set; }
+        public string? CancelReason { get; set; }
+    }
 }
