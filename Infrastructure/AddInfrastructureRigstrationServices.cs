@@ -44,6 +44,10 @@ namespace Infrastructure
             // محتوى المرفقات: القاعدة (الافتراضي) أو مجلد/مشاركة SMB (FileStorage:Mode=FileSystem)
             services.AddSingleton(new Infrastructure.Files.FileStorageSettings(configuration));
             services.AddSingleton<IFileStore, Infrastructure.Files.FileStore>();
+            services.AddSingleton<Infrastructure.Files.ProjectFileSettings>();
+            services.AddSingleton<IProjectFileSettings>(sp => sp.GetRequiredService<Infrastructure.Files.ProjectFileSettings>());
+            services.AddSingleton<ProjectUploadSignal>();
+            services.AddSingleton<IProjectUploadSignal>(sp => sp.GetRequiredService<ProjectUploadSignal>());
             services.AddScoped<IFileStoreSweeper, Infrastructure.Files.FileStoreSweeper>();
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IRoleService, RoleService>();
@@ -88,6 +92,9 @@ namespace Infrastructure
             services.AddScoped<ISparePartService, SparePartService>();
             services.AddScoped<IProjectService, ProjectService>();
             services.AddScoped<IAuditLogService, AuditLogService>();
+            services.AddScoped<IProjectUploadFiles, ProjectUploadFiles>();
+            services.AddScoped<IProjectUploadService, ProjectUploadService>();
+            services.AddScoped<IProjectDocumentService, ProjectDocumentService>();
 
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();

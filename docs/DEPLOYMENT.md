@@ -59,6 +59,25 @@ chown -R appuser:appuser /var/www/dmc/EWMS-App/angular
   sudo nginx -t && sudo systemctl reload nginx
   ```
   الملفات تُحفظ في قاعدة البيانات، فتكبر النسخ الاحتياطية بحجمها — راقب مساحة `/var/opt/mssql`.
+- **وثائق المشاريع (ملفات كبيرة، فرع المشاريع) — مرة واحدة قبل استعمالها:** الرفع بأجزاء قابلة للاستئناف (16MB لكل جزء)، والملف النهائي يُحفظ في مجلد المرفقات.
+  1. **فعّل مجلد المرفقات** (`FileStorage__Mode=FileSystem` وFileStorage__Root) كما في «مجلد المرفقات على File Server عبر SMB»: بدونه يُقبل حتى 100MB فقط.
+     الأجزاء المؤقتة تُكتب في `<FileStorage__Root>/projects/_uploads` (على المشاركة نفسها كي يكون النقل النهائي إعادة تسمية فورية) وتُمسح المهجورة بعد 48 ساعة.
+  2. **Nginx:** أضف قبل `location /api/` في ملف الموقع الحالي، ثم `nginx -t && systemctl reload nginx`:
+     ```nginx
+     location ~ ^/api/ProjectUploads/[0-9a-f-]+/Chunk$ {
+         client_max_body_size 20m;          # = Projects__ChunkMegabytes (16) + 4
+         client_body_timeout  120s;
+         proxy_request_buffering off;       # الجزء يصل التطبيق مباشرة دون كتابته على قرص Nginx
+         proxy_pass         http://127.0.0.1:5000;
+         proxy_http_version 1.1;
+         proxy_set_header   Host $host;
+         proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+         proxy_set_header   X-Forwarded-Proto $scheme;
+     }
+     ```
+  3. إعدادات اختيارية (متغيرات بيئة الخدمة): `Projects__MaxFileGigabytes` (الافتراضي 50)، `Projects__ChunkMegabytes` (16، حتى 32)، `Projects__MaxDatabaseFileMegabytes` (100، وضع Database فقط)، `Projects__TempFolder` (أجزاء وضع Database).
+  4. الخدمة تتحقق عند الإقلاع أن مجلد الأجزاء يقبل الكتابة، وإنهاء الملف الكبير (حساب البصمة والفحص) يجري في الخلفية: قد يستغرق دقائق لملف بعشرات الجيجابايتات.
+  5. لا فحص فيروسات داخل النظام: يُنصح ببرنامج حماية على الخادم أو المشاركة (ملفات RAR/7Z لا يمكن فحص محتواها).
 - **الإصدار 1.2.0 — مفاتيح جديدة للسيرفر (مرة واحدة، قبل تشغيل الخدمة في الخطوة 2):** مفتاحا التطوير (`JwtSettings:Key`
   و`DeviceInventory:PasswordKey`) منشوران في مستودع GitHub العام، فلا يُستعملان على السيرفر:
   ```bash

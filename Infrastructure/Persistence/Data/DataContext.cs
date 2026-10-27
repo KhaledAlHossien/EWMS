@@ -44,6 +44,7 @@ namespace Infrastructure.Persistence.Data
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectDocumentVersion> ProjectDocumentVersions { get; set; }
         public DbSet<ProjectDocumentVersionContent> ProjectDocumentVersionContents { get; set; }
+        public DbSet<ProjectUpload> ProjectUploads { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<WorkTask> WorkTasks { get; set; }
         public DbSet<UserWorkTask> UserWorkTasks { get; set; }
@@ -960,6 +961,24 @@ namespace Infrastructure.Persistence.Data
             });
 
             builder.Entity<ProjectDocumentVersionContent>(entity => entity.HasKey(c => c.VersionId));
+
+            builder.Entity<ProjectUpload>(entity =>
+            {
+                entity.Property(u => u.Title).HasMaxLength(200);
+                entity.Property(u => u.Kind).HasConversion<int>();
+                entity.Property(u => u.FileName).HasMaxLength(260).IsRequired();
+                entity.Property(u => u.Source).HasMaxLength(200);
+                entity.Property(u => u.Note).HasMaxLength(1000);
+                entity.Property(u => u.Status).HasConversion<int>();
+                entity.Property(u => u.Error).HasMaxLength(500);
+                entity.HasOne(u => u.Project).WithMany().HasForeignKey(u => u.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(u => u.Document).WithMany().HasForeignKey(u => u.DocumentId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(u => u.User).WithMany().HasForeignKey(u => u.UserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(u => new { u.UserId, u.Status });
+                entity.HasIndex(u => u.UpdatedAt);
+                entity.HasIndex(u => u.ProjectId);
+                entity.HasIndex(u => u.DocumentId);
+            });
 
             builder.Entity<AuditLog>(entity =>
             {

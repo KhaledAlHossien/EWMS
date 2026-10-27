@@ -157,6 +157,49 @@ namespace Domain.Entities
         public byte[] Data { get; set; } = [];
     }
 
+    /// <summary>حالة رفع وثيقة مجزّأ (ProjectUpload)</summary>
+    public enum ProjectUploadStatus
+    {
+        Receiving = 1,    // تصل الأجزاء
+        Processing = 2,   // اكتملت الأجزاء، والخدمة الخلفية تحسب البصمة وتكشف النوع وتنشئ الإصدار
+        Done = 3,         // أُنشئ الإصدار (VersionId)
+        Failed = 4        // رُفض الملف أو تعذّر إنهاؤه (Error)
+    }
+
+    /// <summary>
+    /// جلسة رفع ملف وثيقة بأجزاء متتالية (قابلة للاستئناف): تُنشأ بالبدء، ولا تُنشأ الوثيقة ولا الإصدار إلا عند الإنهاء الناجح،
+    /// فالرفع المهجور لا يترك أثراً (يُمسح بعد 48 ساعة). الملف المؤقت خارج القاعدة: <Id>.part.
+    /// </summary>
+    public class ProjectUpload
+    {
+        public Guid Id { get; set; }
+        public int ProjectId { get; set; }
+        public Project Project { get; set; } = null!;
+
+        /// <summary>إصدار جديد لوثيقة موجودة؛ null = وثيقة جديدة بعنوان ونوع أدناه</summary>
+        public int? DocumentId { get; set; }
+        public ProjectDocument? Document { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public ProjectDocumentKind Kind { get; set; } = ProjectDocumentKind.Other;
+
+        public string FileName { get; set; } = string.Empty;
+        public long Size { get; set; }
+        /// <summary>ما استُلم وحُفظ فعلاً من الملف (يُحدَّث بعد كتابة كل جزء)</summary>
+        public long Received { get; set; }
+        public string Source { get; set; } = string.Empty;
+        public string Note { get; set; } = string.Empty;
+
+        public int UserId { get; set; }
+        public User User { get; set; } = null!;
+
+        public ProjectUploadStatus Status { get; set; } = ProjectUploadStatus.Receiving;
+        public string Error { get; set; } = string.Empty;
+        public int? VersionId { get; set; }
+
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+
     /// <summary>
     /// سجل التدقيق العام (القاعدة 6 من تحليل الجنوبية): من فعل ماذا ومتى، للإلحاق فقط — لا تعديل ولا حذف في أي مكان من الكود.
     /// يُكتب في معاملة العملية نفسها فلا يوجد اعتماد أو تحويل بلا أثر. السجلات القديمة (الأجهزة، الصيانة، المهام) تبقى في جداولها.

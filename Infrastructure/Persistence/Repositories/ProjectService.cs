@@ -152,6 +152,7 @@ namespace Infrastructure.Persistence.Repositories
             || await _context.ProjectMembers.AnyAsync(m => m.UserId == userId)
             || await _context.ProjectDocuments.AnyAsync(d => d.CreatedByUserId == userId)
             || await _context.ProjectDocumentVersions.AnyAsync(v => v.UploadedByUserId == userId || v.ApprovedByUserId == userId)
+            || await _context.ProjectUploads.AnyAsync(u => u.UserId == userId)
             || await _context.AuditLogs.AnyAsync(a => a.UserId == userId);
     }
 

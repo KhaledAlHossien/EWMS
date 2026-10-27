@@ -45,7 +45,7 @@ namespace Infrastructure.Files
 
         public FileStore(FileStorageSettings settings) => _settings = settings;
 
-        [GeneratedRegex("^(vacations|tasks|map-files)/[0-9]{4}/[0-9]{2}/[0-9a-f]{32}\\z")]
+        [GeneratedRegex("^(vacations|tasks|map-files|projects)/[0-9]{4}/[0-9]{2}/[0-9a-f]{32}\\z")]
         private static partial Regex KeyPattern();
 
         public static bool IsValidKey(string key) => KeyPattern().IsMatch(key);
@@ -74,6 +74,30 @@ namespace Infrastructure.Files
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 TryDelete(temp);
+                throw new InvalidOperationException("تعذّر حفظ الملف في مخزن المرفقات — أعد المحاولة، وإن تكرر فأبلغ مدير النظام", ex);
+            }
+            return key;
+        }
+
+        /// <summary>
+        /// ينقل ملفاً مكتملاً (جُمعت أجزاؤه في المجلد نفسه) إلى مفتاحه النهائي دون نسخ: إعادة تسمية على المشاركة نفسها.
+        /// الملف المصدر يجب أن يكون داخل مجلد المرفقات كي تبقى العملية إعادة تسمية لا نسخاً بين مشاركتين.
+        /// </summary>
+        internal string Adopt(string area, string sourcePath)
+        {
+            if (!_settings.UseFileSystem) throw new InvalidOperationException("مخزن المرفقات غير مفعّل (FileStorage:Mode)");
+            if (!FileAreas.All.Contains(area)) throw new ArgumentException("مجلد مرفقات غير معروف", nameof(area));
+
+            var now = DateTime.UtcNow;
+            var key = $"{area}/{now:yyyy}/{now:MM}/{Guid.NewGuid():N}";
+            var path = PathOf(key);
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                File.Move(sourcePath, path);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
                 throw new InvalidOperationException("تعذّر حفظ الملف في مخزن المرفقات — أعد المحاولة، وإن تكرر فأبلغ مدير النظام", ex);
             }
             return key;

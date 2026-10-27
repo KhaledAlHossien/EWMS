@@ -44,22 +44,6 @@ public class ProjectMembersAndLinksTests
 
     // ───────── ربط المهام بمشروع: من لا يرى المشروع يعرف أن هناك رابطاً دون أي بيانات عنه ─────────
 
-    private sealed class StubProjects(Project? project) : IProjectService
-    {
-        public Task<Project?> GetByIdAsync(int id) => Task.FromResult(project);
-        public Task<(List<Project> Items, int TotalCount)> SearchAsync(Expression<Func<Project, bool>> visible, ProjectFilter filter, int page, int pageSize) => throw new NotSupportedException();
-        public Task<Project> AddAsync(Project p, AuditEntry audit) => throw new NotSupportedException();
-        public Task UpdateAsync(Project p, byte[]? rowVersion, AuditEntry audit) => throw new NotSupportedException();
-        public Task AddMemberAsync(ProjectMember member, AuditEntry audit) => throw new NotSupportedException();
-        public Task RemoveMemberAsync(ProjectMember member, AuditEntry audit) => throw new NotSupportedException();
-        public Task<bool> ReferenceExistsAsync(int branchId, string reference, int? excludeProjectId = null) => throw new NotSupportedException();
-        public Task<List<User>> GetMemberCandidatesAsync(int branchId, string? search, IReadOnlyCollection<int> excludeUserIds, int take) => throw new NotSupportedException();
-        public Task<bool> ExistsForBranchAsync(int branchId) => throw new NotSupportedException();
-        public Task<bool> ExistsForDepartmentAsync(int departmentId) => throw new NotSupportedException();
-        public Task<bool> ExistsForSiteAsync(int siteId) => throw new NotSupportedException();
-        public Task<bool> ExistsForUserAsync(int userId) => throw new NotSupportedException();
-    }
-
     private static TaskLinkResolver ResolverFor(Project? project) => new(null!, null!, null!, new StubProjects(project));
 
     [Fact]

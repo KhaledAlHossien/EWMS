@@ -63,6 +63,7 @@ namespace Infrastructure.Files
             used.UnionWith(await _context.VacationAttachments.Where(a => a.StorageKey != null && keys.Contains(a.StorageKey)).Select(a => a.StorageKey!).ToListAsync(ct));
             used.UnionWith(await _context.AssignedTaskAttachments.Where(a => a.StorageKey != null && keys.Contains(a.StorageKey)).Select(a => a.StorageKey!).ToListAsync(ct));
             used.UnionWith(await _context.MapEntryFiles.Where(f => f.StorageKey != null && keys.Contains(f.StorageKey)).Select(f => f.StorageKey!).ToListAsync(ct));
+            used.UnionWith(await _context.ProjectDocumentVersions.Where(v => v.StorageKey != null && keys.Contains(v.StorageKey)).Select(v => v.StorageKey!).ToListAsync(ct));
 
             var removed = 0;
             foreach (var (key, path) in candidates)

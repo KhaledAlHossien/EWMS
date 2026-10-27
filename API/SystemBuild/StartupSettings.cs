@@ -26,6 +26,11 @@ namespace API.SystemBuild
             if (new Infrastructure.Files.FileStorageSettings(configuration).Problem() is string files)
                 problems.Add(files);
 
+            // مجلد الأجزاء المؤقتة لرفع وثائق المشاريع (داخل مجلد المرفقات في وضع FileSystem، وإلا Projects:TempFolder أو مجلد مؤقت)
+            var storage = new Infrastructure.Files.FileStorageSettings(configuration);
+            if (storage.Problem() == null && new Infrastructure.Files.ProjectFileSettings(configuration, storage).Problem() is string uploads)
+                problems.Add(uploads);
+
             if (problems.Count > 0)
                 throw new InvalidOperationException(
                     "إعدادات ناقصة أو غير صالحة، لا يمكن تشغيل الخادم:\n- " + string.Join("\n- ", problems)

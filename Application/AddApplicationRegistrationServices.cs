@@ -31,6 +31,7 @@ namespace Application
             // لوحة المهام: إنشاء المهام (يدوياً ومن التكرار) وربطها بالسجلات
             services.AddScoped<Application.Features.AssignedTasks.AssignedTaskCreator>();
             services.AddScoped<Application.Features.AssignedTasks.TaskLinkResolver>();
+            services.AddScoped<Application.Features.Projects.ProjectUploadFinalizer>();
 
             return services;
         }
