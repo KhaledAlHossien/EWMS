@@ -3,4 +3,7 @@
   <Project Path="Application/Application.csproj" />
   <Project Path="Domain/Domain.csproj" />
   <Project Path="Infrastructure/Infrastructure.csproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/Projects.Tests/Projects.Tests.csproj" />
+  </Folder>
 </Solution>

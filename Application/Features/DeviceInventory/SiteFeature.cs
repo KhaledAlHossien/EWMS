@@ -44,9 +44,10 @@ namespace Application.Features.DeviceInventory
         private readonly IUserService _users;
         private readonly IUserPermissionService _permissions;
         private readonly IMapEntryService _entries;
+        private readonly IProjectService _projects;
 
         public SiteHandler(ISiteService sites, IDeviceInventoryLogService log, ICurrentUserService currentUser,
-            IUserService users, IUserPermissionService permissions, IMapEntryService entries)
+            IUserService users, IUserPermissionService permissions, IMapEntryService entries, IProjectService projects)
         {
             _sites = sites;
             _log = log;
@@ -54,6 +55,7 @@ namespace Application.Features.DeviceInventory
             _users = users;
             _permissions = permissions;
             _entries = entries;
+            _projects = projects;
         }
 
         /// <summary>عدّادات التركيبات ضمن حدّ المستخدم فقط (السجل نفسه مشترك)</summary>
@@ -135,6 +137,9 @@ namespace Application.Features.DeviceInventory
                 throw new InvalidOperationException("لا يمكن حذف موقع فيه تركيبات — احذفها أو انقلها أولاً");
             if (await _entries.ExistsForSiteAsync(request.Id))
                 throw new InvalidOperationException("لا يمكن حذف موقع عليه معلومات لأحد الفروع (سجلات طبقات) — تُحذف سجلاته أولاً");
+
+            if (await _projects.ExistsForSiteAsync(request.Id))
+                throw new InvalidOperationException("لا يمكن حذف موقع مرتبط بمشاريع — انقل مشاريعه إلى موقع آخر أولاً");
 
             await _sites.DeleteAsync(site);
             await _log.AddAsync(Log(DeviceInventoryEntity.Site, site.Id, DeviceInventoryAction.Deleted, _currentUser.UserId, Title(site)));

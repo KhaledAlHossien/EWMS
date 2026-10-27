@@ -185,6 +185,21 @@ namespace Application.Common
             new("ExportMapEntriesReport",     "سحب تقرير سجلات طبقة خريطة (السجلات التي يراها من طبقات فرعه)"),
             new("ExportTasksReport",          "تصدير مهام لوحة المهام إلى Excel (المهام التي يراها في اللوحة)"),
             new("ViewReportLog",              "عرض سجل سحب التقارير (سحوبات موظفي فرعه، والمؤسسة كلها لنظرة المؤسسة)"),
+
+            // المشاريع وإضبارتها (2026-10-27): حدّ الرؤية في ProjectRules — مشاريعي (مشارك أو منشئ) ثم قسمي ثم فرعي، والمؤسسة كلها لنظرة المؤسسة.
+            // الوثائق والتدقيق والتقرير تتبع حدّ المشاريع التي أراها. إلغاء المشروع تعديل لمرحلته (لا حذف نهائي للمشاريع).
+            new("ViewProjects",           "عرض المشاريع التي هو مشارك فيها أو أنشأها (ومشاركوها وإضبارتها)"),
+            new("ViewDepartmentProjects", "عرض مشاريع قسمه: التي يعالجها قسمه أو فيها مشارك من قسمه"),
+            new("ViewBranchProjects",     "عرض كل مشاريع فرعه"),
+            new("CreateProject",          "إنشاء مشروع في فرعه (يُسجَّل باسم قسمه ويصير مشاركاً فيه)"),
+            new("EditProject",            "تعديل المشاريع التي يراها: بياناتها ومرحلتها (والإلغاء) ومشاركوها"),
+            new("ViewProjectDocuments",   "عرض قائمة وثائق المشاريع التي يراها وسجل إصداراتها"),
+            new("DownloadProjectDocument", "فتح وتنزيل ملفات وثائق المشاريع التي يراها (يُسجَّل تنزيل المعتمد منها)"),
+            new("UploadProjectDocument",  "إضافة وثيقة أو إصدار جديد لوثيقة في المشاريع التي يراها (لا يستبدل ما قبله)"),
+            new("ApproveProjectDocument", "اعتماد إصدار وثيقة رفعه غيره في المشاريع التي يراها"),
+            new("DeleteProjectDocument",  "حذف وثيقة لا إصدار معتمداً فيها في المشاريع التي يراها (يبقى أثرها في التدقيق)"),
+            new("ViewProjectAudit",       "عرض سجل التدقيق لمشاريعه التي يراها"),
+            new("ExportProjectsReport",   "سحب تقرير المشاريع (المشاريع التي يراها)"),
         ];
 
         /// <summary>
@@ -220,9 +235,11 @@ namespace Application.Common
             // مركز التقارير: من يملك صلاحية سحب أي تقرير يفتح المركز، وصلاحية كل تقرير يفحصها الـ handler
             ["AnyReportExport"] = ["ExportVacationsReport", "ExportVacationUsageReport", "ExportUsersReport", "ExportStructureReport",
                 "ExportMaintenanceRequestsReport", "ExportTechniciansReport", "ExportSparePartMovementsReport", "ExportSparePartStockReport",
-                "ExportInstallationsReport", "ExportSitesReport", "ExportMapEntriesReport"],
+                "ExportInstallationsReport", "ExportSitesReport", "ExportMapEntriesReport", "ExportProjectsReport"],
             ["AnySiteView"] = ["ViewSites", "CreateSite", "EditSite", "DeleteSite", "ViewDevices", "ViewBranchDevices", "CreateDevice", "EditDevice", "DeleteDevice",
-                "ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry"],
+                "ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry", "CreateProject", "EditProject"],
+            // المشاريع: من ينشئ أو يعدّل يدخل القائمة (يرى ما أنشأه)، وحدّ كل صلاحية يطبّقه الـ handler
+            ["AnyProjectView"] = ["ViewProjects", "ViewDepartmentProjects", "ViewBranchProjects", "CreateProject", "EditProject"],
         };
 
         // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة
@@ -255,5 +272,17 @@ namespace Application.Common
         public const string SignMaintenanceReceipt = "SignMaintenanceReceipt";
         public const string IssueSparePart = "IssueSparePart";
         public const string ReceiveSpareParts = "ReceiveSpareParts";
+        public const string ViewProjects = "ViewProjects";
+        public const string ViewDepartmentProjects = "ViewDepartmentProjects";
+        public const string ViewBranchProjects = "ViewBranchProjects";
+        public const string CreateProject = "CreateProject";
+        public const string EditProject = "EditProject";
+        public const string ViewProjectDocuments = "ViewProjectDocuments";
+        public const string DownloadProjectDocument = "DownloadProjectDocument";
+        public const string UploadProjectDocument = "UploadProjectDocument";
+        public const string ApproveProjectDocument = "ApproveProjectDocument";
+        public const string DeleteProjectDocument = "DeleteProjectDocument";
+        public const string ViewProjectAudit = "ViewProjectAudit";
+        public const string ExportProjectsReport = "ExportProjectsReport";
     }
 }

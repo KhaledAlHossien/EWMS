@@ -84,6 +84,8 @@ namespace Infrastructure
             services.AddScoped<IMaintenanceTaskService, MaintenanceTaskService>();
             services.AddScoped<IToDoListService, ToDoListService>();
             services.AddScoped<ISparePartService, SparePartService>();
+            services.AddScoped<IProjectService, ProjectService>();
+            services.AddScoped<IAuditLogService, AuditLogService>();
 
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();

@@ -39,6 +39,12 @@ namespace Infrastructure.Persistence.Data
         public DbSet<MapEntryFileContent> MapEntryFileContents { get; set; }
         public DbSet<DeviceInventoryLog> DeviceInventoryLogs { get; set; }
         public DbSet<ReportExportLog> ReportExportLogs { get; set; }
+        public DbSet<Project> Projects { get; set; }
+        public DbSet<ProjectMember> ProjectMembers { get; set; }
+        public DbSet<ProjectDocument> ProjectDocuments { get; set; }
+        public DbSet<ProjectDocumentVersion> ProjectDocumentVersions { get; set; }
+        public DbSet<ProjectDocumentVersionContent> ProjectDocumentVersionContents { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<WorkTask> WorkTasks { get; set; }
         public DbSet<UserWorkTask> UserWorkTasks { get; set; }
         public DbSet<AssignedTask> AssignedTasks { get; set; }
@@ -886,6 +892,87 @@ namespace Infrastructure.Persistence.Data
                 entity.HasOne(s => s.User).WithMany()
                     .HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
                 entity.HasIndex(s => s.UserId).IsUnique().HasFilter("[IsCurrent] = 1");
+            });
+
+            ConfigureProjects(builder);
+        }
+
+        // ==================== المشاريع والوثائق وسجل التدقيق (2026-10-27) ====================
+        // كل المفاتيح Restrict: المشروع لا يُحذف أبداً (يُلغى)، فلا شيء يتسلسل حذفه إلا إصدارات الوثيقة ومحتواها.
+        private static void ConfigureProjects(ModelBuilder builder)
+        {
+            builder.Entity<Project>(entity =>
+            {
+                entity.Property(p => p.ReferenceNumber).HasMaxLength(50);
+                entity.Property(p => p.Name).HasMaxLength(200).IsRequired();
+                entity.Property(p => p.Beneficiary).HasMaxLength(200);
+                entity.Property(p => p.Description).HasMaxLength(4000);
+                entity.Property(p => p.Stage).HasConversion<int>();
+                entity.Property(p => p.RowVersion).IsRowVersion();
+                entity.HasOne(p => p.Branch).WithMany().HasForeignKey(p => p.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(p => p.Department).WithMany().HasForeignKey(p => p.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(p => p.Site).WithMany().HasForeignKey(p => p.SiteId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(p => p.CreatedByUser).WithMany().HasForeignKey(p => p.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(p => new { p.BranchId, p.ReferenceNumber }).IsUnique().HasFilter("[ReferenceNumber] IS NOT NULL");
+                entity.HasIndex(p => new { p.BranchId, p.Stage });
+                entity.HasIndex(p => p.DepartmentId);
+                entity.HasIndex(p => p.SiteId);
+                entity.HasIndex(p => p.CreatedByUserId);
+                entity.HasIndex(p => p.CreatedAt);
+            });
+
+            builder.Entity<ProjectMember>(entity =>
+            {
+                entity.HasKey(m => new { m.ProjectId, m.UserId });
+                entity.Property(m => m.Title).HasMaxLength(100);
+                entity.HasOne(m => m.Project).WithMany(p => p.Members).HasForeignKey(m => m.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(m => m.User).WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(m => m.UserId);
+            });
+
+            builder.Entity<ProjectDocument>(entity =>
+            {
+                entity.Property(d => d.Title).HasMaxLength(200).IsRequired();
+                entity.Property(d => d.Kind).HasConversion<int>();
+                entity.HasOne(d => d.Project).WithMany(p => p.Documents).HasForeignKey(d => d.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.CreatedByUser).WithMany().HasForeignKey(d => d.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(d => new { d.ProjectId, d.Kind });
+                entity.HasIndex(d => d.CreatedByUserId);
+            });
+
+            builder.Entity<ProjectDocumentVersion>(entity =>
+            {
+                entity.Property(v => v.FileName).HasMaxLength(260).IsRequired();
+                entity.Property(v => v.ContentType).HasMaxLength(150).IsRequired();
+                entity.Property(v => v.Sha256).HasMaxLength(64).IsRequired();
+                entity.Property(v => v.StorageKey).HasMaxLength(80);
+                entity.Property(v => v.Source).HasMaxLength(200);
+                entity.Property(v => v.Note).HasMaxLength(1000);
+                entity.HasOne(v => v.Document).WithMany(d => d.Versions).HasForeignKey(v => v.DocumentId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(v => v.UploadedByUser).WithMany().HasForeignKey(v => v.UploadedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(v => v.ApprovedByUser).WithMany().HasForeignKey(v => v.ApprovedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(v => v.Content).WithOne(c => c.Version).HasForeignKey<ProjectDocumentVersionContent>(c => c.VersionId).OnDelete(DeleteBehavior.Cascade);
+                // رقم الإصدار فريد داخل الوثيقة: رفعان متزامنان لا يأخذان الرقم نفسه (الثاني يُعاد بحجز الرقم التالي)
+                entity.HasIndex(v => new { v.DocumentId, v.VersionNumber }).IsUnique();
+                entity.HasIndex(v => v.StorageKey).IsUnique().HasFilter("[StorageKey] IS NOT NULL");
+                entity.HasIndex(v => v.UploadedByUserId);
+                entity.HasIndex(v => v.ApprovedByUserId);
+            });
+
+            builder.Entity<ProjectDocumentVersionContent>(entity => entity.HasKey(c => c.VersionId));
+
+            builder.Entity<AuditLog>(entity =>
+            {
+                entity.Property(a => a.Action).HasMaxLength(40).IsRequired();
+                entity.Property(a => a.EntityType).HasMaxLength(40).IsRequired();
+                entity.Property(a => a.Title).HasMaxLength(300);
+                entity.Property(a => a.Details).HasMaxLength(4000);
+                entity.HasOne(a => a.User).WithMany().HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(a => a.Project).WithMany().HasForeignKey(a => a.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(a => new { a.ProjectId, a.CreatedAt });
+                entity.HasIndex(a => new { a.EntityType, a.EntityId });
+                entity.HasIndex(a => new { a.BranchId, a.CreatedAt });
+                entity.HasIndex(a => new { a.UserId, a.CreatedAt });
             });
         }
     }
