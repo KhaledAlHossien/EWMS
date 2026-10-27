@@ -3,7 +3,8 @@
 > الخادم بلا إنترنت. الحزم تُبنى على جهاز التطوير وتُنقل يدوياً، **ولا تحتوي أي أسرار**:
 > `powershell -ExecutionPolicy Bypass -File F:\EWMSSS\deploy\build-release.ps1` ← حزمتان (الطريقة المعتمدة، القسم A):
 > `release\EWMS-<الإصدار>-api-linux-x64.tar.gz` للخادم و`release\EWMS-<الإصدار>-web.tar.gz` للواجهة (+ ملفا `.sha256`).
-> مع `-Single` تُبنى حزمة واحدة مستقلة بذاتها لتثبيت جديد كلياً (الأقسام 0–4).
+> مع `-Single` تُبنى حزمة واحدة مستقلة بذاتها لتثبيت جديد كلياً (الأقسام 0–4). هذه الحزمة تحمل نسخة .NET الموجودة على جهاز التطوير،
+> فابنِها بعد تحديث الـ SDK إلى 10.0.403 أو أحدث (`dotnet --list-sdks`)، وإلا حملت نسخة فيها ثغرات.
 
 ## A. تحديث الخادم الحالي (مجلدان) — الطريقة المعتمدة
 الخادم الحالي: الـ API في `/var/www/dmc/EWMS-App` تشغّله الخدمة `ewms-api` (`dotnet API.dll`، يحتاج .NET 10 المثبّت)،
@@ -33,6 +34,21 @@ chown -R appuser:appuser /var/www/dmc/EWMS-App/angular
 - حدّث الصفحة في المتصفح (Ctrl+F5) بعد تحديث الواجهة.
 - **التراجع:** `systemctl stop ewms-api`، ثم أعد المجلد من `EWMS-App.bak-…` والقاعدة من النسخة الاحتياطية، ثم `systemctl start ewms-api`.
 - إعدادات الخادم الإلزامية (يرفض الإقلاع بدونها): نص الاتصال، `JwtSettings:Key` (32 حرفاً على الأقل)، `DeviceInventory:PasswordKey` (32 بايت Base64) — في `appsettings.json` على الخادم أو متغيرات بيئة الخدمة.
+- **نسخة .NET على الخادم: ASP.NET Core Runtime 10.0.14 أو أحدث** (أقل نسخة مقبولة 10.0.13). النسخ حتى 10.0.12 فيها ثغرات أمنية
+  (منها CVE-2026-84008 في `System.Security.Cryptography.Pkcs`). التطبيق يعمل تلقائياً على أحدث نسخة 10.0.x مثبّتة، فيكفي تثبيتها بجانب القديمة:
+  ```bash
+  dotnet --list-runtimes                     # يجب أن يظهر Microsoft.AspNetCore.App 10.0.14 (أو أحدث)
+  dpkg -l | grep -i aspnetcore-runtime       # إن ظهر سطر فـ .NET مثبّت بحزم النظام: حدّثه بحزم .deb بدل الخطوات التالية
+  # على جهاز فيه إنترنت نزّل (47MB):
+  # https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.14/aspnetcore-runtime-10.0.14-linux-x64.tar.gz
+  # وارفعه إلى /tmp مثل حزم الإصدار، ثم:
+  cd /tmp && echo "dd024fd2616926a555b75cbf7a836f6dce998199f0596d9d75676dca2b9d59c8ee8673c6ac23473c0f1a4bdd59eb5cd02fe9ab097eeaf2dd8c8bd117c85e7031  aspnetcore-runtime-10.0.14-linux-x64.tar.gz" | sha512sum -c
+  DOTNET_ROOT=$(dirname "$(readlink -f "$(command -v dotnet)")")      # مجلد .NET الحالي
+  systemctl stop ewms-api
+  tar -xzf /tmp/aspnetcore-runtime-10.0.14-linux-x64.tar.gz -C "$DOTNET_ROOT"
+  systemctl start ewms-api && sleep 20 && curl -s http://127.0.0.1:5000/health; echo
+  ```
+  حزمة الخادم تحمل أيضاً `System.Security.Cryptography.Pkcs.dll` 10.0.14 بنفسها، لكن تحديث .NET يسدّ بقية الثغرات.
 - **الإصدار 1.2.0 — حد رفع الملفات في Nginx (مرة واحدة):** حقول «ملفات» في طبقات الخرائط تقبل ملفاً حتى سقف النظام
   `MapLayers:MaxFileMegabytes` (الافتراضي 100MB، يغيّره مدير النظام في `appsettings.json` على الخادم أو بمتغير البيئة
   `MapLayers__MaxFileMegabytes`). Nginx يرفض أي طلب أكبر من `client_max_body_size` (الافتراضي **1MB** إن لم يُكتب)،
@@ -76,7 +92,7 @@ chown -R appuser:appuser /var/www/dmc/EWMS-App/angular
 - **الإصدار 1.1.0:** كل تركيب جهاز صار ملك قسم من أضافه وفرعه، وخريطة كل فرع تُبنى من تركيبات أقسامه. التركيبات القديمة تأخذ قسم من أضافها تلقائياً؛ وما أضافه مدير بلا فرع يظهر «بلا قسم» في صفحة التركيبات — افتحه بالتعديل واختر قسمه فيظهر على خريطة فرعه.
 
 ## B. تثبيت جديد منفصل (Ubuntu 24.04 + SQL Server على جهاز مستقل)
-الحزمتان نفسهما (بلا `-Single`): `EWMS-<الإصدار>-api-linux-x64.tar.gz` (framework-dependent، يحتاج **ASP.NET Core Runtime 10**)
+الحزمتان نفسهما (بلا `-Single`): `EWMS-<الإصدار>-api-linux-x64.tar.gz` (framework-dependent، يحتاج **ASP.NET Core Runtime 10.0.14 أو أحدث** — انظر «نسخة .NET على الخادم» في القسم A)
 و`EWMS-<الإصدار>-web.tar.gz` (ملفات الواجهة الثابتة). ملفات الإعداد في المستودع: `deploy/linux/split/`
 (`ewms-api.service`، `ewms-api.env.example`، `nginx-ewms.conf`) و`deploy/linux/ewms-security-headers.conf` (موجود أيضاً في حزمة الـ API تحت `deploy/`).
 
