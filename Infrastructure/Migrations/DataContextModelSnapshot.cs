@@ -1896,6 +1896,139 @@ namespace Infrastructure.Migrations
                     b.ToTable("ProjectMembers");
                 });
 
+            modelBuilder.Entity("Domain.Entities.ProjectSchedule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ApprovedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("ProjectId", "Status")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ProjectSchedules_OneDraftOneApproved")
+                        .HasFilter("[Status] IN (1, 2)");
+
+                    b.HasIndex("ProjectId", "VersionNumber")
+                        .IsUnique();
+
+                    b.ToTable("ProjectSchedules");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProjectStartOrder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompletionDays")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExecutionDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int?>("SectorSupervisorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SiteEngineerUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal?>("StudyCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("ProjectId")
+                        .IsUnique();
+
+                    b.HasIndex("SectorSupervisorUserId");
+
+                    b.HasIndex("SiteEngineerUserId");
+
+                    b.ToTable("ProjectStartOrders");
+                });
+
             modelBuilder.Entity("Domain.Entities.ProjectUpload", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2090,6 +2223,388 @@ namespace Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("RolePermissions");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleDelay", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Actions")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<bool>("AffectsCriticalWork")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ApprovalAuthority")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("ApprovalDate")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("ApprovalDocumentVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DecidedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DecisionNote")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("DiscoveredAt")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PlannedEndAtDiscovery")
+                        .HasColumnType("date");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RecordedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TaskId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovalDocumentVersionId");
+
+                    b.HasIndex("DecidedByUserId");
+
+                    b.HasIndex("RecordedByUserId");
+
+                    b.HasIndex("TaskId");
+
+                    b.HasIndex("ProjectId", "Status");
+
+                    b.ToTable("ScheduleDelays");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleDelayAffectedTask", b =>
+                {
+                    b.Property<int>("DelayId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TaskId")
+                        .HasColumnType("int");
+
+                    b.HasKey("DelayId", "TaskId");
+
+                    b.HasIndex("TaskId");
+
+                    b.ToTable("ScheduleDelayAffectedTasks");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleDependency", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("PredecessorId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ScheduleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SuccessorId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScheduleId");
+
+                    b.HasIndex("SuccessorId");
+
+                    b.HasIndex("PredecessorId", "SuccessorId")
+                        .IsUnique();
+
+                    b.ToTable("ScheduleDependencies", t =>
+                        {
+                            t.HasCheckConstraint("CK_ScheduleDependencies_NotSelf", "[PredecessorId] <> [SuccessorId]");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleExtension", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DayCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DecidedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DecisionNote")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("DelayId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RequestedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("ScheduleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DecidedByUserId");
+
+                    b.HasIndex("DelayId");
+
+                    b.HasIndex("RequestedByUserId");
+
+                    b.HasIndex("ScheduleId");
+
+                    b.HasIndex("ProjectId", "Status");
+
+                    b.ToTable("ScheduleExtensions");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleExtensionDocument", b =>
+                {
+                    b.Property<int>("ExtensionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DocumentVersionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ExtensionId", "DocumentVersionId");
+
+                    b.HasIndex("DocumentVersionId");
+
+                    b.ToTable("ScheduleExtensionDocuments");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleExtensionItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Days")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExtensionId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("MovesStart")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("NewEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("NewStart")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("OldEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("OldStart")
+                        .HasColumnType("date");
+
+                    b.Property<int>("TaskId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TaskId");
+
+                    b.HasIndex("ExtensionId", "TaskId")
+                        .IsUnique();
+
+                    b.ToTable("ScheduleExtensionItems");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleProgressEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("Progress")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TaskId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("TaskId", "CreatedAt");
+
+                    b.ToTable("ScheduleProgressEntries");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleTask", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ActualEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("ActualStart")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("AssigneeUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<bool>("IsCritical")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("OriginalEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("OriginalStart")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("PlannedEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("PlannedStart")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Progress")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("ScheduleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Weight")
+                        .HasColumnType("decimal(9,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssigneeUserId");
+
+                    b.HasIndex("ScheduleId", "SortOrder");
+
+                    b.ToTable("ScheduleTasks", t =>
+                        {
+                            t.HasCheckConstraint("CK_ScheduleTasks_Dates", "[PlannedEnd] >= [PlannedStart]");
+
+                            t.HasCheckConstraint("CK_ScheduleTasks_Progress", "[Progress] >= 0 AND [Progress] <= 100");
+
+                            t.HasCheckConstraint("CK_ScheduleTasks_Weight", "[Weight] > 0");
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.Site", b =>
@@ -3458,6 +3973,65 @@ namespace Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Domain.Entities.ProjectSchedule", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ApprovedByUser");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProjectStartOrder", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "SectorSupervisor")
+                        .WithMany()
+                        .HasForeignKey("SectorSupervisorUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "SiteEngineer")
+                        .WithMany()
+                        .HasForeignKey("SiteEngineerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("SectorSupervisor");
+
+                    b.Navigation("SiteEngineer");
+                });
+
             modelBuilder.Entity("Domain.Entities.ProjectUpload", b =>
                 {
                     b.HasOne("Domain.Entities.ProjectDocument", "Document")
@@ -3512,6 +4086,209 @@ namespace Infrastructure.Migrations
                     b.Navigation("Permission");
 
                     b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleDelay", b =>
+                {
+                    b.HasOne("Domain.Entities.ProjectDocumentVersion", "ApprovalDocumentVersion")
+                        .WithMany()
+                        .HasForeignKey("ApprovalDocumentVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "DecidedByUser")
+                        .WithMany()
+                        .HasForeignKey("DecidedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "RecordedByUser")
+                        .WithMany()
+                        .HasForeignKey("RecordedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ScheduleTask", "Task")
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ApprovalDocumentVersion");
+
+                    b.Navigation("DecidedByUser");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("RecordedByUser");
+
+                    b.Navigation("Task");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleDelayAffectedTask", b =>
+                {
+                    b.HasOne("Domain.Entities.ScheduleDelay", "Delay")
+                        .WithMany("AffectedTasks")
+                        .HasForeignKey("DelayId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ScheduleTask", "Task")
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Delay");
+
+                    b.Navigation("Task");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleDependency", b =>
+                {
+                    b.HasOne("Domain.Entities.ScheduleTask", "Predecessor")
+                        .WithMany()
+                        .HasForeignKey("PredecessorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ProjectSchedule", "Schedule")
+                        .WithMany()
+                        .HasForeignKey("ScheduleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ScheduleTask", "Successor")
+                        .WithMany()
+                        .HasForeignKey("SuccessorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Predecessor");
+
+                    b.Navigation("Schedule");
+
+                    b.Navigation("Successor");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleExtension", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "DecidedByUser")
+                        .WithMany()
+                        .HasForeignKey("DecidedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.ScheduleDelay", "Delay")
+                        .WithMany()
+                        .HasForeignKey("DelayId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "RequestedByUser")
+                        .WithMany()
+                        .HasForeignKey("RequestedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ProjectSchedule", "Schedule")
+                        .WithMany()
+                        .HasForeignKey("ScheduleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DecidedByUser");
+
+                    b.Navigation("Delay");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("RequestedByUser");
+
+                    b.Navigation("Schedule");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleExtensionDocument", b =>
+                {
+                    b.HasOne("Domain.Entities.ProjectDocumentVersion", "DocumentVersion")
+                        .WithMany()
+                        .HasForeignKey("DocumentVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ScheduleExtension", "Extension")
+                        .WithMany("Documents")
+                        .HasForeignKey("ExtensionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DocumentVersion");
+
+                    b.Navigation("Extension");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleExtensionItem", b =>
+                {
+                    b.HasOne("Domain.Entities.ScheduleExtension", "Extension")
+                        .WithMany("Items")
+                        .HasForeignKey("ExtensionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ScheduleTask", "Task")
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Extension");
+
+                    b.Navigation("Task");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleProgressEntry", b =>
+                {
+                    b.HasOne("Domain.Entities.ScheduleTask", "Task")
+                        .WithMany("ProgressHistory")
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Task");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleTask", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "Assignee")
+                        .WithMany()
+                        .HasForeignKey("AssigneeUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.ProjectSchedule", "Schedule")
+                        .WithMany("Tasks")
+                        .HasForeignKey("ScheduleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Assignee");
+
+                    b.Navigation("Schedule");
                 });
 
             modelBuilder.Entity("Domain.Entities.ToDoItem", b =>
@@ -3795,6 +4572,28 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Entities.ProjectDocumentVersion", b =>
                 {
                     b.Navigation("Content");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ProjectSchedule", b =>
+                {
+                    b.Navigation("Tasks");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleDelay", b =>
+                {
+                    b.Navigation("AffectedTasks");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleExtension", b =>
+                {
+                    b.Navigation("Documents");
+
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ScheduleTask", b =>
+                {
+                    b.Navigation("ProgressHistory");
                 });
 
             modelBuilder.Entity("Domain.Entities.ToDoList", b =>

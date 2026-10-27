@@ -46,6 +46,16 @@ namespace Infrastructure.Persistence.Data
         public DbSet<ProjectDocumentVersionContent> ProjectDocumentVersionContents { get; set; }
         public DbSet<ProjectUpload> ProjectUploads { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<ProjectStartOrder> ProjectStartOrders { get; set; }
+        public DbSet<ProjectSchedule> ProjectSchedules { get; set; }
+        public DbSet<ScheduleTask> ScheduleTasks { get; set; }
+        public DbSet<ScheduleDependency> ScheduleDependencies { get; set; }
+        public DbSet<ScheduleProgressEntry> ScheduleProgressEntries { get; set; }
+        public DbSet<ScheduleDelay> ScheduleDelays { get; set; }
+        public DbSet<ScheduleDelayAffectedTask> ScheduleDelayAffectedTasks { get; set; }
+        public DbSet<ScheduleExtension> ScheduleExtensions { get; set; }
+        public DbSet<ScheduleExtensionItem> ScheduleExtensionItems { get; set; }
+        public DbSet<ScheduleExtensionDocument> ScheduleExtensionDocuments { get; set; }
         public DbSet<WorkTask> WorkTasks { get; set; }
         public DbSet<UserWorkTask> UserWorkTasks { get; set; }
         public DbSet<AssignedTask> AssignedTasks { get; set; }
@@ -896,6 +906,7 @@ namespace Infrastructure.Persistence.Data
             });
 
             ConfigureProjects(builder);
+            ConfigureSchedule(builder);
         }
 
         // ==================== المشاريع والوثائق وسجل التدقيق (2026-10-27) ====================
@@ -992,6 +1003,164 @@ namespace Infrastructure.Persistence.Data
                 entity.HasIndex(a => new { a.EntityType, a.EntityId });
                 entity.HasIndex(a => new { a.BranchId, a.CreatedAt });
                 entity.HasIndex(a => new { a.UserId, a.CreatedAt });
+            });
+        }
+
+        // ==================== الجدول الزمني والتأخير والتمديد (المرحلة 1، 2026-10-27) ====================
+        // مفتاح الجدول يتسلسل إلى بنوده فقط (حذف مسودة)؛ كل ما سواه Restrict. التبعية لا تتسلسل (مساران إلى البند): تُحذف قبل مسودتها في الخدمة.
+        private static void ConfigureSchedule(ModelBuilder builder)
+        {
+            builder.Entity<ProjectStartOrder>(entity =>
+            {
+                entity.Property(o => o.OrderNumber).HasMaxLength(50).IsRequired();
+                entity.Property(o => o.OrderDate).HasColumnType("date");
+                entity.Property(o => o.StartDate).HasColumnType("date");
+                entity.Property(o => o.StudyCost).HasColumnType("decimal(18,2)");
+                entity.Property(o => o.Notes).HasMaxLength(2000);
+                entity.Property(o => o.RowVersion).IsRowVersion();
+                entity.HasOne(o => o.Project).WithMany().HasForeignKey(o => o.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(o => o.SiteEngineer).WithMany().HasForeignKey(o => o.SiteEngineerUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(o => o.SectorSupervisor).WithMany().HasForeignKey(o => o.SectorSupervisorUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(o => o.CreatedByUser).WithMany().HasForeignKey(o => o.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(o => o.ProjectId).IsUnique();
+                entity.HasIndex(o => o.SiteEngineerUserId);
+                entity.HasIndex(o => o.SectorSupervisorUserId);
+                entity.HasIndex(o => o.CreatedByUserId);
+            });
+
+            builder.Entity<ProjectSchedule>(entity =>
+            {
+                entity.Property(s => s.Title).HasMaxLength(200);
+                entity.Property(s => s.Note).HasMaxLength(1000);
+                entity.Property(s => s.Status).HasConversion<int>();
+                entity.Property(s => s.RowVersion).IsRowVersion();
+                entity.HasOne(s => s.Project).WithMany().HasForeignKey(s => s.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(s => s.CreatedByUser).WithMany().HasForeignKey(s => s.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(s => s.ApprovedByUser).WithMany().HasForeignKey(s => s.ApprovedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(s => new { s.ProjectId, s.VersionNumber }).IsUnique();
+                // مسودة واحدة ومعتمد واحد على الأكثر لكل مشروع (فهرس واحد: EF لا يقبل فهرسين على الأعمدة نفسها)
+                entity.HasIndex(s => new { s.ProjectId, s.Status }).IsUnique().HasFilter("[Status] IN (1, 2)").HasDatabaseName("IX_ProjectSchedules_OneDraftOneApproved");
+                entity.HasIndex(s => s.CreatedByUserId);
+                entity.HasIndex(s => s.ApprovedByUserId);
+            });
+
+            builder.Entity<ScheduleTask>(entity =>
+            {
+                entity.Property(t => t.Code).HasMaxLength(30);
+                entity.Property(t => t.Name).HasMaxLength(300).IsRequired();
+                entity.Property(t => t.Note).HasMaxLength(2000);
+                entity.Property(t => t.Weight).HasColumnType("decimal(9,2)");
+                entity.Property(t => t.Status).HasConversion<int>();
+                entity.Property(t => t.PlannedStart).HasColumnType("date");
+                entity.Property(t => t.PlannedEnd).HasColumnType("date");
+                entity.Property(t => t.OriginalStart).HasColumnType("date");
+                entity.Property(t => t.OriginalEnd).HasColumnType("date");
+                entity.Property(t => t.ActualStart).HasColumnType("date");
+                entity.Property(t => t.ActualEnd).HasColumnType("date");
+                entity.Property(t => t.RowVersion).IsRowVersion();
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_ScheduleTasks_Dates", "[PlannedEnd] >= [PlannedStart]");
+                    t.HasCheckConstraint("CK_ScheduleTasks_Progress", "[Progress] >= 0 AND [Progress] <= 100");
+                    t.HasCheckConstraint("CK_ScheduleTasks_Weight", "[Weight] > 0");
+                });
+                entity.HasOne(t => t.Schedule).WithMany(s => s.Tasks).HasForeignKey(t => t.ScheduleId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(t => t.Assignee).WithMany().HasForeignKey(t => t.AssigneeUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(t => new { t.ScheduleId, t.SortOrder });
+                entity.HasIndex(t => t.AssigneeUserId);
+            });
+
+            builder.Entity<ScheduleDependency>(entity =>
+            {
+                entity.HasOne(d => d.Schedule).WithMany().HasForeignKey(d => d.ScheduleId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.Predecessor).WithMany().HasForeignKey(d => d.PredecessorId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.Successor).WithMany().HasForeignKey(d => d.SuccessorId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(d => new { d.PredecessorId, d.SuccessorId }).IsUnique();
+                entity.HasIndex(d => d.SuccessorId);
+                entity.HasIndex(d => d.ScheduleId);
+                entity.ToTable(t => t.HasCheckConstraint("CK_ScheduleDependencies_NotSelf", "[PredecessorId] <> [SuccessorId]"));
+            });
+
+            builder.Entity<ScheduleProgressEntry>(entity =>
+            {
+                entity.Property(e => e.Status).HasConversion<int>();
+                entity.Property(e => e.Note).HasMaxLength(1000);
+                entity.HasOne(e => e.Task).WithMany(t => t.ProgressHistory).HasForeignKey(e => e.TaskId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => new { e.TaskId, e.CreatedAt });
+                entity.HasIndex(e => e.UserId);
+            });
+
+            builder.Entity<ScheduleDelay>(entity =>
+            {
+                entity.Property(d => d.Kind).HasConversion<int>();
+                entity.Property(d => d.Status).HasConversion<int>();
+                entity.Property(d => d.DiscoveredAt).HasColumnType("date");
+                entity.Property(d => d.PlannedEndAtDiscovery).HasColumnType("date");
+                entity.Property(d => d.ApprovalDate).HasColumnType("date");
+                entity.Property(d => d.Reason).HasMaxLength(2000);
+                entity.Property(d => d.Actions).HasMaxLength(2000);
+                entity.Property(d => d.ApprovalAuthority).HasMaxLength(200);
+                entity.Property(d => d.DecisionNote).HasMaxLength(1000);
+                entity.Property(d => d.RowVersion).IsRowVersion();
+                entity.HasOne(d => d.Project).WithMany().HasForeignKey(d => d.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.Task).WithMany().HasForeignKey(d => d.TaskId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.ApprovalDocumentVersion).WithMany().HasForeignKey(d => d.ApprovalDocumentVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.RecordedByUser).WithMany().HasForeignKey(d => d.RecordedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.DecidedByUser).WithMany().HasForeignKey(d => d.DecidedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(d => new { d.ProjectId, d.Status });
+                entity.HasIndex(d => d.TaskId);
+                entity.HasIndex(d => d.ApprovalDocumentVersionId);
+                entity.HasIndex(d => d.RecordedByUserId);
+                entity.HasIndex(d => d.DecidedByUserId);
+            });
+
+            builder.Entity<ScheduleDelayAffectedTask>(entity =>
+            {
+                entity.HasKey(a => new { a.DelayId, a.TaskId });
+                entity.HasOne(a => a.Delay).WithMany(d => d.AffectedTasks).HasForeignKey(a => a.DelayId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(a => a.Task).WithMany().HasForeignKey(a => a.TaskId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(a => a.TaskId);
+            });
+
+            builder.Entity<ScheduleExtension>(entity =>
+            {
+                entity.Property(x => x.Mode).HasConversion<int>();
+                entity.Property(x => x.DayCount).HasConversion<int>();
+                entity.Property(x => x.Status).HasConversion<int>();
+                entity.Property(x => x.Reason).HasMaxLength(2000);
+                entity.Property(x => x.DecisionNote).HasMaxLength(1000);
+                entity.Property(x => x.RowVersion).IsRowVersion();
+                entity.HasOne(x => x.Project).WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(x => x.Schedule).WithMany().HasForeignKey(x => x.ScheduleId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(x => x.Delay).WithMany().HasForeignKey(x => x.DelayId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(x => x.RequestedByUser).WithMany().HasForeignKey(x => x.RequestedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(x => x.DecidedByUser).WithMany().HasForeignKey(x => x.DecidedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(x => new { x.ProjectId, x.Status });
+                entity.HasIndex(x => x.ScheduleId);
+                entity.HasIndex(x => x.DelayId);
+                entity.HasIndex(x => x.RequestedByUserId);
+                entity.HasIndex(x => x.DecidedByUserId);
+            });
+
+            builder.Entity<ScheduleExtensionItem>(entity =>
+            {
+                entity.Property(i => i.OldStart).HasColumnType("date");
+                entity.Property(i => i.OldEnd).HasColumnType("date");
+                entity.Property(i => i.NewStart).HasColumnType("date");
+                entity.Property(i => i.NewEnd).HasColumnType("date");
+                entity.HasOne(i => i.Extension).WithMany(x => x.Items).HasForeignKey(i => i.ExtensionId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(i => i.Task).WithMany().HasForeignKey(i => i.TaskId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(i => new { i.ExtensionId, i.TaskId }).IsUnique();
+                entity.HasIndex(i => i.TaskId);
+            });
+
+            builder.Entity<ScheduleExtensionDocument>(entity =>
+            {
+                entity.HasKey(d => new { d.ExtensionId, d.DocumentVersionId });
+                entity.HasOne(d => d.Extension).WithMany(x => x.Documents).HasForeignKey(d => d.ExtensionId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(d => d.DocumentVersion).WithMany().HasForeignKey(d => d.DocumentVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(d => d.DocumentVersionId);
             });
         }
     }

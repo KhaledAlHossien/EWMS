@@ -200,6 +200,18 @@ namespace Application.Common
             new("DeleteProjectDocument",  "حذف وثيقة لا إصدار معتمداً فيها في المشاريع التي يراها (يبقى أثرها في التدقيق)"),
             new("ViewProjectAudit",       "عرض سجل التدقيق لمشاريعه التي يراها"),
             new("ExportProjectsReport",   "سحب تقرير المشاريع (المشاريع التي يراها)"),
+
+            // الجدول الزمني والتأخير والتمديد (المرحلة 1، 2026-10-27): حدّها كلها حدّ رؤية المشروع. الاعتماد على غير من أنشأ أو سجّل أو طلب.
+            new("ViewProjectSchedule",      "عرض الجدول الزمني وتأخيراته وتمديداته في المشاريع التي يراها"),
+            new("EditProjectStartOrder",    "تسجيل أمر المباشرة وتعديله في المشاريع التي يراها"),
+            new("EditProjectSchedule",      "إعداد مسودة الجدول الزمني: بنودها وتواريخها وأوزانها وتبعياتها (في المشاريع التي يراها)"),
+            new("ApproveProjectSchedule",   "اعتماد إصدار الجدول الزمني (من أنشأه لا يعتمده)"),
+            new("UpdateScheduleProgress",   "تحديث حالة بنود الجدول ونسب إنجازها (يُسجَّل كل تحديث)"),
+            new("ClassifyScheduleTask",     "تصنيف بنود الجدول حرجة أو غير حرجة"),
+            new("RecordScheduleDelay",      "تسجيل تأخير على بند ورفع تبريره"),
+            new("ApproveDelayJustification", "اعتماد تبرير تأخير أو رفضه (غير من سجّله)"),
+            new("RequestScheduleExtension", "إعداد طلب تمديد على الجدول المعتمد ورفعه"),
+            new("ApproveScheduleExtension", "اعتماد طلب تمديد أو رفضه (غير صاحب الطلب)"),
         ];
 
         /// <summary>
@@ -240,6 +252,9 @@ namespace Application.Common
                 "ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry", "CreateProject", "EditProject"],
             // المشاريع: من ينشئ أو يعدّل يدخل القائمة (يرى ما أنشأه)، وحدّ كل صلاحية يطبّقه الـ handler
             ["AnyProjectView"] = ["ViewProjects", "ViewDepartmentProjects", "ViewBranchProjects", "CreateProject", "EditProject"],
+            // قراءة الجدول: لمن يعمل عليه (يرى ما يعدّله ويعتمده)
+            ["AnyScheduleView"] = ["ViewProjectSchedule", "EditProjectStartOrder", "EditProjectSchedule", "ApproveProjectSchedule", "UpdateScheduleProgress",
+                "ClassifyScheduleTask", "RecordScheduleDelay", "ApproveDelayJustification", "RequestScheduleExtension", "ApproveScheduleExtension"],
         };
 
         // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة
@@ -284,5 +299,15 @@ namespace Application.Common
         public const string DeleteProjectDocument = "DeleteProjectDocument";
         public const string ViewProjectAudit = "ViewProjectAudit";
         public const string ExportProjectsReport = "ExportProjectsReport";
+        public const string ViewProjectSchedule = "ViewProjectSchedule";
+        public const string EditProjectStartOrder = "EditProjectStartOrder";
+        public const string EditProjectSchedule = "EditProjectSchedule";
+        public const string ApproveProjectSchedule = "ApproveProjectSchedule";
+        public const string UpdateScheduleProgress = "UpdateScheduleProgress";
+        public const string ClassifyScheduleTask = "ClassifyScheduleTask";
+        public const string RecordScheduleDelay = "RecordScheduleDelay";
+        public const string ApproveDelayJustification = "ApproveDelayJustification";
+        public const string RequestScheduleExtension = "RequestScheduleExtension";
+        public const string ApproveScheduleExtension = "ApproveScheduleExtension";
     }
 }
