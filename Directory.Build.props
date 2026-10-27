@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <!-- NU1900 = تعذّر جلب بيانات الثغرات من nuget.org (الجهاز بلا إنترنت). نافذة Package Manager Console
+         تعامل هذا التحذير كخطأ فتوقف Update-Database. فحص الثغرات نفسه يبقى يعمل عند توفر الإنترنت (NU1901–NU1904). -->
+    <NoWarn>$(NoWarn);NU1900</NoWarn>
+  </PropertyGroup>
+</Project>
