@@ -57,6 +57,7 @@ namespace Domain.Enums
     {
         MaintenanceRequest = 1,
         Vacation = 2,
-        Site = 3
+        Site = 3,
+        Project = 4
     }
 }

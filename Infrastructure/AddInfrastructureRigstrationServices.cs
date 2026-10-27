@@ -39,6 +39,7 @@ namespace Infrastructure
             services.AddScoped<IMapEntryFileService, MapEntryFileService>();
             // مزوّدات طبقات الخرائط من بيانات النظام — ميزة جديدة سجلاتها على المواقع = مزوّد جديد هنا
             services.AddScoped<IMapLayerProvider, DevicesMapLayerProvider>();
+            services.AddScoped<IMapLayerProvider, ProjectsMapLayerProvider>();
             services.AddSingleton<IMapLayerSettings>(new MapLayerSettings(configuration));
             // محتوى المرفقات: القاعدة (الافتراضي) أو مجلد/مشاركة SMB (FileStorage:Mode=FileSystem)
             services.AddSingleton(new Infrastructure.Files.FileStorageSettings(configuration));
@@ -72,6 +73,7 @@ namespace Infrastructure
             services.AddScoped<IReport, Infrastructure.Reports.InstallationsReport>();
             services.AddScoped<IReport, Infrastructure.Reports.SitesReport>();
             services.AddScoped<IReport, Infrastructure.Reports.MapEntriesReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.ProjectsReport>();
 
             // الصيانة
             services.AddScoped<IDeviceTypeService, DeviceTypeService>();

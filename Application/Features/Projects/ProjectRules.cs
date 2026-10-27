@@ -108,6 +108,19 @@ namespace Application.Features.Projects
                 throw new UnauthorizedAccessException("لا تستطيع إنشاء مشروع في فرع آخر");
         }
 
+        /// <summary>المشارك موظف نشط من فرع المشروع، ولم يبلغ المشروع الحد الأقصى، ولم يُضف قبلاً</summary>
+        public static void EnsureCanBeMember(Project project, User user)
+        {
+            if (!user.IsActive)
+                throw new InvalidOperationException("حساب هذا الموظف معطّل");
+            if (!OrganizationRole.InBranch(user, project.BranchId))
+                throw new InvalidOperationException("المشاركون من موظفي فرع المشروع فقط");
+            if (project.Members.Any(m => m.UserId == user.Id))
+                throw new InvalidOperationException("هذا الموظف مشارك في المشروع مسبقاً");
+            if (project.Members.Count >= MaxMembers)
+                throw new InvalidOperationException($"بلغ المشروع الحد الأقصى للمشاركين ({MaxMembers})");
+        }
+
         /// <summary>تعديل مشروع مغلق أو ملغى مرفوض (يُعاد فتحه بتغيير المرحلة أولاً)</summary>
         public static void EnsureOpen(Project project)
         {

@@ -16,12 +16,14 @@ namespace Application.Features.AssignedTasks
         private readonly IMaintenanceRequestService _maintenance;
         private readonly IVacationService _vacations;
         private readonly ISiteService _sites;
+        private readonly IProjectService _projects;
 
-        public TaskLinkResolver(IMaintenanceRequestService maintenance, IVacationService vacations, ISiteService sites)
+        public TaskLinkResolver(IMaintenanceRequestService maintenance, IVacationService vacations, ISiteService sites, IProjectService projects)
         {
             _maintenance = maintenance;
             _vacations = vacations;
             _sites = sites;
+            _projects = projects;
         }
 
         public sealed record Described(bool Exists, bool Available, string Label);
@@ -30,6 +32,7 @@ namespace Application.Features.AssignedTasks
         {
             TaskLinkType.MaintenanceRequest => "طلب صيانة",
             TaskLinkType.Vacation => "إجازة",
+            TaskLinkType.Project => "مشروع",
             _ => "موقع"
         };
 
@@ -61,6 +64,13 @@ namespace Application.Features.AssignedTasks
                     if (vacation == null) return new(false, false, string.Empty);
                     return VacationAccess.CanView(viewer, vacation)
                         ? new(true, true, $"{VacationRules.RequestNumber(vacation.Id, vacation.CreatedAt)} — {vacation.User?.FullName}")
+                        : new(true, false, string.Empty);
+
+                case TaskLinkType.Project:
+                    var project = await _projects.GetByIdAsync(id);
+                    if (project == null) return new(false, false, string.Empty);
+                    return Features.Projects.ProjectRules.CanView(viewer, project)
+                        ? new(true, true, $"{Features.Projects.ProjectRules.Number(project.Id, project.CreatedAt)} — {project.Name}")
                         : new(true, false, string.Empty);
 
                 default:
