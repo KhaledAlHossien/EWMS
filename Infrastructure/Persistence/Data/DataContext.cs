@@ -1057,6 +1057,7 @@ namespace Infrastructure.Persistence.Data
                 entity.Property(t => t.OriginalEnd).HasColumnType("date");
                 entity.Property(t => t.ActualStart).HasColumnType("date");
                 entity.Property(t => t.ActualEnd).HasColumnType("date");
+                entity.Property(t => t.OverdueNotifiedFor).HasColumnType("date");
                 entity.Property(t => t.RowVersion).IsRowVersion();
                 entity.ToTable(t =>
                 {

@@ -242,7 +242,8 @@ namespace Application.Features.Schedules
                 SortOrder = t.SortOrder, Code = t.Code, Name = t.Name,
                 PlannedStart = t.PlannedStart, PlannedEnd = t.PlannedEnd, OriginalStart = t.OriginalStart, OriginalEnd = t.OriginalEnd,
                 Weight = t.Weight, IsCritical = t.IsCritical, Status = t.Status, Progress = t.Progress,
-                ActualStart = t.ActualStart, ActualEnd = t.ActualEnd, Note = t.Note, AssigneeUserId = t.AssigneeUserId
+                ActualStart = t.ActualStart, ActualEnd = t.ActualEnd, Note = t.Note, AssigneeUserId = t.AssigneeUserId,
+                OverdueNotifiedFor = t.OverdueNotifiedFor
             })).ToList();
 
         // ───────── أمر المباشرة ─────────

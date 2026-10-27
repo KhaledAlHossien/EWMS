@@ -2564,6 +2564,9 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime?>("OriginalStart")
                         .HasColumnType("date");
 
+                    b.Property<DateTime?>("OverdueNotifiedFor")
+                        .HasColumnType("date");
+
                     b.Property<DateTime>("PlannedEnd")
                         .HasColumnType("date");
 

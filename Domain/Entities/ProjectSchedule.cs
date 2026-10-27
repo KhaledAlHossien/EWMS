@@ -107,6 +107,8 @@ namespace Domain.Entities
         public DateTime? ActualStart { get; set; }
         public DateTime? ActualEnd { get; set; }
         public string Note { get; set; } = string.Empty;
+        /// <summary>نهاية البند التي نُبّه المخوّلون عن تجاوزها (مرة لكل نهاية؛ تمديد النهاية يسمح بتنبيه جديد)</summary>
+        public DateTime? OverdueNotifiedFor { get; set; }
 
         public int? AssigneeUserId { get; set; }
         public User? Assignee { get; set; }

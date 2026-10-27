@@ -135,6 +135,123 @@ namespace Application.DTOs.Response
         public bool CanClassify { get; set; }
     }
 
+    public class ScheduleAffectedTaskDto
+    {
+        public int TaskId { get; set; }
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class ScheduleDelayResponseDto
+    {
+        public int Id { get; set; }
+        public int ProjectId { get; set; }
+        public int TaskId { get; set; }
+        public string TaskCode { get; set; } = string.Empty;
+        public string TaskName { get; set; } = string.Empty;
+        public int ScheduleId { get; set; }
+        public int ScheduleVersion { get; set; }
+        public int Kind { get; set; }
+        public string KindName { get; set; } = string.Empty;
+        public int Status { get; set; }
+        public string StatusName { get; set; } = string.Empty;
+        public DateTime DiscoveredAt { get; set; }
+        public DateTime PlannedEndAtDiscovery { get; set; }
+        /// <summary>أيام التأخر لحظة الاكتشاف (اكتشاف − نهاية مخططة)</summary>
+        public int DaysLate { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public string Actions { get; set; } = string.Empty;
+        public string ApprovalAuthority { get; set; } = string.Empty;
+        public DateTime? ApprovalDate { get; set; }
+        public int? ApprovalDocumentVersionId { get; set; }
+        public string? ApprovalDocumentTitle { get; set; }
+        public bool AffectsCriticalWork { get; set; }
+        public List<ScheduleAffectedTaskDto> AffectedTasks { get; set; } = [];
+        /// <summary>لواحق مقترحة للمراجعة فقط (لا تُختار تلقائياً): تظهر في تفصيل التأخير الحيّ</summary>
+        public List<ScheduleAffectedTaskDto>? SuggestedTasks { get; set; }
+        public int RecordedByUserId { get; set; }
+        public string RecordedByName { get; set; } = string.Empty;
+        public DateTime RecordedAt { get; set; }
+        public string? DecidedByName { get; set; }
+        public DateTime? DecidedAt { get; set; }
+        public string DecisionNote { get; set; } = string.Empty;
+        public byte[] RowVersion { get; set; } = [];
+
+        public bool CanJustify { get; set; }
+        public bool CanDecide { get; set; }
+    }
+
+    public class ScheduleExtensionItemResponseDto
+    {
+        public int TaskId { get; set; }
+        public string TaskCode { get; set; } = string.Empty;
+        public string TaskName { get; set; } = string.Empty;
+        public int Days { get; set; }
+        public bool MovesStart { get; set; }
+        public DateTime OldStart { get; set; }
+        public DateTime OldEnd { get; set; }
+        public DateTime NewStart { get; set; }
+        public DateTime NewEnd { get; set; }
+    }
+
+    public class ScheduleExtensionDocumentDto
+    {
+        public int VersionId { get; set; }
+        public string DocumentTitle { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
+        public int VersionNumber { get; set; }
+        public bool IsApproved { get; set; }
+    }
+
+    /// <summary>تعارض تبعية بعد التمديد المقترح: اللاحق يبدأ قبل نهاية سابقه الجديدة (تنبيه لا منع)</summary>
+    public class ScheduleConflictDto
+    {
+        public int PredecessorId { get; set; }
+        public int SuccessorId { get; set; }
+        public string PredecessorName { get; set; } = string.Empty;
+        public string SuccessorName { get; set; } = string.Empty;
+    }
+
+    public class ScheduleExtensionResponseDto
+    {
+        public int Id { get; set; }
+        public int ProjectId { get; set; }
+        public int ScheduleId { get; set; }
+        public int? DelayId { get; set; }
+        public int Mode { get; set; }
+        public string ModeName { get; set; } = string.Empty;
+        public int DayCount { get; set; }
+        public string DayCountName { get; set; } = string.Empty;
+        public int Status { get; set; }
+        public string StatusName { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
+        public int RequestedByUserId { get; set; }
+        public string RequestedByName { get; set; } = string.Empty;
+        public DateTime RequestedAt { get; set; }
+        public string? DecidedByName { get; set; }
+        public DateTime? DecidedAt { get; set; }
+        public string DecisionNote { get; set; } = string.Empty;
+        public List<ScheduleExtensionItemResponseDto> Items { get; set; } = [];
+        public List<ScheduleExtensionDocumentDto> Documents { get; set; } = [];
+        public List<ScheduleConflictDto> Conflicts { get; set; } = [];
+        /// <summary>لواحق لم تُختر وقد تتأثر (للمراجعة فقط)</summary>
+        public List<ScheduleAffectedTaskDto> SuggestedTasks { get; set; } = [];
+        /// <summary>طلب مرفوع تغيّرت تواريخ بنوده بعد إعداده: لا يُعتمد قبل إعادة إعداده</summary>
+        public string? StaleProblem { get; set; }
+        public byte[] RowVersion { get; set; } = [];
+
+        public bool CanEdit { get; set; }
+        public bool CanDecide { get; set; }
+    }
+
+    /// <summary>معاينة التمديد قبل حفظه: لا يتغير شيء</summary>
+    public class ScheduleExtensionPreviewResponseDto
+    {
+        public List<ScheduleExtensionItemResponseDto> Items { get; set; } = [];
+        public List<ScheduleConflictDto> Conflicts { get; set; } = [];
+        public List<ScheduleAffectedTaskDto> SuggestedTasks { get; set; } = [];
+    }
+
     public class ScheduleProgressEntryResponseDto
     {
         public long Id { get; set; }

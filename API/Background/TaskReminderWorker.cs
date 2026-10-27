@@ -1,5 +1,6 @@
 using Application.Features.AssignedTasks;
 using Application.Features.MapLayers;
+using Application.Features.Schedules;
 using Application.Features.ToDoLists;
 using Application.Interfaces;
 
@@ -73,6 +74,22 @@ namespace API.Background
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogError(ex, "تعذّر فحص تذكيرات المفكرة — تُعاد المحاولة في الدورة التالية");
+                }
+
+                try
+                {
+                    // بنود جداول المشاريع المعتمدة التي تجاوزت نهايتها (مرشَّحة للتأخر): تنبيه لا قرار
+                    using var overdue = _scopes.CreateScope();
+                    var flagged = await ScheduleOverdueReminders.RunAsync(
+                        overdue.ServiceProvider.GetRequiredService<IScheduleChangeService>(),
+                        overdue.ServiceProvider.GetRequiredService<IUserPermissionService>(),
+                        overdue.ServiceProvider.GetRequiredService<INotificationService>(),
+                        DateTime.Now);
+                    if (flagged > 0) _logger.LogInformation("نُبّه عن {Count} بنداً تجاوز نهايته في جداول المشاريع", flagged);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "تعذّر فحص بنود الجداول المتأخرة — تُعاد المحاولة في الدورة التالية");
                 }
 
                 try

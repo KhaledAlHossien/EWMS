@@ -65,4 +65,60 @@ namespace Application.DTOs.Request
         public bool IsCritical { get; set; }
         public byte[]? RowVersion { get; set; }
     }
+
+    // ───────── التأخير والتمديد ─────────
+
+    /// <summary>تسجيل تأخير على بند معتمد. Kind: 1 غير مبرَّر، 2 مبرَّر (يُرفع تبريره بعدها بطلب مستقل)</summary>
+    public class ScheduleDelayRequestDto
+    {
+        public int Kind { get; set; } = 1;
+        public DateTime DiscoveredAt { get; set; }
+        public string? Reason { get; set; }
+        public string? Actions { get; set; }
+        /// <summary>بنود لاحقة يختارها المسجِّل متأثرة بالتأخير (من الجدول نفسه)</summary>
+        public List<int> AffectedTaskIds { get; set; } = [];
+    }
+
+    /// <summary>رفع تبرير التأخير للاعتماد (يرفعه من سجّله وحده): السبب والجهة التي وافقت وتاريخها ومستند الموافقة</summary>
+    public class JustifyScheduleDelayRequestDto
+    {
+        public string? Reason { get; set; }
+        public string? Actions { get; set; }
+        public string? ApprovalAuthority { get; set; }
+        public DateTime? ApprovalDate { get; set; }
+        /// <summary>إصدار وثيقة من وثائق المشروع نفسه</summary>
+        public int? ApprovalDocumentVersionId { get; set; }
+        public bool AffectsCriticalWork { get; set; }
+        public List<int> AffectedTaskIds { get; set; } = [];
+        public byte[]? RowVersion { get; set; }
+    }
+
+    /// <summary>قرار على تبرير تأخير أو طلب تمديد. الرفض بسبب.</summary>
+    public class ScheduleDecisionRequestDto
+    {
+        public bool Approve { get; set; }
+        public string? Note { get; set; }
+        public byte[]? RowVersion { get; set; }
+    }
+
+    public class ExtensionLineRequestDto
+    {
+        public int TaskId { get; set; }
+        public int Days { get; set; }
+        /// <summary>بند لاحق تُزاح بدايته ونهايته معاً (يختاره صاحب الطلب صراحة بعد مراجعة المقترحات)</summary>
+        public bool MovesStart { get; set; }
+    }
+
+    /// <summary>طلب تمديد على الجدول المعتمد. Mode: 1 جماعي (عدد أيام واحد)، 2 مستقل. DayCount: 1 تقويمية، 2 أيام عمل.</summary>
+    public class ScheduleExtensionRequestDto
+    {
+        public int? DelayId { get; set; }
+        public int Mode { get; set; } = 1;
+        public int DayCount { get; set; } = 1;
+        public string? Reason { get; set; }
+        public List<ExtensionLineRequestDto> Lines { get; set; } = [];
+        /// <summary>إصدارات وثائق داعمة من وثائق المشروع نفسه</summary>
+        public List<int> DocumentVersionIds { get; set; } = [];
+        public byte[]? RowVersion { get; set; }
+    }
 }

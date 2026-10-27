@@ -15,6 +15,9 @@ namespace Application.Common
         public const string Progress = "progress";
         public const string Classified = "classified";
         public const string Reordered = "reordered";
+        public const string Justified = "justified";
+        public const string Submitted = "submitted";
+        public const string Rejected = "rejected";
     }
 
     /// <summary>أنواع السجلات في سجل التدقيق (وهي نفسها RelatedEntityType لإشعارات المشروع)</summary>
@@ -27,5 +30,7 @@ namespace Application.Common
         public const string Schedule = "ProjectSchedule";
         public const string ScheduleTask = "ScheduleTask";
         public const string ScheduleDependency = "ScheduleDependency";
+        public const string Delay = "ScheduleDelay";
+        public const string Extension = "ScheduleExtension";
     }
 }

@@ -59,7 +59,7 @@ public class ScheduleModelTests
     public void Dates_are_stored_as_dates_and_the_weight_has_two_decimals()
     {
         var task = Entity<ScheduleTask>();
-        foreach (var name in new[] { "PlannedStart", "PlannedEnd", "OriginalStart", "OriginalEnd", "ActualStart", "ActualEnd" })
+        foreach (var name in new[] { "PlannedStart", "PlannedEnd", "OriginalStart", "OriginalEnd", "ActualStart", "ActualEnd", "OverdueNotifiedFor" })
             Assert.Equal("date", task.FindProperty(name)!.GetColumnType());
         Assert.Equal("decimal(9,2)", task.FindProperty("Weight")!.GetColumnType());
     }

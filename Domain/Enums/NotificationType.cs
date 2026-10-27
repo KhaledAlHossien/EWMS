@@ -28,6 +28,11 @@
         ToDoItemOverdue = 24,                 // بند في مفكرتي تجاوز موعده
         LoginLocked = 25,                     // أُوقف الدخول إلى حسابك مؤقتاً بعد محاولات خاطئة متكررة (لصاحب الحساب)
         // 26–29 محجوزة لإشعارات الحضور (فرع attendance) — المشاريع تبدأ من 40 كي لا يتعارض الدمج
-        ProjectMemberAdded = 40               // أُضفت مشاركاً في مشروع
+        ProjectMemberAdded = 40,              // أُضفت مشاركاً في مشروع
+        ScheduleTaskOverdue = 41,             // بند في جدول مشروع تجاوز نهايته (مرشّح للتأخر: راجع حالته وسجّل التأخير)
+        ScheduleJustificationSubmitted = 42,  // رُفع تبرير تأخير بانتظار الاعتماد
+        ScheduleJustificationDecided = 43,    // قرار على تبرير تأخير سجّلتَه
+        ScheduleExtensionSubmitted = 44,      // رُفع طلب تمديد بانتظار الاعتماد
+        ScheduleExtensionDecided = 45         // قرار على طلب تمديد رفعتَه
     }
 }

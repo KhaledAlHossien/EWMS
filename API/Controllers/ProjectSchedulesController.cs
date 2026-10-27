@@ -123,5 +123,85 @@ namespace API.Controllers
         [Authorize(Policy = "ClassifyScheduleTask")]
         public async Task<ActionResult<ScheduleTaskResponseDto>> Classify(int taskId, [FromBody] ClassifyScheduleTaskRequestDto dto)
             => Ok(await _mediator.Send(new ClassifyScheduleTaskCommand(taskId, dto)));
+
+        // ───────── التأخير ─────────
+
+        [HttpGet("Delays/{projectId}")]
+        [Authorize(Policy = "AnyScheduleView")]
+        public async Task<ActionResult<List<ScheduleDelayResponseDto>>> Delays(int projectId)
+            => Ok(await _mediator.Send(new GetScheduleDelaysQuery(projectId)));
+
+        /// <summary>تفصيل تأخير، ومعه لواحق مقترحة للمراجعة إن كان حيّاً</summary>
+        [HttpGet("Delay/{id}")]
+        [Authorize(Policy = "AnyScheduleView")]
+        public async Task<ActionResult<ScheduleDelayResponseDto>> Delay(int id)
+            => Ok(await _mediator.Send(new GetScheduleDelayQuery(id)));
+
+        /// <summary>تسجيل تأخير على بند من الجدول المعتمد. مرور التاريخ وحده لا يُنشئه: يسجّله مخوَّل بعد مراجعة الحالة</summary>
+        [HttpPost("RecordDelay/{taskId}")]
+        [Authorize(Policy = "RecordScheduleDelay")]
+        public async Task<ActionResult<ScheduleDelayResponseDto>> RecordDelay(int taskId, [FromBody] ScheduleDelayRequestDto dto)
+            => Ok(await _mediator.Send(new RecordScheduleDelayCommand(taskId, dto)));
+
+        /// <summary>رفع تبرير التأخير للاعتماد (من سجّله وحده): الجهة الموافقة وتاريخها ومستند الموافقة</summary>
+        [HttpPut("Delay/{id}/Justify")]
+        [Authorize(Policy = "RecordScheduleDelay")]
+        public async Task<ActionResult<ScheduleDelayResponseDto>> Justify(int id, [FromBody] JustifyScheduleDelayRequestDto dto)
+            => Ok(await _mediator.Send(new JustifyScheduleDelayCommand(id, dto)));
+
+        /// <summary>اعتماد التبرير أو رفضه (غير من سجّل التأخير؛ الرفض بسبب)</summary>
+        [HttpPut("Delay/{id}/Decide")]
+        [Authorize(Policy = "ApproveDelayJustification")]
+        public async Task<ActionResult<ScheduleDelayResponseDto>> DecideDelay(int id, [FromBody] ScheduleDecisionRequestDto dto)
+            => Ok(await _mediator.Send(new DecideScheduleDelayCommand(id, dto)));
+
+        // ───────── التمديد ─────────
+
+        [HttpGet("Extensions/{projectId}")]
+        [Authorize(Policy = "AnyScheduleView")]
+        public async Task<ActionResult<List<ScheduleExtensionResponseDto>>> Extensions(int projectId)
+            => Ok(await _mediator.Send(new GetScheduleExtensionsQuery(projectId)));
+
+        /// <summary>تفصيل طلب: بنوده ومستنداته، وقبل البتّ فيه تعارضات التبعيات واللواحق المقترحة وتقادم التواريخ</summary>
+        [HttpGet("Extension/{id}")]
+        [Authorize(Policy = "AnyScheduleView")]
+        public async Task<ActionResult<ScheduleExtensionResponseDto>> Extension(int id)
+            => Ok(await _mediator.Send(new GetScheduleExtensionQuery(id)));
+
+        /// <summary>معاينة نتيجة التمديد على التواريخ الحالية دون حفظ شيء</summary>
+        [HttpPost("Extensions/{projectId}/Preview")]
+        [Authorize(Policy = "RequestScheduleExtension")]
+        public async Task<ActionResult<ScheduleExtensionPreviewResponseDto>> PreviewExtension(int projectId, [FromBody] ScheduleExtensionRequestDto dto)
+            => Ok(await _mediator.Send(new PreviewScheduleExtensionCommand(projectId, dto)));
+
+        /// <summary>إعداد طلب تمديد (مسودة). طلب واحد غير مبتوت فيه لكل مشروع</summary>
+        [HttpPost("Extensions/{projectId}")]
+        [Authorize(Policy = "RequestScheduleExtension")]
+        public async Task<ActionResult<ScheduleExtensionResponseDto>> CreateExtension(int projectId, [FromBody] ScheduleExtensionRequestDto dto)
+            => Ok(await _mediator.Send(new CreateScheduleExtensionCommand(projectId, dto)));
+
+        [HttpPut("Extension/{id}")]
+        [Authorize(Policy = "RequestScheduleExtension")]
+        public async Task<ActionResult<ScheduleExtensionResponseDto>> UpdateExtension(int id, [FromBody] ScheduleExtensionRequestDto dto)
+            => Ok(await _mediator.Send(new UpdateScheduleExtensionCommand(id, dto)));
+
+        [HttpPost("Extension/{id}/Submit")]
+        [Authorize(Policy = "RequestScheduleExtension")]
+        public async Task<ActionResult<ScheduleExtensionResponseDto>> SubmitExtension(int id)
+            => Ok(await _mediator.Send(new SubmitScheduleExtensionCommand(id)));
+
+        [HttpDelete("Extension/{id}")]
+        [Authorize(Policy = "RequestScheduleExtension")]
+        public async Task<IActionResult> DeleteExtension(int id)
+        {
+            await _mediator.Send(new DeleteScheduleExtensionCommand(id));
+            return NoContent();
+        }
+
+        /// <summary>اعتماد التمديد (يغيّر التواريخ الحالية دفعة واحدة والأصلية ثابتة) أو رفضه (بسبب) — غير صاحب الطلب</summary>
+        [HttpPut("Extension/{id}/Decide")]
+        [Authorize(Policy = "ApproveScheduleExtension")]
+        public async Task<ActionResult<ScheduleExtensionResponseDto>> DecideExtension(int id, [FromBody] ScheduleDecisionRequestDto dto)
+            => Ok(await _mediator.Send(new DecideScheduleExtensionCommand(id, dto)));
     }
 }
