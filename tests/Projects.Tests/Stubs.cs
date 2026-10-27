@@ -43,6 +43,12 @@ internal sealed class StubDocuments : IProjectDocumentService
     public byte[]? AddedContent;
 
     public Task<ProjectDocument?> GetDocumentAsync(int id) => Task.FromResult<ProjectDocument?>(new ProjectDocument { Id = id, ProjectId = 5 });
+    public Task<(List<ProjectDocument> Items, int TotalCount)> SearchAsync(System.Linq.Expressions.Expression<Func<Project, bool>> visibleProjects, DocumentFilter filter, int page, int pageSize) => throw new NotSupportedException();
+    public Task<ProjectDocument?> GetWithVersionsAsync(int id) => throw new NotSupportedException();
+    public Task<ProjectDocumentVersion?> GetVersionAsync(int versionId) => throw new NotSupportedException();
+    public Task<byte[]?> GetContentAsync(int versionId) => throw new NotSupportedException();
+    public Task ApproveAsync(int versionId, int userId, AuditEntry audit) => throw new NotSupportedException();
+    public Task DeleteDocumentAsync(int documentId, AuditEntry audit) => throw new NotSupportedException();
 
     public Task<ProjectDocumentVersion> AddVersionAsync(Guid uploadId, NewVersionData data, byte[]? content)
     {

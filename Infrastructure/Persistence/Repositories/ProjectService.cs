@@ -162,6 +162,16 @@ namespace Infrastructure.Persistence.Repositories
 
         public AuditLogService(DataContext context) => _context = context;
 
+        public async Task WriteAsync(AuditEntry entry, int projectId, int branchId)
+        {
+            _context.AuditLogs.Add(new AuditLog
+            {
+                CreatedAt = DateTime.UtcNow, UserId = entry.UserId, Action = entry.Action, EntityType = entry.EntityType, EntityId = entry.EntityId,
+                ProjectId = projectId, BranchId = branchId, Title = entry.Title, Details = entry.Details
+            });
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<(List<AuditLog> Items, int TotalCount)> GetForProjectAsync(
             int projectId, string? entityType, int? userId, int page, int pageSize)
         {

@@ -219,6 +219,103 @@ namespace Infrastructure.Persistence.Repositories
                 }
             }
         }
+
+        public async Task<(List<ProjectDocument> Items, int TotalCount)> SearchAsync(
+            System.Linq.Expressions.Expression<Func<Project, bool>> visibleProjects, DocumentFilter filter, int page, int pageSize)
+        {
+            var query = Filtered(_context, visibleProjects, filter);
+            var total = await query.CountAsync();
+            return (await PageOf(query, page, pageSize).ToListAsync(), total);
+        }
+
+        /// <summary>الوثائق المرئية بالشرط والفلاتر (بلا ترتيب أو تضمين) — public ليُفحص ترجمتها إلى SQL في الاختبارات</summary>
+        public static IQueryable<ProjectDocument> Filtered(DataContext context,
+            System.Linq.Expressions.Expression<Func<Project, bool>> visibleProjects, DocumentFilter filter)
+        {
+            var visibleIds = context.Projects.Where(visibleProjects).Select(p => p.Id);
+            var query = context.ProjectDocuments.AsNoTracking().Where(d => visibleIds.Contains(d.ProjectId));
+
+            if (filter.ProjectId is int projectId) query = query.Where(d => d.ProjectId == projectId);
+            if (filter.Kind is ProjectDocumentKind kind) query = query.Where(d => d.Kind == kind);
+            if (filter.From is DateTime from) query = query.Where(d => d.Versions.Any(v => v.UploadedAt >= from));
+            if (filter.To is DateTime to) query = query.Where(d => d.Versions.Any(v => v.UploadedAt < to.AddDays(1)));
+            if (!string.IsNullOrWhiteSpace(filter.Search))
+            {
+                var text = filter.Search.Trim();
+                // «PRJ-2026-00042»: الأرقام الأخيرة = رقم المشروع
+                var digits = new string(text.Reverse().TakeWhile(char.IsDigit).Reverse().ToArray());
+                var id = text.StartsWith("PRJ", StringComparison.OrdinalIgnoreCase) && int.TryParse(digits, out var n) ? n : -1;
+                query = query.Where(d => d.Title.Contains(text) || d.Project.Name.Contains(text) || d.ProjectId == id
+                                         || d.Versions.Any(v => v.FileName.Contains(text)));
+            }
+
+            return query;
+        }
+
+        public static IQueryable<ProjectDocument> PageOf(IQueryable<ProjectDocument> filtered, int page, int pageSize) => filtered
+            .Include(d => d.Project).Include(d => d.CreatedByUser)
+            .Include(d => d.Versions).ThenInclude(v => v.UploadedByUser)
+            .Include(d => d.Versions).ThenInclude(v => v.ApprovedByUser)
+            .OrderByDescending(d => d.Versions.Max(v => (DateTime?)v.UploadedAt) ?? d.CreatedAt).ThenByDescending(d => d.Id)
+            .AsSplitQuery()
+            .Skip((page - 1) * pageSize).Take(pageSize);
+
+        public Task<ProjectDocument?> GetWithVersionsAsync(int id) =>
+            _context.ProjectDocuments.AsNoTracking().AsSplitQuery()
+                .Include(d => d.CreatedByUser)
+                .Include(d => d.Project).ThenInclude(p => p.Members).ThenInclude(m => m.User)
+                .Include(d => d.Versions).ThenInclude(v => v.UploadedByUser)
+                .Include(d => d.Versions).ThenInclude(v => v.ApprovedByUser)
+                .FirstOrDefaultAsync(d => d.Id == id);
+
+        public Task<ProjectDocumentVersion?> GetVersionAsync(int versionId) =>
+            _context.ProjectDocumentVersions.AsNoTracking().AsSplitQuery()
+                .Include(v => v.UploadedByUser).Include(v => v.ApprovedByUser)
+                .Include(v => v.Document).ThenInclude(d => d.Project).ThenInclude(p => p.Members).ThenInclude(m => m.User)
+                .FirstOrDefaultAsync(v => v.Id == versionId);
+
+        public Task<byte[]?> GetContentAsync(int versionId) =>
+            _context.ProjectDocumentVersionContents.AsNoTracking()
+                .Where(c => c.VersionId == versionId).Select(c => (byte[]?)c.Data).FirstOrDefaultAsync();
+
+        public async Task ApproveAsync(int versionId, int userId, AuditEntry audit)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var now = DateTime.UtcNow;
+
+            // الشرط في الاستعلام نفسه: اعتماد شخصين للإصدار في اللحظة نفسها لا ينجح إلا لأحدهما
+            var changed = await _context.ProjectDocumentVersions.Where(v => v.Id == versionId && !v.IsApproved)
+                .ExecuteUpdateAsync(s => s.SetProperty(v => v.IsApproved, true)
+                    .SetProperty(v => v.ApprovedByUserId, userId).SetProperty(v => v.ApprovedAt, now));
+            if (changed == 0) throw new InvalidOperationException("هذا الإصدار معتمد مسبقاً");
+
+            var info = await _context.ProjectDocumentVersions.AsNoTracking().Where(v => v.Id == versionId)
+                .Select(v => new { v.Document.ProjectId, v.Document.Project.BranchId }).FirstAsync();
+            _context.AuditLogs.Add(NewLog(audit with { EntityId = versionId }, info.ProjectId, info.BranchId, now));
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+
+        public async Task DeleteDocumentAsync(int documentId, AuditEntry audit)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var document = await _context.ProjectDocuments.Include(d => d.Versions).Include(d => d.Project)
+                .FirstOrDefaultAsync(d => d.Id == documentId) ?? throw new KeyNotFoundException("الوثيقة غير موجودة");
+            // اعتُمد إصدار منها بعد فحص المعالج؟ لا تُحذف
+            ProjectDocumentRules.EnsureCanDelete(document);
+
+            _context.ProjectDocumentVersions.RemoveRange(document.Versions);   // المحتوى (وضع Database) يُحذف بالتسلسل
+            _context.ProjectDocuments.Remove(document);
+            _context.AuditLogs.Add(NewLog(audit with { EntityId = documentId }, document.ProjectId, document.Project.BranchId, DateTime.UtcNow));
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+
+        private static AuditLog NewLog(AuditEntry entry, int projectId, int branchId, DateTime now) => new()
+        {
+            CreatedAt = now, UserId = entry.UserId, Action = entry.Action, EntityType = entry.EntityType, EntityId = entry.EntityId,
+            ProjectId = projectId, BranchId = branchId, Title = entry.Title, Details = entry.Details
+        };
     }
 
     /// <summary>إشارة بين طلب «إنهاء الرفع» والخدمة الخلفية (نسخة واحدة لكل التطبيق)</summary>

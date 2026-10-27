@@ -46,6 +46,9 @@ namespace Application.Interfaces
     /// <summary>قراءة سجل التدقيق. الكتابة لا تمرّ من هنا: تُحفظ مع العملية نفسها في خدمتها.</summary>
     public interface IAuditLogService
     {
+        /// <summary>يسجّل أثراً مستقلاً (مثل تنزيل إصدار معتمد) لا يرافق تغييراً في بيانات</summary>
+        Task WriteAsync(AuditEntry entry, int projectId, int branchId);
+
         /// <summary>
         /// سجل مشروع واحد (الأحدث أولاً). الحدّ مفروض على المشروع نفسه من المستدعي،
         /// فهذه الدالة لا تفحص الصلاحيات.

@@ -58,6 +58,9 @@ namespace Application.Interfaces
         Task<int> FailStuckAsync(DateTime before);
     }
 
+    /// <summary>فلاتر بحث الوثائق (كلها اختيارية): النص يطابق العنوان أو اسم أي ملف أو رقم المشروع واسمه</summary>
+    public sealed record DocumentFilter(int? ProjectId, ProjectDocumentKind? Kind, string? Search, DateTime? From, DateTime? To);
+
     /// <summary>بيانات الإصدار الجديد بعد فحص الملف (رقمه يُحجز عند الحفظ)</summary>
     public sealed record NewVersionData(string FileName, string ContentType, long Size, string Sha256, string? StorageKey);
 
@@ -70,6 +73,24 @@ namespace Application.Interfaces
         /// رقم الإصدار يُحجز داخلها (تعارض رفعين متزامنين يُعاد تلقائياً). المحتوى null = حُفظ في المجلد (StorageKey).
         /// </summary>
         Task<ProjectDocumentVersion> AddVersionAsync(Guid uploadId, NewVersionData data, byte[]? content);
+
+        /// <summary>وثائق المشاريع المرئية بالشرط المعطى (الأحدث أولاً) مع إصداراتها ومن رفعها واعتمدها</summary>
+        Task<(List<ProjectDocument> Items, int TotalCount)> SearchAsync(System.Linq.Expressions.Expression<Func<Project, bool>> visibleProjects, DocumentFilter filter, int page, int pageSize);
+
+        /// <summary>الوثيقة بكل إصداراتها (ومعها مشروعها بمشاركيه ومستخدميهم كي يُفحص الحدّ في الذاكرة)</summary>
+        Task<ProjectDocument?> GetWithVersionsAsync(int id);
+
+        /// <summary>الإصدار مع وثيقته (دون محتواه)</summary>
+        Task<ProjectDocumentVersion?> GetVersionAsync(int versionId);
+
+        /// <summary>محتوى إصدار حُفظ في القاعدة (وضع Database)؛ null إن كان في المجلد</summary>
+        Task<byte[]?> GetContentAsync(int versionId);
+
+        /// <summary>يعتمد الإصدار ويكتب أثره في معاملة واحدة؛ اعتماده من آخر في اللحظة نفسها يُرفض برسالة واضحة</summary>
+        Task ApproveAsync(int versionId, int userId, AuditEntry audit);
+
+        /// <summary>يحذف الوثيقة بإصداراتها ويكتب أثرها (الملفات تُمسح لاحقاً بالمنظّف لأن لا سجل يشير إليها)</summary>
+        Task DeleteDocumentAsync(int documentId, AuditEntry audit);
     }
 
     /// <summary>ينبّه الخدمة الخلفية إلى جلسة اكتمل رفعها فتبدأ إنهاءها دون انتظار الدورة التالية</summary>
