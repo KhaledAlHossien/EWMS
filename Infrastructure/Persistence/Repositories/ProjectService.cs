@@ -153,6 +153,12 @@ namespace Infrastructure.Persistence.Repositories
             || await _context.ProjectDocuments.AnyAsync(d => d.CreatedByUserId == userId)
             || await _context.ProjectDocumentVersions.AnyAsync(v => v.UploadedByUserId == userId || v.ApprovedByUserId == userId)
             || await _context.ProjectUploads.AnyAsync(u => u.UserId == userId)
+            || await _context.ProjectStartOrders.AnyAsync(o => o.CreatedByUserId == userId || o.SiteEngineerUserId == userId || o.SectorSupervisorUserId == userId)
+            || await _context.ProjectSchedules.AnyAsync(s => s.CreatedByUserId == userId || s.ApprovedByUserId == userId)
+            || await _context.ScheduleTasks.AnyAsync(t => t.AssigneeUserId == userId)
+            || await _context.ScheduleProgressEntries.AnyAsync(e => e.UserId == userId)
+            || await _context.ScheduleDelays.AnyAsync(d => d.RecordedByUserId == userId || d.DecidedByUserId == userId)
+            || await _context.ScheduleExtensions.AnyAsync(x => x.RequestedByUserId == userId || x.DecidedByUserId == userId)
             || await _context.AuditLogs.AnyAsync(a => a.UserId == userId);
     }
 
