@@ -72,3 +72,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+// يجعل نقطة الدخول مرئية لاختبارات التكامل (WebApplicationFactory<Program>)
+public partial class Program { }
