@@ -78,6 +78,7 @@ namespace Infrastructure
             services.AddScoped<IReport, Infrastructure.Reports.SitesReport>();
             services.AddScoped<IReport, Infrastructure.Reports.MapEntriesReport>();
             services.AddScoped<IReport, Infrastructure.Reports.ProjectsReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.StudiesReport>();
             services.AddScoped<IReport, Infrastructure.Reports.CorrespondenceRegisterReport>();
             services.AddScoped<IReport, Infrastructure.Reports.OverdueCorrespondenceReport>();
 
@@ -94,6 +95,7 @@ namespace Infrastructure
             services.AddScoped<ISparePartService, SparePartService>();
             services.AddScoped<IProjectService, ProjectService>();
             services.AddScoped<IDiwanService, DiwanService>();
+            services.AddScoped<IStudyService, StudyService>();
             services.AddScoped<IAuditLogService, AuditLogService>();
             services.AddScoped<IScheduleService, ScheduleService>();
             services.AddScoped<IScheduleChangeService, ScheduleChangeService>();

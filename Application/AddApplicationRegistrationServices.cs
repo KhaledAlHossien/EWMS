@@ -39,6 +39,7 @@ namespace Application
             services.AddScoped<Application.Features.Schedules.ScheduleContext>();
             services.AddScoped<Application.Features.Schedules.ScheduleChangeContext>();
             services.AddScoped<Application.Features.Diwan.DiwanContext>();
+            services.AddScoped<Application.Features.Studies.StudyContext>();
 
             return services;
         }

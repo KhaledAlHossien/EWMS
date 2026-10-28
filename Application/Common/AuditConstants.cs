@@ -25,6 +25,9 @@ namespace Application.Common
         public const string Returned = "returned";
         public const string Issued = "issued";
         public const string Attached = "attached";
+        public const string Sent = "sent";
+        public const string Decided = "decided";
+        public const string Cancelled = "cancelled";
     }
 
     /// <summary>أنواع السجلات في سجل التدقيق (وهي نفسها RelatedEntityType لإشعارات المشروع)</summary>
@@ -42,5 +45,9 @@ namespace Application.Common
         public const string Correspondence = "Correspondence";
         public const string CorrespondenceType = "CorrespondenceType";
         public const string CorrespondenceStatus = "CorrespondenceStatus";
+        public const string Study = "StudyOrder";
+        public const string Deliverable = "StudyDeliverable";
+        public const string DeliverableType = "DeliverableType";
+        public const string Submission = "StudySubmission";
     }
 }

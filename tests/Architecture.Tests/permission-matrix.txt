@@ -9,6 +9,7 @@ DELETE api/Correspondence/Attachment/{id} → RegisterCorrespondence
 DELETE api/CorrespondenceStatuses/Delete/{id} → DeleteCorrespondenceLookup
 DELETE api/CorrespondenceTypes/Delete/{id} → DeleteCorrespondenceLookup
 DELETE api/DamageTypes/Delete/{id} → DeleteMaintenanceLookup
+DELETE api/DeliverableTypes/Delete/{id} → DeleteDeliverableType
 DELETE api/Department/Delete/{id} → DeleteDepartment
 DELETE api/DeviceCompanies/Delete/{id} → DeleteMaintenanceLookup
 DELETE api/DeviceSites/Delete/{id} → DeleteDevice
@@ -35,6 +36,7 @@ DELETE api/Roles/Delete/{id} → DeleteRole
 DELETE api/Sites/Delete/{id} → DeleteSite
 DELETE api/SpareParts/Delete/{id} → DeleteSparePart
 DELETE api/SpareParts/RequestPart/{requestPartId} → IssueSparePart
+DELETE api/Studies/Deliverable/{id} → EditStudyOrder
 DELETE api/ToDoLists/ClearDone/{listId} → EditToDoList
 DELETE api/ToDoLists/Delete/{id} → DeleteToDoList
 DELETE api/ToDoLists/Item/{itemId} → EditToDoList
@@ -70,6 +72,7 @@ GET api/Dashboard/Me → ViewMyDashboard
 GET api/Dashboard/Office/{id:int?} → AnyOfficeDashboard
 GET api/Dashboard/Overview → ViewOrganizationDashboard
 GET api/Dashboard/Vacations → AnyVacationStats
+GET api/DeliverableTypes/GetAll → AnyDeliverableTypeView
 GET api/Department/Get/{id} → ViewDepartments
 GET api/Department/GetAll → ViewDepartments
 GET api/DeviceCompanies/Get/{id} → ViewMaintenanceLookups
@@ -154,6 +157,8 @@ GET api/SpareParts/Movements/{id} → ViewSpareParts
 GET api/SpareParts/Report → ViewSparePartReports
 GET api/SpareParts/Request/{requestId} → ViewMaintenanceRequests
 GET api/SpareParts/Request/{requestId}/Available → IssueSparePart
+GET api/Studies/Get/{id} → AnyStudyView
+GET api/Studies/Search → AnyStudyView
 GET api/ToDoLists/Get/{id} → ViewToDoLists
 GET api/ToDoLists/GetAll → ViewToDoLists
 GET api/ToDoLists/Today → ViewToDoLists
@@ -200,6 +205,7 @@ POST api/Correspondence/Submit/{id} → RegisterCorrespondence
 POST api/CorrespondenceStatuses/Create → CreateCorrespondenceLookup
 POST api/CorrespondenceTypes/Create → CreateCorrespondenceLookup
 POST api/DamageTypes/Create → CreateMaintenanceLookup
+POST api/DeliverableTypes/Create → CreateDeliverableType
 POST api/Department/Create → CreateDepartment
 POST api/DeviceCompanies/Create → CreateMaintenanceLookup
 POST api/DeviceSites/Create → CreateDevice
@@ -238,6 +244,15 @@ POST api/SpareParts/Adjust/{id} → AdjustSparePartStock
 POST api/SpareParts/Create → CreateSparePart
 POST api/SpareParts/Receive/{id} → ReceiveSpareParts
 POST api/SpareParts/Request/{requestId}/Issue → IssueSparePart
+POST api/Studies/Cancel/{id} → EditStudyOrder
+POST api/Studies/Create → CreateStudyOrder
+POST api/Studies/Decide/{submissionId} → RecordStudySubmission
+POST api/Studies/Deliverable/{id}/Review → ReviewStudyDeliverable
+POST api/Studies/Deliverable/{id}/SendBack → EditStudyOrder
+POST api/Studies/Deliverable/{id}/Submit → PrepareStudyDeliverable
+POST api/Studies/Deliverables/{studyId} → EditStudyOrder
+POST api/Studies/Reopen/{id} → EditStudyOrder
+POST api/Studies/Send/{studyId} → RecordStudySubmission
 POST api/ToDoLists/Create → CreateToDoList
 POST api/ToDoLists/Duplicate/{id} → CreateToDoList
 POST api/ToDoLists/Items/{listId} → EditToDoList
@@ -264,6 +279,7 @@ PUT api/Correspondence/Update/{id} → AnyCorrespondenceWrite
 PUT api/CorrespondenceStatuses/Update/{id} → EditCorrespondenceLookup
 PUT api/CorrespondenceTypes/Update/{id} → EditCorrespondenceLookup
 PUT api/DamageTypes/Update/{id} → EditMaintenanceLookup
+PUT api/DeliverableTypes/Update/{id} → EditDeliverableType
 PUT api/Department/Update/{id} → EditDepartment
 PUT api/DeviceCompanies/Update/{id} → EditMaintenanceLookup
 PUT api/DeviceSites/Update/{id} → EditDevice
@@ -299,6 +315,9 @@ PUT api/PublicHolidays/Update/{id} → EditHoliday
 PUT api/Roles/Update/{id} → EditRole
 PUT api/Sites/Update/{id} → EditSite
 PUT api/SpareParts/Update/{id} → EditSparePart
+PUT api/Studies/Deliverable/{id} → EditStudyOrder
+PUT api/Studies/Deliverable/{id}/Document → PrepareStudyDeliverable
+PUT api/Studies/Update/{id} → EditStudyOrder
 PUT api/ToDoLists/Archive/{id} → EditToDoList
 PUT api/ToDoLists/Item/{itemId} → EditToDoList
 PUT api/ToDoLists/Pin/{id} → EditToDoList

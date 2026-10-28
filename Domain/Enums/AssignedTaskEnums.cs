@@ -59,6 +59,7 @@ namespace Domain.Enums
         Vacation = 2,
         Site = 3,
         Project = 4,
-        Correspondence = 5
+        Correspondence = 5,
+        Study = 6
     }
 }

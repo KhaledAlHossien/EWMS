@@ -2,6 +2,7 @@ using Application.Features.AssignedTasks;
 using Application.Features.Diwan;
 using Application.Features.MapLayers;
 using Application.Features.Schedules;
+using Application.Features.Studies;
 using Application.Features.ToDoLists;
 using Application.Interfaces;
 
@@ -107,6 +108,21 @@ namespace API.Background
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogError(ex, "تعذّر فحص مواعيد معاملات الديوان — تُعاد المحاولة في الدورة التالية");
+                }
+
+                try
+                {
+                    // مواعيد مخرجات الدراسات: تجاوز الموعد (تنبيه لا قرار)
+                    using var studies = _scopes.CreateScope();
+                    var late = await StudyReminders.RunAsync(
+                        studies.ServiceProvider.GetRequiredService<IStudyService>(),
+                        studies.ServiceProvider.GetRequiredService<INotificationService>(),
+                        DateTime.Now);
+                    if (late > 0) _logger.LogInformation("نُبّه عن {Count} مخرج دراسة تجاوز موعده", late);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "تعذّر فحص مواعيد مخرجات الدراسات — تُعاد المحاولة في الدورة التالية");
                 }
 
                 try

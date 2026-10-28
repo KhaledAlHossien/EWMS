@@ -19,14 +19,16 @@ namespace Application.Features.AssignedTasks
         private readonly ISiteService _sites;
         private readonly IProjectService _projects;
         private readonly IDiwanService _diwan;
+        private readonly IStudyService _studies;
 
-        public TaskLinkResolver(IMaintenanceRequestService maintenance, IVacationService vacations, ISiteService sites, IProjectService projects, IDiwanService diwan)
+        public TaskLinkResolver(IMaintenanceRequestService maintenance, IVacationService vacations, ISiteService sites, IProjectService projects, IDiwanService diwan, IStudyService studies)
         {
             _maintenance = maintenance;
             _vacations = vacations;
             _sites = sites;
             _projects = projects;
             _diwan = diwan;
+            _studies = studies;
         }
 
         public sealed record Described(bool Exists, bool Available, string Label);
@@ -37,6 +39,7 @@ namespace Application.Features.AssignedTasks
             TaskLinkType.Vacation => "إجازة",
             TaskLinkType.Project => "مشروع",
             TaskLinkType.Correspondence => "معاملة",
+            TaskLinkType.Study => "دراسة",
             _ => "موقع"
         };
 
@@ -65,6 +68,12 @@ namespace Application.Features.AssignedTasks
                 new DiwanFilter(null, null, null, null, null, null, text, null, null, false, null, DateTime.Today), 1, 5);
             var match = items.Where(c => string.Equals(DiwanRules.Number(c.Direction, c.Year, c.Sequence), text, StringComparison.OrdinalIgnoreCase)).ToList();
             return match.Count == 1 ? match[0].Id : null;
+        }
+
+        private static bool CanViewStudy(Viewer viewer, Domain.Entities.StudyOrder study)
+        {
+            try { Features.Studies.StudyRules.EnsureCanView(viewer, study.Project); return true; }
+            catch (UnauthorizedAccessException) { return false; }
         }
 
         public async Task<Described> DescribeAsync(Viewer viewer, TaskLinkType type, int id)
@@ -98,6 +107,13 @@ namespace Application.Features.AssignedTasks
                     if (correspondence == null) return new(false, false, string.Empty);
                     return DiwanRules.CanView(viewer, correspondence)
                         ? new(true, true, $"{DiwanRules.Number(correspondence.Direction, correspondence.Year, correspondence.Sequence) ?? "مسودة"} — {correspondence.Subject}")
+                        : new(true, false, string.Empty);
+
+                case TaskLinkType.Study:
+                    var study = await _studies.GetByIdAsync(id);
+                    if (study == null) return new(false, false, string.Empty);
+                    return CanViewStudy(viewer, study)
+                        ? new(true, true, $"{Features.Studies.StudyRules.Number(study.Id, study.CreatedAt)} — {study.Title}")
                         : new(true, false, string.Empty);
 
                 default:
