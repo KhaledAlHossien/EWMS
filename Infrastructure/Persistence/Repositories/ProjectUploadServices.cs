@@ -303,6 +303,8 @@ namespace Infrastructure.Persistence.Repositories
                 .FirstOrDefaultAsync(d => d.Id == documentId) ?? throw new KeyNotFoundException("الوثيقة غير موجودة");
             // اعتُمد إصدار منها بعد فحص المعالج؟ لا تُحذف
             ProjectDocumentRules.EnsureCanDelete(document);
+            if (await _context.StudyDeliverables.AnyAsync(d => d.DocumentId == documentId) || await _context.StudySubmissions.AnyAsync(x => x.DecisionVersion!.DocumentId == documentId))
+                throw new InvalidOperationException("هذه الوثيقة ملف مخرج في أمر دراسة: لا تُحذف — أضف إصداراً جديداً بدلاً من ذلك");
 
             _context.ProjectDocumentVersions.RemoveRange(document.Versions);   // المحتوى (وضع Database) يُحذف بالتسلسل
             _context.ProjectDocuments.Remove(document);

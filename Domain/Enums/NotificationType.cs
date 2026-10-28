@@ -38,6 +38,12 @@
         CorrespondenceDueSoon = 51,           // معاملة تحملها وحدتك يحين موعدها اليوم أو غداً
         CorrespondenceOverdue = 52,           // معاملة تحملها وحدتك تجاوزت موعدها
         OutgoingAwaitingApproval = 53,        // مسودة صادر بانتظار اعتمادك
-        OutgoingDecided = 54                  // اعتُمدت مسودة صادر أعددتَها أو أُعيدت إليك
+        OutgoingDecided = 54,                 // اعتُمدت مسودة صادر أعددتَها أو أُعيدت إليك
+        StudyDeliverableAssigned = 60,        // أُسند إليك مخرج في أمر دراسة
+        StudyReviewRequested = 61,            // رُفع مخرج دراسة بانتظار مراجعتك
+        StudyDeliverableDecided = 62,         // اعتُمد مخرج أعددتَه أو أُعيد إليك
+        StudyDeliverableOverdue = 63,         // مخرج دراسة تجاوز موعده (مرشّح للمتابعة)
+        StudySentToCenter = 64,               // أُرسلت دراسة إلى المركزية
+        StudyCenterDecided = 65               // سُجّل قرار المركزية على دراسة
     }
 }

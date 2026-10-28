@@ -18,6 +18,7 @@ internal sealed class StubProjects(Project? project) : IProjectService
     public Task<bool> ExistsForBranchAsync(int branchId) => throw new NotSupportedException();
     public Task<bool> ExistsForDepartmentAsync(int departmentId) => throw new NotSupportedException();
     public Task<bool> ExistsForSiteAsync(int siteId) => throw new NotSupportedException();
+    public Task<bool> ExistsForOfficeAsync(int officeId) => throw new NotSupportedException();
     public Task<bool> ExistsForUserAsync(int userId) => throw new NotSupportedException();
 }
 

@@ -223,6 +223,19 @@ namespace Application.Common
             new("DeleteCorrespondenceLookup",   "حذف نوع أو حالة لفرعه لا معاملات عليه"),
             new("ExportCorrespondenceReport",         "سحب تقرير سجل المعاملات (المعاملات التي يراها)"),
             new("ExportOverdueCorrespondenceReport",  "سحب تقرير المعاملات التي تجاوزت مدتها (التي يراها)"),
+
+            // الدراسات والمكاتب الفنية (المرحلة 3، 2026-10-28): حدّ السجلات كلها حدّ رؤية المشروع (ProjectRules.Visible) — تحتاج معها «عرض المشاريع». المراجع غير المُعدّ.
+            new("ViewStudies",               "عرض أوامر الدراسة ومخرجاتها وإرسالاتها للمركزية في المشاريع التي يراها"),
+            new("CreateStudyOrder",          "فتح أمر دراسة على مشروع يراه وتحديد ترتيب مخرجاته"),
+            new("EditStudyOrder",            "تعديل أمر الدراسة وإضافة مخرجاته وإسنادها لمكتب ومهندس من مشاركي المشروع وإلغاؤه"),
+            new("PrepareStudyDeliverable",   "إعداد المخرجات المسندة إليه: رفع ملفها ورفعها للمراجعة (في أوامر الدراسة المفتوحة)"),
+            new("ReviewStudyDeliverable",    "اعتماد المخرجات المرفوعة للمراجعة أو إعادتها بسبب (غير من أعدّها أو رفع ملفها)"),
+            new("RecordStudySubmission",     "تسجيل إرسال الدراسة إلى المركزية وقرارها (اعتماد أو ملاحظات)"),
+            new("ViewDeliverableTypes",      "عرض أنواع المخرجات الفنية في فرعه (للإسناد والفلاتر)"),
+            new("CreateDeliverableType",     "إضافة نوع مخرج فني لفرعه"),
+            new("EditDeliverableType",       "تعديل أنواع المخرجات الفنية في فرعه وتعطيلها"),
+            new("DeleteDeliverableType",     "حذف نوع مخرج فني في فرعه لا مخرجات عليه"),
+            new("ExportStudiesReport",       "سحب تقرير الدراسات (الأوامر التي يراها)"),
         ];
 
         /// <summary>
@@ -258,7 +271,7 @@ namespace Application.Common
             // مركز التقارير: من يملك صلاحية سحب أي تقرير يفتح المركز، وصلاحية كل تقرير يفحصها الـ handler
             ["AnyReportExport"] = ["ExportVacationsReport", "ExportVacationUsageReport", "ExportUsersReport", "ExportStructureReport",
                 "ExportMaintenanceRequestsReport", "ExportTechniciansReport", "ExportSparePartMovementsReport", "ExportSparePartStockReport",
-                "ExportInstallationsReport", "ExportSitesReport", "ExportMapEntriesReport", "ExportProjectsReport", "ExportCorrespondenceReport", "ExportOverdueCorrespondenceReport"],
+                "ExportInstallationsReport", "ExportSitesReport", "ExportMapEntriesReport", "ExportProjectsReport", "ExportCorrespondenceReport", "ExportOverdueCorrespondenceReport", "ExportStudiesReport"],
             ["AnySiteView"] = ["ViewSites", "CreateSite", "EditSite", "DeleteSite", "ViewDevices", "ViewBranchDevices", "CreateDevice", "EditDevice", "DeleteDevice",
                 "ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry", "CreateProject", "EditProject"],
             // المشاريع: من ينشئ أو يعدّل يدخل القائمة (يرى ما أنشأه)، وحدّ كل صلاحية يطبّقه الـ handler
@@ -274,6 +287,11 @@ namespace Application.Common
             // قوائم الأنواع والحالات: لكل من يسجّل أو يفلتر أو يعالج
             ["AnyCorrespondenceLookupView"] = ["ViewCorrespondenceLookups", "CreateCorrespondenceLookup", "EditCorrespondenceLookup", "DeleteCorrespondenceLookup",
                 "RegisterCorrespondence", "HandleCorrespondence"],
+            // الدراسات: من يعمل على أمر دراسة (يعدّ أو يراجع أو يسند أو يرسل) يدخل القائمة، والحدّ الدقيق في StudyRules داخل المعالج
+            ["AnyStudyView"] = ["ViewStudies", "CreateStudyOrder", "EditStudyOrder", "PrepareStudyDeliverable", "ReviewStudyDeliverable", "RecordStudySubmission"],
+            // قائمة أنواع المخرجات: لكل من يسند أو يفتح أمراً أو يفلتر
+            ["AnyDeliverableTypeView"] = ["ViewDeliverableTypes", "CreateDeliverableType", "EditDeliverableType", "DeleteDeliverableType",
+                "CreateStudyOrder", "EditStudyOrder", "ViewStudies"],
         };
 
         // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة
@@ -342,5 +360,16 @@ namespace Application.Common
         public const string DeleteCorrespondenceLookup = "DeleteCorrespondenceLookup";
         public const string ExportCorrespondenceReport = "ExportCorrespondenceReport";
         public const string ExportOverdueCorrespondenceReport = "ExportOverdueCorrespondenceReport";
+        public const string ViewStudies = "ViewStudies";
+        public const string CreateStudyOrder = "CreateStudyOrder";
+        public const string EditStudyOrder = "EditStudyOrder";
+        public const string PrepareStudyDeliverable = "PrepareStudyDeliverable";
+        public const string ReviewStudyDeliverable = "ReviewStudyDeliverable";
+        public const string RecordStudySubmission = "RecordStudySubmission";
+        public const string ViewDeliverableTypes = "ViewDeliverableTypes";
+        public const string CreateDeliverableType = "CreateDeliverableType";
+        public const string EditDeliverableType = "EditDeliverableType";
+        public const string DeleteDeliverableType = "DeleteDeliverableType";
+        public const string ExportStudiesReport = "ExportStudiesReport";
     }
 }

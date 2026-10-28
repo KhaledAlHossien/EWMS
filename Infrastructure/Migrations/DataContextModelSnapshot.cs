@@ -866,6 +866,45 @@ namespace Infrastructure.Migrations
                     b.ToTable("CorrespondenceTypes");
                 });
 
+            modelBuilder.Entity("Domain.Entities.DeliverableType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DocumentKind")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("DeliverableTypes");
+                });
+
             modelBuilder.Entity("Domain.Entities.Department", b =>
                 {
                     b.Property<int>("Id")
@@ -3021,6 +3060,233 @@ namespace Infrastructure.Migrations
                     b.ToTable("Sites");
                 });
 
+            modelBuilder.Entity("Domain.Entities.StudyDeliverable", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ApprovedVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AssigneeUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("OfficeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("OverdueNotifiedFor")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ReturnNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReviewedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("State")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StudyOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("SubmittedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SubmittedVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TypeId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedVersionId");
+
+                    b.HasIndex("AssigneeUserId");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("OfficeId");
+
+                    b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("SubmittedByUserId");
+
+                    b.HasIndex("SubmittedVersionId");
+
+                    b.HasIndex("TypeId");
+
+                    b.HasIndex("StudyOrderId", "TypeId")
+                        .IsUnique();
+
+                    b.ToTable("StudyDeliverables");
+                });
+
+            modelBuilder.Entity("Domain.Entities.StudyOrder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CorrespondenceId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ExternalNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CorrespondenceId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("ProjectId", "Status");
+
+                    b.ToTable("StudyOrders");
+                });
+
+            modelBuilder.Entity("Domain.Entities.StudySubmission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DecidedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Decision")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DecisionNote")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("DecisionVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("OutgoingCorrespondenceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Round")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("SentByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StudyOrderId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DecidedByUserId");
+
+                    b.HasIndex("DecisionVersionId");
+
+                    b.HasIndex("OutgoingCorrespondenceId");
+
+                    b.HasIndex("SentByUserId");
+
+                    b.HasIndex("StudyOrderId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_StudySubmissions_OnePending")
+                        .HasFilter("[Decision] = 1");
+
+                    b.HasIndex("StudyOrderId", "Round")
+                        .IsUnique();
+
+                    b.ToTable("StudySubmissions");
+                });
+
             modelBuilder.Entity("Domain.Entities.ToDoItem", b =>
                 {
                     b.Property<int>("Id")
@@ -3979,6 +4245,17 @@ namespace Infrastructure.Migrations
                     b.Navigation("Branch");
                 });
 
+            modelBuilder.Entity("Domain.Entities.DeliverableType", b =>
+                {
+                    b.HasOne("Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+                });
+
             modelBuilder.Entity("Domain.Entities.Department", b =>
                 {
                     b.HasOne("Domain.Entities.Branch", "Branch")
@@ -4859,6 +5136,140 @@ namespace Infrastructure.Migrations
                     b.Navigation("Schedule");
                 });
 
+            modelBuilder.Entity("Domain.Entities.StudyDeliverable", b =>
+                {
+                    b.HasOne("Domain.Entities.ProjectDocumentVersion", "ApprovedVersion")
+                        .WithMany()
+                        .HasForeignKey("ApprovedVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "Assignee")
+                        .WithMany()
+                        .HasForeignKey("AssigneeUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.ProjectDocument", "Document")
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Office", "Office")
+                        .WithMany()
+                        .HasForeignKey("OfficeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "ReviewedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.StudyOrder", "StudyOrder")
+                        .WithMany("Deliverables")
+                        .HasForeignKey("StudyOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "SubmittedByUser")
+                        .WithMany()
+                        .HasForeignKey("SubmittedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.ProjectDocumentVersion", "SubmittedVersion")
+                        .WithMany()
+                        .HasForeignKey("SubmittedVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.DeliverableType", "Type")
+                        .WithMany()
+                        .HasForeignKey("TypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ApprovedVersion");
+
+                    b.Navigation("Assignee");
+
+                    b.Navigation("Document");
+
+                    b.Navigation("Office");
+
+                    b.Navigation("ReviewedByUser");
+
+                    b.Navigation("StudyOrder");
+
+                    b.Navigation("SubmittedByUser");
+
+                    b.Navigation("SubmittedVersion");
+
+                    b.Navigation("Type");
+                });
+
+            modelBuilder.Entity("Domain.Entities.StudyOrder", b =>
+                {
+                    b.HasOne("Domain.Entities.Correspondence", "Correspondence")
+                        .WithMany()
+                        .HasForeignKey("CorrespondenceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Correspondence");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("Domain.Entities.StudySubmission", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "DecidedByUser")
+                        .WithMany()
+                        .HasForeignKey("DecidedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.ProjectDocumentVersion", "DecisionVersion")
+                        .WithMany()
+                        .HasForeignKey("DecisionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Correspondence", "OutgoingCorrespondence")
+                        .WithMany()
+                        .HasForeignKey("OutgoingCorrespondenceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "SentByUser")
+                        .WithMany()
+                        .HasForeignKey("SentByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.StudyOrder", "StudyOrder")
+                        .WithMany("Submissions")
+                        .HasForeignKey("StudyOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DecidedByUser");
+
+                    b.Navigation("DecisionVersion");
+
+                    b.Navigation("OutgoingCorrespondence");
+
+                    b.Navigation("SentByUser");
+
+                    b.Navigation("StudyOrder");
+                });
+
             modelBuilder.Entity("Domain.Entities.ToDoItem", b =>
                 {
                     b.HasOne("Domain.Entities.AssignedTask", "LinkedTask")
@@ -5174,6 +5585,13 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Entities.ScheduleTask", b =>
                 {
                     b.Navigation("ProgressHistory");
+                });
+
+            modelBuilder.Entity("Domain.Entities.StudyOrder", b =>
+                {
+                    b.Navigation("Deliverables");
+
+                    b.Navigation("Submissions");
                 });
 
             modelBuilder.Entity("Domain.Entities.ToDoList", b =>

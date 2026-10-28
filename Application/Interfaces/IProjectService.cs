@@ -33,6 +33,8 @@ namespace Application.Interfaces
         Task<bool> ExistsForBranchAsync(int branchId);
         Task<bool> ExistsForDepartmentAsync(int departmentId);
         Task<bool> ExistsForSiteAsync(int siteId);
+        /// <summary>مكتب أُسند إليه مخرج فني في أمر دراسة</summary>
+        Task<bool> ExistsForOfficeAsync(int officeId);
         /// <summary>أنشأ أو شارك في مشروع، أو رفع/اعتمد إصدار وثيقة، أو له أثر في سجل التدقيق</summary>
         Task<bool> ExistsForUserAsync(int userId);
     }

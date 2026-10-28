@@ -20,6 +20,7 @@
 | مركز التقارير | [reports-center.md](reports-center.md) |
 | المشاريع والجداول الزمنية | [projects.md](projects.md) |
 | الديوان: المعاملات الواردة والصادرة | [diwan.md](diwan.md) |
+| الدراسات والمكاتب الفنية: أوامر الدراسة ومخرجات المكاتب والإرسال للمركزية | [studies.md](studies.md) |
 | بوابات الجودة والاختبارات | [quality-gates.md](quality-gates.md) |
 
 ## كيف نحافظ عليها

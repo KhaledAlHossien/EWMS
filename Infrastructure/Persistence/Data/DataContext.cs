@@ -46,6 +46,10 @@ namespace Infrastructure.Persistence.Data
         public DbSet<CorrespondenceReferral> CorrespondenceReferrals { get; set; }
         public DbSet<CorrespondenceAttachment> CorrespondenceAttachments { get; set; }
         public DbSet<CorrespondenceAttachmentContent> CorrespondenceAttachmentContents { get; set; }
+        public DbSet<DeliverableType> DeliverableTypes { get; set; }
+        public DbSet<StudyOrder> StudyOrders { get; set; }
+        public DbSet<StudyDeliverable> StudyDeliverables { get; set; }
+        public DbSet<StudySubmission> StudySubmissions { get; set; }
         public DbSet<ProjectMember> ProjectMembers { get; set; }
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectDocumentVersion> ProjectDocumentVersions { get; set; }
@@ -1261,6 +1265,81 @@ namespace Infrastructure.Persistence.Data
             {
                 entity.HasKey(c => c.AttachmentId);
                 entity.Property(c => c.Data).IsRequired();
+            });
+
+            // ───────── الدراسات والمكاتب الفنية (المرحلة 3): كل المفاتيح الأجنبية Restrict، ولا حذف متسلسل ─────────
+            builder.Entity<DeliverableType>(entity =>
+            {
+                entity.Property(t => t.Name).HasMaxLength(100).IsRequired();
+                entity.Property(t => t.DocumentKind).HasConversion<int>();
+                entity.Property(t => t.RowVersion).IsRowVersion();
+                entity.HasOne(t => t.Branch).WithMany().HasForeignKey(t => t.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(t => new { t.BranchId, t.Name }).IsUnique();
+            });
+
+            builder.Entity<StudyOrder>(entity =>
+            {
+                entity.Property(o => o.ExternalNumber).HasMaxLength(100);
+                entity.Property(o => o.Title).HasMaxLength(200).IsRequired();
+                entity.Property(o => o.Notes).HasMaxLength(2000);
+                entity.Property(o => o.Mode).HasConversion<int>();
+                entity.Property(o => o.Status).HasConversion<int>();
+                entity.Property(o => o.DueDate).HasColumnType("date");
+                entity.Property(o => o.RowVersion).IsRowVersion();
+                entity.HasOne(o => o.Project).WithMany().HasForeignKey(o => o.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(o => o.Correspondence).WithMany().HasForeignKey(o => o.CorrespondenceId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(o => o.CreatedByUser).WithMany().HasForeignKey(o => o.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(o => new { o.ProjectId, o.Status });
+                entity.HasIndex(o => o.CorrespondenceId);
+                entity.HasIndex(o => o.CreatedByUserId);
+            });
+
+            builder.Entity<StudyDeliverable>(entity =>
+            {
+                entity.Property(d => d.Note).HasMaxLength(1000);
+                entity.Property(d => d.ReturnNote).HasMaxLength(1000);
+                entity.Property(d => d.State).HasConversion<int>();
+                entity.Property(d => d.DueDate).HasColumnType("date");
+                entity.Property(d => d.OverdueNotifiedFor).HasColumnType("date");
+                entity.Property(d => d.RowVersion).IsRowVersion();
+                entity.HasOne(d => d.StudyOrder).WithMany(o => o.Deliverables).HasForeignKey(d => d.StudyOrderId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.Type).WithMany().HasForeignKey(d => d.TypeId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.Office).WithMany().HasForeignKey(d => d.OfficeId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.Assignee).WithMany().HasForeignKey(d => d.AssigneeUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.Document).WithMany().HasForeignKey(d => d.DocumentId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.SubmittedVersion).WithMany().HasForeignKey(d => d.SubmittedVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.SubmittedByUser).WithMany().HasForeignKey(d => d.SubmittedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.ReviewedByUser).WithMany().HasForeignKey(d => d.ReviewedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.ApprovedVersion).WithMany().HasForeignKey(d => d.ApprovedVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(d => new { d.StudyOrderId, d.TypeId }).IsUnique();
+                entity.HasIndex(d => d.AssigneeUserId);
+                entity.HasIndex(d => d.OfficeId);
+                entity.HasIndex(d => d.DocumentId);
+                entity.HasIndex(d => d.SubmittedVersionId);
+                entity.HasIndex(d => d.ApprovedVersionId);
+                entity.HasIndex(d => d.SubmittedByUserId);
+                entity.HasIndex(d => d.ReviewedByUserId);
+                entity.HasIndex(d => d.TypeId);
+            });
+
+            builder.Entity<StudySubmission>(entity =>
+            {
+                entity.Property(s => s.Note).HasMaxLength(1000);
+                entity.Property(s => s.DecisionNote).HasMaxLength(1000);
+                entity.Property(s => s.Decision).HasConversion<int>();
+                entity.Property(s => s.RowVersion).IsRowVersion();
+                entity.HasOne(s => s.StudyOrder).WithMany(o => o.Submissions).HasForeignKey(s => s.StudyOrderId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(s => s.SentByUser).WithMany().HasForeignKey(s => s.SentByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(s => s.DecidedByUser).WithMany().HasForeignKey(s => s.DecidedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(s => s.OutgoingCorrespondence).WithMany().HasForeignKey(s => s.OutgoingCorrespondenceId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(s => s.DecisionVersion).WithMany().HasForeignKey(s => s.DecisionVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(s => new { s.StudyOrderId, s.Round }).IsUnique();
+                // جولة واحدة بانتظار القرار لكل أمر (Decision = 1)
+                entity.HasIndex(s => s.StudyOrderId).IsUnique().HasFilter("[Decision] = 1").HasDatabaseName("IX_StudySubmissions_OnePending");
+                entity.HasIndex(s => s.SentByUserId);
+                entity.HasIndex(s => s.DecidedByUserId);
+                entity.HasIndex(s => s.OutgoingCorrespondenceId);
+                entity.HasIndex(s => s.DecisionVersionId);
             });
         }
     }

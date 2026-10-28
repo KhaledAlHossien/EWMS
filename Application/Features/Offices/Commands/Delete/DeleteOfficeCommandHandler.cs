@@ -10,19 +10,22 @@ namespace Application.Features.Offices.Commands.Delete
         private readonly ICurrentUserService _currentUserService;
         private readonly IAssignedTaskService _assignedTaskService;
         private readonly IDiwanService _diwan;
+        private readonly IProjectService _projects;
 
         public DeleteOfficeCommandHandler(
             IOfficeService officeService,
             IDepartmentService departmentService,
             ICurrentUserService currentUserService,
             IAssignedTaskService assignedTaskService,
-            IDiwanService diwan)
+            IDiwanService diwan,
+            IProjectService projects)
         {
             _officeService = officeService;
             _departmentService = departmentService;
             _currentUserService = currentUserService;
             _assignedTaskService = assignedTaskService;
             _diwan = diwan;
+            _projects = projects;
         }
 
         public async Task<bool> Handle(DeleteOfficeCommand request, CancellationToken cancellationToken)
@@ -43,6 +46,9 @@ namespace Application.Features.Offices.Commands.Delete
 
             if (await _diwan.ExistsForOfficeAsync(request.Id))
                 throw new InvalidOperationException("لا يمكن حذف مكتب يحمل معاملات أو أُحيلت إليه معاملات في الديوان — سجلّها لا يُحذف");
+
+            if (await _projects.ExistsForOfficeAsync(request.Id))
+                throw new InvalidOperationException("لا يمكن حذف مكتب أُسندت إليه مخرجات دراسة — سجلّها لا يُحذف");
 
             return await _officeService.DeleteAsync(office);
         }

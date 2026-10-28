@@ -137,12 +137,16 @@ namespace Infrastructure.Persistence.Repositories
             }
         }
 
-        public Task<bool> ExistsForBranchAsync(int branchId) =>
-            _context.Projects.AnyAsync(p => p.BranchId == branchId);
+        public async Task<bool> ExistsForBranchAsync(int branchId) =>
+            await _context.Projects.AnyAsync(p => p.BranchId == branchId)
+            || await _context.DeliverableTypes.AnyAsync(t => t.BranchId == branchId);
 
         // مشاركة موظفي القسم لا تمنع حذفه (المنع بحارس «له مستخدمون» أصلاً)؛ المانع هنا مشروع يعالجه القسم
         public Task<bool> ExistsForDepartmentAsync(int departmentId) =>
             _context.Projects.AnyAsync(p => p.DepartmentId == departmentId);
+
+        public Task<bool> ExistsForOfficeAsync(int officeId) =>
+            _context.StudyDeliverables.AnyAsync(d => d.OfficeId == officeId);
 
         public Task<bool> ExistsForSiteAsync(int siteId) =>
             _context.Projects.AnyAsync(p => p.SiteId == siteId);
@@ -159,6 +163,9 @@ namespace Infrastructure.Persistence.Repositories
             || await _context.ScheduleProgressEntries.AnyAsync(e => e.UserId == userId)
             || await _context.ScheduleDelays.AnyAsync(d => d.RecordedByUserId == userId || d.DecidedByUserId == userId)
             || await _context.ScheduleExtensions.AnyAsync(x => x.RequestedByUserId == userId || x.DecidedByUserId == userId)
+            || await _context.StudyOrders.AnyAsync(o => o.CreatedByUserId == userId)
+            || await _context.StudyDeliverables.AnyAsync(d => d.AssigneeUserId == userId || d.SubmittedByUserId == userId || d.ReviewedByUserId == userId)
+            || await _context.StudySubmissions.AnyAsync(s => s.SentByUserId == userId || s.DecidedByUserId == userId)
             || await _context.AuditLogs.AnyAsync(a => a.UserId == userId);
     }
 
