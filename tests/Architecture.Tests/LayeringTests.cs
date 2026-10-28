@@ -63,4 +63,43 @@ public class LayeringTests
 
         Assert.True(problems.Count == 0, $"كل أمر أو استعلام يحتاج معالجاً واحداً بالضبط (غيابه خطأ 500 عند التشغيل، وتعدّده لا يُقبل):\n{Scan.Lines(problems)}");
     }
+
+    /// <summary>
+    /// دين معلن: معالجات الوحدات القديمة التي تخدم عدة طلبات. الوحدات الجديدة (المشاريع والجداول) مقسّمة معالجاً لكل حالة استخدام.
+    /// تُقسَّم عند تعديل وحدتها لسبب آخر ثم يُحذف اسمها هنا (يفشل الاختبار إن بقي اسم بلا حاجة).
+    /// </summary>
+    private static readonly HashSet<string> LegacyMultiRequestHandlers =
+    [
+        "AssignedTaskCommandsHandler", "AssignedTaskExtrasHandler", "AssignedTaskQueriesHandler", "DamageTypeHandler", "DashboardQueriesHandler",
+        "DeviceCompanyHandler", "DeviceHandler", "DeviceMaintenanceHandler", "DeviceTypeHandler", "InstallationHandler",
+        "MaintenanceRequestCommandsHandler", "MaintenanceRequestQueriesHandler", "MaintenanceRequestStatusHandler", "MaintenanceTaskHandler",
+        "MaintenanceTransferHandler", "MapEntryFileHandler", "MapEntryHandler", "MapLayerHandler", "PublicHolidayHandler", "ReportHandler",
+        "SiteHandler", "SparePartHandler", "TaskLinksHandler", "TaskRecurrencesHandler", "TaskTemplatesHandler", "ToDoItemHandler",
+        "ToDoListHandler", "UserSignatureHandler"
+    ];
+
+    private static Dictionary<string, int> RequestsPerHandler() => Scan.Application.GetTypes()
+        .Where(t => t is { IsClass: true, IsAbstract: false })
+        .Select(t => (t.Name, Count: t.GetInterfaces().Count(i => i.IsGenericType &&
+            (i.GetGenericTypeDefinition() == typeof(IRequestHandler<,>) || i.GetGenericTypeDefinition() == typeof(IRequestHandler<>)))))
+        .Where(x => x.Count > 0)
+        .ToDictionary(x => x.Name, x => x.Count);
+
+    [Fact]
+    public void A_new_handler_class_serves_exactly_one_request()
+    {
+        // معالج واحد كبير يطبّق عشرات الواجهات يصعب اختباره ومراجعته: القاعدة معالج لكل حالة استخدام، والمشترك في سياق أو دوال ساكنة
+        var problems = RequestsPerHandler().Where(x => x.Value > 1 && !LegacyMultiRequestHandlers.Contains(x.Key))
+            .Select(x => $"{x.Key}: {x.Value} طلبات").ToList();
+
+        Assert.True(problems.Count == 0, $"المعالج يخدم أكثر من طلب واحد (قسّمه معالجاً لكل حالة استخدام):\n{Scan.Lines(problems)}");
+    }
+
+    [Fact]
+    public void The_legacy_multi_request_handler_list_has_no_stale_entries()
+    {
+        var counts = RequestsPerHandler();
+        var stale = LegacyMultiRequestHandlers.Where(n => !counts.TryGetValue(n, out var c) || c <= 1).ToList();
+        Assert.True(stale.Count == 0, $"معالجات في قائمة الدين صارت مقسّمة أو لم تعد موجودة، احذفها من القائمة:\n{Scan.Lines(stale)}");
+    }
 }

@@ -16,7 +16,7 @@ public class ScheduleHandlerTests
     {
         public IScheduleService Schedules = Substitute.For<IScheduleService>();
         public IProjectService Projects = Substitute.For<IProjectService>();
-        public ScheduleHandler Handler = null!;
+        public HandlerFacade Handler = null!;
     }
 
     private static User UserOf(int id) => new()
@@ -34,7 +34,7 @@ public class ScheduleHandlerTests
         perms.GetAsync(viewerId).Returns((IReadOnlySet<string>)new HashSet<string>(permissions.Append(AppPermissions.ViewProjects)));
 
         var f = new Fixture();
-        f.Handler = new ScheduleHandler(f.Schedules, f.Projects, users, perms);
+        f.Handler = new HandlerFacade(new ScheduleContext(f.Schedules, f.Projects, users, perms));
         return f;
     }
 

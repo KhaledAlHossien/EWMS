@@ -75,7 +75,7 @@ public class ProjectDocumentHandlerTests
         public IProjectDocumentService Documents = Substitute.For<IProjectDocumentService>();
         public IAuditLogService Audit = Substitute.For<IAuditLogService>();
         public IFileStore Store = Substitute.For<IFileStore>();
-        public ProjectDocumentHandler Handler = null!;
+        public HandlerFacade Handler = null!;
     }
 
     private static User UserOf(int id, int? branch = 1, int? dept = 10) => new()
@@ -93,7 +93,7 @@ public class ProjectDocumentHandlerTests
         perms.GetAsync(me.Id).Returns((IReadOnlySet<string>)new HashSet<string>(permissions));
 
         var f = new Fixture();
-        f.Handler = new ProjectDocumentHandler(f.Documents, f.Audit, f.Store, users, perms);
+        f.Handler = new HandlerFacade(new ProjectDocumentContext(f.Documents, f.Audit, f.Store, users, perms));
         return f;
     }
 

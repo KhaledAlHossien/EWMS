@@ -22,7 +22,7 @@ public class ScheduleChangeHandlerTests
         public IPublicHolidayService Holidays = Substitute.For<IPublicHolidayService>();
         public INotificationService Notifications = Substitute.For<INotificationService>();
         public IUserPermissionService Permissions = Substitute.For<IUserPermissionService>();
-        public ScheduleChangeHandler Handler = null!;
+        public HandlerFacade Handler = null!;
     }
 
     private static User UserOf(int id) => new()
@@ -39,7 +39,7 @@ public class ScheduleChangeHandlerTests
         users.GetByIdAsync(viewerId).Returns(UserOf(viewerId));
         f.Permissions.GetAsync(viewerId).Returns((IReadOnlySet<string>)new HashSet<string>(permissions.Append(AppPermissions.ViewProjects)));
         f.Permissions.GetAsync(Other).Returns((IReadOnlySet<string>)new HashSet<string> { AppPermissions.ViewProjects });
-        f.Handler = new ScheduleChangeHandler(f.Changes, f.Schedules, f.Projects, f.Documents, f.Holidays, f.Notifications, users, f.Permissions);
+        f.Handler = new HandlerFacade(new ScheduleChangeContext(f.Changes, f.Schedules, f.Projects, f.Documents, f.Holidays, f.Notifications, users, f.Permissions));
         return f;
     }
 

@@ -32,6 +32,12 @@ namespace Application
             services.AddScoped<Application.Features.AssignedTasks.AssignedTaskCreator>();
             services.AddScoped<Application.Features.AssignedTasks.TaskLinkResolver>();
             services.AddScoped<Application.Features.Projects.ProjectUploadFinalizer>();
+            // سياقات المعالجات: التبعيات والتحميل المشترك لحالات الاستخدام (معالج لكل حالة)
+            services.AddScoped<Application.Features.Projects.ProjectContext>();
+            services.AddScoped<Application.Features.Projects.ProjectDocumentContext>();
+            services.AddScoped<Application.Features.Projects.ProjectUploadContext>();
+            services.AddScoped<Application.Features.Schedules.ScheduleContext>();
+            services.AddScoped<Application.Features.Schedules.ScheduleChangeContext>();
 
             return services;
         }
