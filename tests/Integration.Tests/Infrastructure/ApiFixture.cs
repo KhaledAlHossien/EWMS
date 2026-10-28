@@ -59,7 +59,7 @@ public sealed class ApiFixture : IAsyncLifetime
                 ["Seed:AdminEmail"] = AdminEmail,
                 ["Seed:AdminPassword"] = AdminPassword,
                 ["FileStorage:Mode"] = "Database",
-                ["Swagger:Enabled"] = "false",
+                ["Swagger:Enabled"] = "true",   // لقطة عقد OpenAPI (ContractTests) تقرأ swagger.json
                 ["Cors:AllowedOrigins:0"] = "https://localhost"
             }));
         });

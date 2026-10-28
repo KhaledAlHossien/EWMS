@@ -40,6 +40,8 @@ namespace API.SystemBuild
 
             services.AddSwaggerGen(c =>
             {
+                // العقد يميّز النص الذي قد يكون null (string?) عن غيره، فتطابق أنواع الواجهة المولَّدة ما يرسله الخادم فعلاً
+                c.SupportNonNullableReferenceTypes();
                 c.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Title = "EWMS",
