@@ -40,6 +40,12 @@ namespace Infrastructure.Persistence.Data
         public DbSet<DeviceInventoryLog> DeviceInventoryLogs { get; set; }
         public DbSet<ReportExportLog> ReportExportLogs { get; set; }
         public DbSet<Project> Projects { get; set; }
+        public DbSet<CorrespondenceType> CorrespondenceTypes { get; set; }
+        public DbSet<CorrespondenceStatus> CorrespondenceStatuses { get; set; }
+        public DbSet<Correspondence> Correspondences { get; set; }
+        public DbSet<CorrespondenceReferral> CorrespondenceReferrals { get; set; }
+        public DbSet<CorrespondenceAttachment> CorrespondenceAttachments { get; set; }
+        public DbSet<CorrespondenceAttachmentContent> CorrespondenceAttachmentContents { get; set; }
         public DbSet<ProjectMember> ProjectMembers { get; set; }
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectDocumentVersion> ProjectDocumentVersions { get; set; }
@@ -1162,6 +1168,99 @@ namespace Infrastructure.Persistence.Data
                 entity.HasOne(d => d.Extension).WithMany(x => x.Documents).HasForeignKey(d => d.ExtensionId).OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne(d => d.DocumentVersion).WithMany().HasForeignKey(d => d.DocumentVersionId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasIndex(d => d.DocumentVersionId);
+            });
+
+            // ==================== الديوان: المعاملات الواردة والصادرة (2026-10-28) ====================
+            builder.Entity<CorrespondenceType>(entity =>
+            {
+                entity.Property(t => t.Name).HasMaxLength(100).IsRequired();
+                entity.HasOne(t => t.Branch).WithMany().HasForeignKey(t => t.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(t => new { t.BranchId, t.Name }).IsUnique();
+            });
+
+            builder.Entity<CorrespondenceStatus>(entity =>
+            {
+                entity.Property(s => s.Name).HasMaxLength(100).IsRequired();
+                entity.Property(s => s.Color).HasMaxLength(7).IsRequired();
+                entity.Property(s => s.Stage).HasConversion<int>();
+                entity.HasOne(s => s.Branch).WithMany().HasForeignKey(s => s.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(s => new { s.BranchId, s.Name }).IsUnique();
+            });
+
+            builder.Entity<Correspondence>(entity =>
+            {
+                entity.Property(c => c.Direction).HasConversion<int>();
+                entity.Property(c => c.OutgoingState).HasConversion<int>();
+                entity.Property(c => c.ExternalNumber).HasMaxLength(50);
+                entity.Property(c => c.Party).HasMaxLength(200).IsRequired();
+                entity.Property(c => c.Subject).HasMaxLength(300).IsRequired();
+                entity.Property(c => c.Summary).HasMaxLength(4000);
+                entity.Property(c => c.ReturnNote).HasMaxLength(1000);
+                entity.Property(c => c.RowVersion).IsRowVersion();
+                entity.HasOne(c => c.Branch).WithMany().HasForeignKey(c => c.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.Department).WithMany().HasForeignKey(c => c.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.Type).WithMany().HasForeignKey(c => c.TypeId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.Status).WithMany().HasForeignKey(c => c.StatusId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.Project).WithMany().HasForeignKey(c => c.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.CurrentDepartment).WithMany().HasForeignKey(c => c.CurrentDepartmentId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.CurrentOffice).WithMany().HasForeignKey(c => c.CurrentOfficeId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.CurrentUser).WithMany().HasForeignKey(c => c.CurrentUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.ReplyTo).WithMany().HasForeignKey(c => c.ReplyToId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.ApprovedByUser).WithMany().HasForeignKey(c => c.ApprovedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.ApprovedSignature).WithMany().HasForeignKey(c => c.ApprovedSignatureId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.IssuedByUser).WithMany().HasForeignKey(c => c.IssuedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.RegisteredByUser).WithMany().HasForeignKey(c => c.RegisteredByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.ClosedByUser).WithMany().HasForeignKey(c => c.ClosedByUserId).OnDelete(DeleteBehavior.Restrict);
+                // الرقم الداخلي فريد داخل (الفرع، الاتجاه، السنة)؛ المسودة بلا تسلسل
+                entity.HasIndex(c => new { c.BranchId, c.Direction, c.Year, c.Sequence }).IsUnique().HasFilter("[Sequence] IS NOT NULL");
+                entity.HasIndex(c => new { c.BranchId, c.Direction, c.RegisteredAt });
+                entity.HasIndex(c => c.DepartmentId);
+                entity.HasIndex(c => c.CurrentDepartmentId);
+                entity.HasIndex(c => c.CurrentOfficeId);
+                entity.HasIndex(c => c.CurrentUserId);
+                entity.HasIndex(c => c.ProjectId);
+                entity.HasIndex(c => c.StatusId);
+                entity.HasIndex(c => c.TypeId);
+                entity.HasIndex(c => c.DueDate);
+                entity.HasIndex(c => c.RegisteredByUserId);
+                entity.HasIndex(c => c.ReplyToId);
+            });
+
+            builder.Entity<CorrespondenceReferral>(entity =>
+            {
+                entity.Property(r => r.Note).HasMaxLength(1000);
+                entity.HasOne(r => r.Correspondence).WithMany(c => c.Referrals).HasForeignKey(r => r.CorrespondenceId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.FromUser).WithMany().HasForeignKey(r => r.FromUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.FromDepartment).WithMany().HasForeignKey(r => r.FromDepartmentId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.ToDepartment).WithMany().HasForeignKey(r => r.ToDepartmentId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.ToOffice).WithMany().HasForeignKey(r => r.ToOfficeId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.ToUser).WithMany().HasForeignKey(r => r.ToUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.AcknowledgedByUser).WithMany().HasForeignKey(r => r.AcknowledgedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(r => r.CorrespondenceId);
+                entity.HasIndex(r => r.FromUserId);
+                entity.HasIndex(r => r.FromDepartmentId);
+                entity.HasIndex(r => r.ToDepartmentId);
+                entity.HasIndex(r => r.ToOfficeId);
+                entity.HasIndex(r => r.ToUserId);
+                entity.HasIndex(r => r.AcknowledgedByUserId);
+            });
+
+            builder.Entity<CorrespondenceAttachment>(entity =>
+            {
+                entity.Property(a => a.FileName).HasMaxLength(200).IsRequired();
+                entity.Property(a => a.ContentType).HasMaxLength(100).IsRequired();
+                entity.Property(a => a.StorageKey).HasMaxLength(80);
+                entity.HasIndex(a => a.StorageKey).IsUnique().HasFilter("[StorageKey] IS NOT NULL");
+                entity.HasOne(a => a.Correspondence).WithMany(c => c.Attachments).HasForeignKey(a => a.CorrespondenceId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(a => a.UploadedByUser).WithMany().HasForeignKey(a => a.UploadedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(a => a.Content).WithOne(c => c.Attachment).HasForeignKey<CorrespondenceAttachmentContent>(c => c.AttachmentId).OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(a => a.CorrespondenceId);
+                entity.HasIndex(a => a.UploadedByUserId);
+            });
+            builder.Entity<CorrespondenceAttachmentContent>(entity =>
+            {
+                entity.HasKey(c => c.AttachmentId);
+                entity.Property(c => c.Data).IsRequired();
             });
         }
     }

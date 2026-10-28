@@ -206,6 +206,21 @@ namespace Application.Common
             new("ApproveDelayJustification", "اعتماد تبرير تأخير أو رفضه (غير من سجّله)"),
             new("RequestScheduleExtension", "إعداد طلب تمديد على الجدول المعتمد ورفعه"),
             new("ApproveScheduleExtension", "اعتماد طلب تمديد أو رفضه (غير صاحب الطلب)"),
+
+            // الديوان (2026-10-28): الحدّ في Application/Features/Diwan/DiwanRules — معاملاتي (سجّلتها أو مرّت بي)، ثم قسمي، ثم فرعي.
+            // الإحالة إلى وحدة لا تفتح المعاملة لكل موظفيها: يراها حاملو HandleCorrespondence في الوحدة الحالية فقط (القاعدة 8).
+            new("ViewCorrespondence",           "عرض المعاملات التي سجّلها أو أُحيلت إليه أو مرّت به"),
+            new("ViewDepartmentCorrespondence", "عرض معاملات قسمه: التي سجّلها قسمه أو يحملها أو مرّت به"),
+            new("ViewBranchCorrespondence",     "عرض كل معاملات فرعه الواردة والصادرة"),
+            new("RegisterCorrespondence",       "تسجيل معاملة واردة في فرعه وإعداد مسودة صادرة وتعديلها وإصدار المعتمَد منها"),
+            new("ReferCorrespondence",          "إحالة المعاملات التي تحملها وحدته إلى قسم أو مكتب أو موظف في فرعه"),
+            new("HandleCorrespondence",         "معالجة المعاملات التي تحملها وحدته: استلامها وتغيير حالتها وإرفاق ملفات وربطها بمشروع"),
+            new("CloseCorrespondence",          "إغلاق المعاملات التي تحملها وحدته وإعادة فتحها"),
+            new("ApproveOutgoingCorrespondence", "اعتماد مسودات الصادر في فرعه أو إعادتها (غير من أعدّها)، ويُحفظ توقيعه مع الاعتماد"),
+            new("ViewCorrespondenceLookups",    "عرض أنواع معاملات فرعه وحالاتها (للتسجيل والفلاتر)"),
+            new("CreateCorrespondenceLookup",   "إضافة نوع معاملة أو حالة لفرعه"),
+            new("EditCorrespondenceLookup",     "تعديل أنواع معاملات فرعه وحالاتها"),
+            new("DeleteCorrespondenceLookup",   "حذف نوع أو حالة لفرعه لا معاملات عليه"),
         ];
 
         /// <summary>
@@ -249,6 +264,12 @@ namespace Application.Common
             // قراءة الجدول: لمن يعمل عليه (يرى ما يعدّله ويعتمده)
             ["AnyScheduleView"] = ["ViewProjectSchedule", "EditProjectStartOrder", "EditProjectSchedule", "ApproveProjectSchedule", "UpdateScheduleProgress",
                 "ClassifyScheduleTask", "RecordScheduleDelay", "ApproveDelayJustification", "RequestScheduleExtension", "ApproveScheduleExtension"],
+            // الديوان: من يسجّل أو يعالج أو يعتمد يدخل القائمة (يرى ما يخصه)، وحدّ كل صلاحية يطبّقه الـ handler
+            ["AnyCorrespondenceView"] = ["ViewCorrespondence", "ViewDepartmentCorrespondence", "ViewBranchCorrespondence", "RegisterCorrespondence",
+                "HandleCorrespondence", "ApproveOutgoingCorrespondence"],
+            // قوائم الأنواع والحالات: لكل من يسجّل أو يفلتر أو يعالج
+            ["AnyCorrespondenceLookupView"] = ["ViewCorrespondenceLookups", "CreateCorrespondenceLookup", "EditCorrespondenceLookup", "DeleteCorrespondenceLookup",
+                "RegisterCorrespondence", "HandleCorrespondence"],
         };
 
         // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة
@@ -303,5 +324,17 @@ namespace Application.Common
         public const string ApproveDelayJustification = "ApproveDelayJustification";
         public const string RequestScheduleExtension = "RequestScheduleExtension";
         public const string ApproveScheduleExtension = "ApproveScheduleExtension";
+        public const string ViewCorrespondence = "ViewCorrespondence";
+        public const string ViewDepartmentCorrespondence = "ViewDepartmentCorrespondence";
+        public const string ViewBranchCorrespondence = "ViewBranchCorrespondence";
+        public const string RegisterCorrespondence = "RegisterCorrespondence";
+        public const string ReferCorrespondence = "ReferCorrespondence";
+        public const string HandleCorrespondence = "HandleCorrespondence";
+        public const string CloseCorrespondence = "CloseCorrespondence";
+        public const string ApproveOutgoingCorrespondence = "ApproveOutgoingCorrespondence";
+        public const string ViewCorrespondenceLookups = "ViewCorrespondenceLookups";
+        public const string CreateCorrespondenceLookup = "CreateCorrespondenceLookup";
+        public const string EditCorrespondenceLookup = "EditCorrespondenceLookup";
+        public const string DeleteCorrespondenceLookup = "DeleteCorrespondenceLookup";
     }
 }

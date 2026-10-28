@@ -33,6 +33,11 @@
         ScheduleJustificationSubmitted = 42,  // رُفع تبرير تأخير بانتظار الاعتماد
         ScheduleJustificationDecided = 43,    // قرار على تبرير تأخير سجّلتَه
         ScheduleExtensionSubmitted = 44,      // رُفع طلب تمديد بانتظار الاعتماد
-        ScheduleExtensionDecided = 45         // قرار على طلب تمديد رفعتَه
+        ScheduleExtensionDecided = 45,        // قرار على طلب تمديد رفعتَه
+        CorrespondenceReferred = 50,          // أُحيلت إليك أو إلى وحدتك معاملة
+        CorrespondenceDueSoon = 51,           // معاملة تحملها وحدتك يحين موعدها اليوم أو غداً
+        CorrespondenceOverdue = 52,           // معاملة تحملها وحدتك تجاوزت موعدها
+        OutgoingAwaitingApproval = 53,        // مسودة صادر بانتظار اعتمادك
+        OutgoingDecided = 54                  // اعتُمدت مسودة صادر أعددتَها أو أُعيدت إليك
     }
 }

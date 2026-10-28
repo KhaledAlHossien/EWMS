@@ -26,7 +26,7 @@ public class ModelRulesTests
     private static readonly HashSet<string> AllowedCascades =
     [
         "AssignedTaskActivity -> AssignedTask", "AssignedTaskAttachment -> AssignedTask", "AssignedTaskAttachmentContent -> AssignedTaskAttachment",
-        "AssignedTaskChecklistItem -> AssignedTask", "AssignedTaskLink -> AssignedTask", "AssignedTaskTemplateItem -> AssignedTaskTemplate",
+        "AssignedTaskChecklistItem -> AssignedTask", "AssignedTaskLink -> AssignedTask", "AssignedTaskTemplateItem -> AssignedTaskTemplate", "CorrespondenceAttachmentContent -> CorrespondenceAttachment",
         "MaintenanceRequestActivity -> MaintenanceRequest", "MaintenanceTransferRequest -> MaintenanceRequest",
         "MapEntryFile -> MapEntry", "MapEntryFile -> MapLayerField", "MapEntryFileContent -> MapEntryFile", "MapLayerField -> MapLayer",
         "Notification -> User", "ProjectDocumentVersionContent -> ProjectDocumentVersion", "RolePermission -> Permission", "RolePermission -> Role",

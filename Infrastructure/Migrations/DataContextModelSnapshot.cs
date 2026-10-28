@@ -515,6 +515,354 @@ namespace Infrastructure.Migrations
                     b.ToTable("Branches");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Correspondence", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ApprovedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ApprovedSignatureId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ClosedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CurrentDepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CurrentOfficeId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CurrentUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Direction")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DueSoonNotifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ExternalDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ExternalNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("IssuedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("IssuedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("OutgoingState")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("OverdueNotifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Party")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("RegisteredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RegisteredByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ReplyToId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReturnNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int?>("Sequence")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("StatusId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("TypeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("ApprovedSignatureId");
+
+                    b.HasIndex("ClosedByUserId");
+
+                    b.HasIndex("CurrentDepartmentId");
+
+                    b.HasIndex("CurrentOfficeId");
+
+                    b.HasIndex("CurrentUserId");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("DueDate");
+
+                    b.HasIndex("IssuedByUserId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RegisteredByUserId");
+
+                    b.HasIndex("ReplyToId");
+
+                    b.HasIndex("StatusId");
+
+                    b.HasIndex("TypeId");
+
+                    b.HasIndex("BranchId", "Direction", "RegisteredAt");
+
+                    b.HasIndex("BranchId", "Direction", "Year", "Sequence")
+                        .IsUnique()
+                        .HasFilter("[Sequence] IS NOT NULL");
+
+                    b.ToTable("Correspondences");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CorrespondenceAttachment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("CorrespondenceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StorageKey")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UploadedByUserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CorrespondenceId");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique()
+                        .HasFilter("[StorageKey] IS NOT NULL");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.ToTable("CorrespondenceAttachments");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CorrespondenceAttachmentContent", b =>
+                {
+                    b.Property<int>("AttachmentId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.HasKey("AttachmentId");
+
+                    b.ToTable("CorrespondenceAttachmentContents");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CorrespondenceReferral", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("AcknowledgedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("AcknowledgedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CorrespondenceId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("FromDepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FromUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("ToDepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ToOfficeId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ToUserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AcknowledgedByUserId");
+
+                    b.HasIndex("CorrespondenceId");
+
+                    b.HasIndex("FromDepartmentId");
+
+                    b.HasIndex("FromUserId");
+
+                    b.HasIndex("ToDepartmentId");
+
+                    b.HasIndex("ToOfficeId");
+
+                    b.HasIndex("ToUserId");
+
+                    b.ToTable("CorrespondenceReferrals");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CorrespondenceStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Stage")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("CorrespondenceStatuses");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CorrespondenceType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DeadlineDays")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("CorrespondenceTypes");
+                });
+
             modelBuilder.Entity("Domain.Entities.Department", b =>
                 {
                     b.Property<int>("Id")
@@ -3417,6 +3765,217 @@ namespace Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Correspondence", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.UserSignature", "ApprovedSignature")
+                        .WithMany()
+                        .HasForeignKey("ApprovedSignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "ClosedByUser")
+                        .WithMany()
+                        .HasForeignKey("ClosedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Department", "CurrentDepartment")
+                        .WithMany()
+                        .HasForeignKey("CurrentDepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Office", "CurrentOffice")
+                        .WithMany()
+                        .HasForeignKey("CurrentOfficeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "CurrentUser")
+                        .WithMany()
+                        .HasForeignKey("CurrentUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "IssuedByUser")
+                        .WithMany()
+                        .HasForeignKey("IssuedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "RegisteredByUser")
+                        .WithMany()
+                        .HasForeignKey("RegisteredByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Correspondence", "ReplyTo")
+                        .WithMany()
+                        .HasForeignKey("ReplyToId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.CorrespondenceStatus", "Status")
+                        .WithMany()
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.CorrespondenceType", "Type")
+                        .WithMany()
+                        .HasForeignKey("TypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ApprovedByUser");
+
+                    b.Navigation("ApprovedSignature");
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("ClosedByUser");
+
+                    b.Navigation("CurrentDepartment");
+
+                    b.Navigation("CurrentOffice");
+
+                    b.Navigation("CurrentUser");
+
+                    b.Navigation("Department");
+
+                    b.Navigation("IssuedByUser");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("RegisteredByUser");
+
+                    b.Navigation("ReplyTo");
+
+                    b.Navigation("Status");
+
+                    b.Navigation("Type");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CorrespondenceAttachment", b =>
+                {
+                    b.HasOne("Domain.Entities.Correspondence", "Correspondence")
+                        .WithMany("Attachments")
+                        .HasForeignKey("CorrespondenceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Correspondence");
+
+                    b.Navigation("UploadedByUser");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CorrespondenceAttachmentContent", b =>
+                {
+                    b.HasOne("Domain.Entities.CorrespondenceAttachment", "Attachment")
+                        .WithOne("Content")
+                        .HasForeignKey("Domain.Entities.CorrespondenceAttachmentContent", "AttachmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Attachment");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CorrespondenceReferral", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "AcknowledgedByUser")
+                        .WithMany()
+                        .HasForeignKey("AcknowledgedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Correspondence", "Correspondence")
+                        .WithMany("Referrals")
+                        .HasForeignKey("CorrespondenceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Department", "FromDepartment")
+                        .WithMany()
+                        .HasForeignKey("FromDepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "FromUser")
+                        .WithMany()
+                        .HasForeignKey("FromUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Department", "ToDepartment")
+                        .WithMany()
+                        .HasForeignKey("ToDepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Office", "ToOffice")
+                        .WithMany()
+                        .HasForeignKey("ToOfficeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "ToUser")
+                        .WithMany()
+                        .HasForeignKey("ToUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AcknowledgedByUser");
+
+                    b.Navigation("Correspondence");
+
+                    b.Navigation("FromDepartment");
+
+                    b.Navigation("FromUser");
+
+                    b.Navigation("ToDepartment");
+
+                    b.Navigation("ToOffice");
+
+                    b.Navigation("ToUser");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CorrespondenceStatus", b =>
+                {
+                    b.HasOne("Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CorrespondenceType", b =>
+                {
+                    b.HasOne("Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+                });
+
             modelBuilder.Entity("Domain.Entities.Department", b =>
                 {
                     b.HasOne("Domain.Entities.Branch", "Branch")
@@ -4539,6 +5098,18 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Entities.AssignedTaskTemplate", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Correspondence", b =>
+                {
+                    b.Navigation("Attachments");
+
+                    b.Navigation("Referrals");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CorrespondenceAttachment", b =>
+                {
+                    b.Navigation("Content");
                 });
 
             modelBuilder.Entity("Domain.Entities.Maintenance.SparePart", b =>

@@ -18,6 +18,13 @@ namespace Application.Common
         public const string Justified = "justified";
         public const string Submitted = "submitted";
         public const string Rejected = "rejected";
+        public const string Referred = "referred";
+        public const string Acknowledged = "acknowledged";
+        public const string Closed = "closed";
+        public const string Reopened = "reopened";
+        public const string Returned = "returned";
+        public const string Issued = "issued";
+        public const string Attached = "attached";
     }
 
     /// <summary>أنواع السجلات في سجل التدقيق (وهي نفسها RelatedEntityType لإشعارات المشروع)</summary>
@@ -32,5 +39,8 @@ namespace Application.Common
         public const string ScheduleDependency = "ScheduleDependency";
         public const string Delay = "ScheduleDelay";
         public const string Extension = "ScheduleExtension";
+        public const string Correspondence = "Correspondence";
+        public const string CorrespondenceType = "CorrespondenceType";
+        public const string CorrespondenceStatus = "CorrespondenceStatus";
     }
 }
