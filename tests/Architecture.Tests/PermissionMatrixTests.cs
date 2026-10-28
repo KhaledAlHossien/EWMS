@@ -11,7 +11,7 @@ public class PermissionMatrixTests
 {
     private const string FileName = "permission-matrix.txt";
 
-    /// <summary>متحكمان بوابتهما «عرض» لكن عملياتهما تغيّر بيانات صاحب الطلب نفسه، والحدّ الفعلي في المعالج (قرار موثّق في CLAUDE.md)</summary>
+    /// <summary>متحكمان بوابتهما «عرض» لكن عملياتهما تغيّر بيانات صاحب الطلب نفسه، والحدّ الفعلي في المعالج (قرار موثّق في docs/architecture/quality-gates.md وdocs/architecture/task-board.md)</summary>
     private static readonly HashSet<string> ViewGatedByDesign = ["AssignedTasksController", "NotificationsController"];
 
     /// <summary>صلاحية قراءة بحتة: View* أو سياسة «أيّ من» للعرض</summary>
