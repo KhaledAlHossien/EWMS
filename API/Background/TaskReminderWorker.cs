@@ -1,4 +1,5 @@
 using Application.Features.AssignedTasks;
+using Application.Features.Diwan;
 using Application.Features.MapLayers;
 using Application.Features.Schedules;
 using Application.Features.ToDoLists;
@@ -90,6 +91,22 @@ namespace API.Background
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogError(ex, "تعذّر فحص بنود الجداول المتأخرة — تُعاد المحاولة في الدورة التالية");
+                }
+
+                try
+                {
+                    // مواعيد المعاملات الواردة في الديوان: قرب الموعد وتجاوزه (تنبيه لا قرار)
+                    using var diwan = _scopes.CreateScope();
+                    var reminded = await DiwanReminders.RunAsync(
+                        diwan.ServiceProvider.GetRequiredService<IDiwanService>(),
+                        diwan.ServiceProvider.GetRequiredService<IUserPermissionService>(),
+                        diwan.ServiceProvider.GetRequiredService<INotificationService>(),
+                        DateTime.Now);
+                    if (reminded > 0) _logger.LogInformation("نُبّه عن {Count} معاملة اقترب موعدها أو تجاوزته في الديوان", reminded);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "تعذّر فحص مواعيد معاملات الديوان — تُعاد المحاولة في الدورة التالية");
                 }
 
                 try

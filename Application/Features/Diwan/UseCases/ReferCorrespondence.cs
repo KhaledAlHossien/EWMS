@@ -75,6 +75,8 @@ namespace Application.Features.Diwan
             c.CurrentDepartmentId = department.Id;
             c.CurrentOfficeId = office?.Id;
             c.CurrentUserId = person?.Id;
+            c.DueSoonNotifiedAt = null;      // الجهة الجديدة تُنبَّه إن اقترب الموعد أو مضى (لا يعرف حاملها السابق ما نُبّه عنه)
+            c.OverdueNotifiedAt = null;
 
             var target = person is null ? (office?.Name ?? department.Name) : $"{person.FullName} — {office?.Name ?? department.Name}";
             await ctx.Diwan.AddReferralAsync(c, referral, new AuditEntry(viewer.Id, AuditActions.Referred, AuditEntities.Correspondence, c.Id,

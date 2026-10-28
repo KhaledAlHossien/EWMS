@@ -73,6 +73,19 @@ namespace Application.Features.Diwan
             && c.DueDate is DateTime due && due.Date >= today.Date && due.Date <= today.Date.AddDays(1)
             && c.Status?.Stage is CorrespondenceStage.Registered or CorrespondenceStage.InProgress;
 
+        public enum ReminderKind { DueSoon = 1, Overdue = 2 }
+
+        /// <summary>
+        /// التذكير المستحق الآن للوارد (مرة لكل موعد لكل نوع): «تجاوزت» أولاً إن كانت مرشّحة للتأخر ولم تُنبَّه، وإلا «قرب الموعد»
+        /// إن حان اليوم أو غداً ولم تُنبَّه. صفة الحالة وحدها (مسجّلة/قيد المعالجة) تُدخلها، فالمجابة والمغلقة لا تذكير لها.
+        /// </summary>
+        public static ReminderKind? Reminder(Correspondence c, DateTime today)
+        {
+            if (IsOverdueCandidate(c, today)) return c.OverdueNotifiedAt == null ? ReminderKind.Overdue : null;
+            if (IsDueSoon(c, today)) return c.DueSoonNotifiedAt == null ? ReminderKind.DueSoon : null;
+            return null;
+        }
+
         // ───────── التحقق من المدخلات ─────────
 
         /// <summary>سبب رفض بيانات التسجيل بالعربية، أو null</summary>

@@ -81,9 +81,11 @@
     "EditUser",
     "EditVacationType",
     "EditWorkTask",
+    "ExportCorrespondenceReport",
     "ExportInstallationsReport",
     "ExportMaintenanceRequestsReport",
     "ExportMapEntriesReport",
+    "ExportOverdueCorrespondenceReport",
     "ExportProjectsReport",
     "ExportSitesReport",
     "ExportSparePartMovementsReport",
@@ -234,9 +236,11 @@
       "ViewProjects"
     ],
     "AnyReportExport": [
+      "ExportCorrespondenceReport",
       "ExportInstallationsReport",
       "ExportMaintenanceRequestsReport",
       "ExportMapEntriesReport",
+      "ExportOverdueCorrespondenceReport",
       "ExportProjectsReport",
       "ExportSitesReport",
       "ExportSparePartMovementsReport",

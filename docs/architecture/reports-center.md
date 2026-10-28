@@ -34,3 +34,4 @@
   - `saveBlob` moved to `core/utils/download.ts`.
 - **Adding a report:** write one class in `Infrastructure/Reports` and register it, add an `Export…Report` permission in `AppPermissions` (and to `AnyReportExport`), mirror it in UI `access.ts` (`REPORT_ACCESS`), and add it to the Roles page section «التقارير».
 - Not built yet (phase 3): scheduled reports and generating large reports in the background (delivered as a notification with a download link, since the server has no e-mail).
+- **الديوان (2026-10-28)**: تقريران جديدان `correspondence` و`correspondence-overdue` (`Infrastructure/Reports/DiwanReports.cs`) بصلاحيتي `ExportCorrespondenceReport` و`ExportOverdueCorrespondenceReport`، وحدّهما حدّ رؤية المعاملات؛ التفاصيل في `docs/architecture/diwan.md`.

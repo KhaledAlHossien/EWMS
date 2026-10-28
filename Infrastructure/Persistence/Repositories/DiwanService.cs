@@ -245,6 +245,30 @@ IF @r < 0 THROW 50003, N'diwan numbering lock timeout', 1;", $"diwan-{branchId}-
             await SaveAsync();
         }
 
+        // ───────── التذكيرات ─────────
+
+        public Task<List<Correspondence>> GetReminderCandidatesAsync(DateTime today, int take)
+        {
+            var day = today.Date;
+            var tomorrow = day.AddDays(1);
+            return _context.Correspondences.AsNoTracking()
+                .Include(c => c.Status).Include(c => c.Type).Include(c => c.RegisteredByUser)
+                .Where(c => c.Direction == CorrespondenceDirection.Incoming && c.DueDate != null && c.DueDate <= tomorrow
+                            && c.Status != null && (c.Status.Stage == CorrespondenceStage.Registered || c.Status.Stage == CorrespondenceStage.InProgress)
+                            && ((c.DueDate < day && c.OverdueNotifiedAt == null) || (c.DueDate >= day && c.DueSoonNotifiedAt == null)))
+                .OrderBy(c => c.DueDate).ThenBy(c => c.Id)
+                .Take(take)
+                .ToListAsync();
+        }
+
+        public async Task MarkReminderSentAsync(int id, bool overdue)
+        {
+            var now = DateTime.UtcNow;
+            var rows = _context.Correspondences.Where(c => c.Id == id);
+            if (overdue) await rows.ExecuteUpdateAsync(s => s.SetProperty(c => c.OverdueNotifiedAt, now));
+            else await rows.ExecuteUpdateAsync(s => s.SetProperty(c => c.DueSoonNotifiedAt, now));
+        }
+
         // ───────── السجل ─────────
 
         public Task<List<AuditLog>> GetHistoryAsync(int correspondenceId) =>

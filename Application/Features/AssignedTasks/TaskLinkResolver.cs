@@ -1,4 +1,5 @@
 using Application.Common;
+using Application.Features.Diwan;
 using Application.Features.Maintenance;
 using Application.Features.Vacations;
 using Application.Interfaces;
@@ -17,13 +18,15 @@ namespace Application.Features.AssignedTasks
         private readonly IVacationService _vacations;
         private readonly ISiteService _sites;
         private readonly IProjectService _projects;
+        private readonly IDiwanService _diwan;
 
-        public TaskLinkResolver(IMaintenanceRequestService maintenance, IVacationService vacations, ISiteService sites, IProjectService projects)
+        public TaskLinkResolver(IMaintenanceRequestService maintenance, IVacationService vacations, ISiteService sites, IProjectService projects, IDiwanService diwan)
         {
             _maintenance = maintenance;
             _vacations = vacations;
             _sites = sites;
             _projects = projects;
+            _diwan = diwan;
         }
 
         public sealed record Described(bool Exists, bool Available, string Label);
@@ -33,6 +36,7 @@ namespace Application.Features.AssignedTasks
             TaskLinkType.MaintenanceRequest => "طلب صيانة",
             TaskLinkType.Vacation => "إجازة",
             TaskLinkType.Project => "مشروع",
+            TaskLinkType.Correspondence => "معاملة",
             _ => "موقع"
         };
 
@@ -45,6 +49,22 @@ namespace Application.Features.AssignedTasks
             if (string.IsNullOrWhiteSpace(reference)) return null;
             var digits = new string(reference.Trim().Reverse().TakeWhile(char.IsDigit).Reverse().ToArray());
             return int.TryParse(digits, out var id) && id > 0 ? id : null;
+        }
+
+        /// <summary>
+        /// رقم معاملة الديوان من نصها: «IN-2026-00012» رقم تسلسل داخل الفرع لا معرّف السجل، فيُبحث عنه ضمن ما يراه المستخدم
+        /// (ويجب أن يطابق رقماً واحداً). الأرقام وحدها تُعامَل معرّفاً كبقية الأنواع.
+        /// </summary>
+        public async Task<int?> ResolveCorrespondenceReferenceAsync(Viewer viewer, string? reference)
+        {
+            var text = (reference ?? string.Empty).Trim();
+            if (!text.StartsWith("IN-", StringComparison.OrdinalIgnoreCase) && !text.StartsWith("OUT-", StringComparison.OrdinalIgnoreCase))
+                return ParseReference(text);
+
+            var (items, _) = await _diwan.SearchAsync(DiwanRules.Visible(viewer),
+                new DiwanFilter(null, null, null, null, null, null, text, null, null, false, null, DateTime.Today), 1, 5);
+            var match = items.Where(c => string.Equals(DiwanRules.Number(c.Direction, c.Year, c.Sequence), text, StringComparison.OrdinalIgnoreCase)).ToList();
+            return match.Count == 1 ? match[0].Id : null;
         }
 
         public async Task<Described> DescribeAsync(Viewer viewer, TaskLinkType type, int id)
@@ -71,6 +91,13 @@ namespace Application.Features.AssignedTasks
                     if (project == null) return new(false, false, string.Empty);
                     return Features.Projects.ProjectRules.CanView(viewer, project)
                         ? new(true, true, $"{Features.Projects.ProjectRules.Number(project.Id, project.CreatedAt)} — {project.Name}")
+                        : new(true, false, string.Empty);
+
+                case TaskLinkType.Correspondence:
+                    var correspondence = await _diwan.GetByIdAsync(id);
+                    if (correspondence == null) return new(false, false, string.Empty);
+                    return DiwanRules.CanView(viewer, correspondence)
+                        ? new(true, true, $"{DiwanRules.Number(correspondence.Direction, correspondence.Year, correspondence.Sequence) ?? "مسودة"} — {correspondence.Subject}")
                         : new(true, false, string.Empty);
 
                 default:

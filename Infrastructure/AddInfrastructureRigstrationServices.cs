@@ -78,6 +78,8 @@ namespace Infrastructure
             services.AddScoped<IReport, Infrastructure.Reports.SitesReport>();
             services.AddScoped<IReport, Infrastructure.Reports.MapEntriesReport>();
             services.AddScoped<IReport, Infrastructure.Reports.ProjectsReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.CorrespondenceRegisterReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.OverdueCorrespondenceReport>();
 
             // الصيانة
             services.AddScoped<IDeviceTypeService, DeviceTypeService>();

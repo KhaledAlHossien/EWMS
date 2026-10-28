@@ -374,7 +374,9 @@ namespace Application.Features.AssignedTasks
                 throw new InvalidOperationException($"الحد الأقصى {TaskPlanningRules.MaxLinksPerTask} روابط للمهمة");
 
             var entityId = request.Dto.EntityId is > 0 ? request.Dto.EntityId.Value
-                : TaskLinkResolver.ParseReference(request.Dto.Reference) ?? throw new ArgumentException("رقم السجل غير مفهوم");
+                : (type == TaskLinkType.Correspondence
+                    ? await _resolver.ResolveCorrespondenceReferenceAsync(viewer, request.Dto.Reference)
+                    : TaskLinkResolver.ParseReference(request.Dto.Reference)) ?? throw new ArgumentException("رقم السجل غير مفهوم أو لا تراه");
             var described = await _resolver.DescribeAsync(viewer, type, entityId);
             if (!described.Exists || !described.Available)
                 throw new KeyNotFoundException("السجل غير موجود أو لا تملك صلاحية عرضه");

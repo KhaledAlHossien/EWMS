@@ -63,6 +63,12 @@ namespace Application.Interfaces
         Task<byte[]?> GetAttachmentDataAsync(int id);
         Task DeleteAttachmentAsync(Correspondence correspondence, CorrespondenceAttachment attachment, AuditEntry audit);
 
+        // ───────── التذكيرات ─────────
+        /// <summary>وارد مفتوح حان موعده أو تجاوزه ولم يُنبَّه عنه بعد (بحالته ووحدته الحالية ومن سجّله)، الأقدم موعداً أولاً</summary>
+        Task<List<Correspondence>> GetReminderCandidatesAsync(DateTime today, int take);
+        /// <summary>يسجّل أن تنبيه الموعد (قرب/تجاوز) أُرسل: لا يتكرر لهذا الموعد</summary>
+        Task MarkReminderSentAsync(int id, bool overdue);
+
         // ───────── السجل ─────────
         /// <summary>أثر عمليات معاملة واحدة (الأحدث أولاً). الحدّ مفروض من المستدعي على المعاملة نفسها.</summary>
         Task<List<AuditLog>> GetHistoryAsync(int correspondenceId);

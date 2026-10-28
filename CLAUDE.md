@@ -56,7 +56,7 @@ Request flow: Controller → MediatR → ValidationBehavior → Handler → `IXx
 | «مفكرتي» personal lists | [todo-lists](docs/architecture/todo-lists.md) |
 | Reports center | [reports-center](docs/architecture/reports-center.md) |
 | Projects, documents, schedule/delay/extension (phases 0–1) | [projects](docs/architecture/projects.md) |
-| Diwan: incoming/outgoing correspondence, referrals (phase 2, steps 2.1–2.2 done) | [diwan](docs/architecture/diwan.md) |
+| Diwan: incoming/outgoing correspondence, referrals (phase 2, steps 2.1–2.3 done) | [diwan](docs/architecture/diwan.md) |
 | CI, test layers, permission matrix, regression tests, handler structure | [quality-gates](docs/architecture/quality-gates.md) |
 
 ## Running and testing (short)

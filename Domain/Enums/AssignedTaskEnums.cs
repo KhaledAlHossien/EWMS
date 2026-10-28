@@ -58,6 +58,7 @@ namespace Domain.Enums
         MaintenanceRequest = 1,
         Vacation = 2,
         Site = 3,
-        Project = 4
+        Project = 4,
+        Correspondence = 5
     }
 }

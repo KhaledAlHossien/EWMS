@@ -221,6 +221,8 @@ namespace Application.Common
             new("CreateCorrespondenceLookup",   "إضافة نوع معاملة أو حالة لفرعه"),
             new("EditCorrespondenceLookup",     "تعديل أنواع معاملات فرعه وحالاتها"),
             new("DeleteCorrespondenceLookup",   "حذف نوع أو حالة لفرعه لا معاملات عليه"),
+            new("ExportCorrespondenceReport",         "سحب تقرير سجل المعاملات (المعاملات التي يراها)"),
+            new("ExportOverdueCorrespondenceReport",  "سحب تقرير المعاملات التي تجاوزت مدتها (التي يراها)"),
         ];
 
         /// <summary>
@@ -256,7 +258,7 @@ namespace Application.Common
             // مركز التقارير: من يملك صلاحية سحب أي تقرير يفتح المركز، وصلاحية كل تقرير يفحصها الـ handler
             ["AnyReportExport"] = ["ExportVacationsReport", "ExportVacationUsageReport", "ExportUsersReport", "ExportStructureReport",
                 "ExportMaintenanceRequestsReport", "ExportTechniciansReport", "ExportSparePartMovementsReport", "ExportSparePartStockReport",
-                "ExportInstallationsReport", "ExportSitesReport", "ExportMapEntriesReport", "ExportProjectsReport"],
+                "ExportInstallationsReport", "ExportSitesReport", "ExportMapEntriesReport", "ExportProjectsReport", "ExportCorrespondenceReport", "ExportOverdueCorrespondenceReport"],
             ["AnySiteView"] = ["ViewSites", "CreateSite", "EditSite", "DeleteSite", "ViewDevices", "ViewBranchDevices", "CreateDevice", "EditDevice", "DeleteDevice",
                 "ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry", "CreateProject", "EditProject"],
             // المشاريع: من ينشئ أو يعدّل يدخل القائمة (يرى ما أنشأه)، وحدّ كل صلاحية يطبّقه الـ handler
@@ -338,5 +340,7 @@ namespace Application.Common
         public const string CreateCorrespondenceLookup = "CreateCorrespondenceLookup";
         public const string EditCorrespondenceLookup = "EditCorrespondenceLookup";
         public const string DeleteCorrespondenceLookup = "DeleteCorrespondenceLookup";
+        public const string ExportCorrespondenceReport = "ExportCorrespondenceReport";
+        public const string ExportOverdueCorrespondenceReport = "ExportOverdueCorrespondenceReport";
     }
 }

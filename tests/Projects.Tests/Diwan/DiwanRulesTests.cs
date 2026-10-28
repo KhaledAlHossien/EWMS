@@ -424,4 +424,36 @@ public class DiwanRulesTests
 
         Assert.False(DiwanRules.Inbox(ViewerOf(UserOf(Handler, department: Studies))).Compile()(Incoming(department: Studies)));
     }
+
+    // ───────── التذكيرات ─────────
+
+    [Fact]
+    public void The_reminder_kind_follows_the_due_date_and_what_was_already_sent()
+    {
+        var today = new DateTime(2026, 11, 12);
+        var c = Incoming(CorrespondenceStage.InProgress);
+
+        c.DueDate = new DateTime(2026, 11, 13);                       // غداً
+        Assert.Equal(DiwanRules.ReminderKind.DueSoon, DiwanRules.Reminder(c, today));
+        c.DueSoonNotifiedAt = DateTime.UtcNow;
+        Assert.Null(DiwanRules.Reminder(c, today));                   // مرة لكل موعد
+
+        c.DueDate = new DateTime(2026, 11, 10);                       // مضى
+        Assert.Equal(DiwanRules.ReminderKind.Overdue, DiwanRules.Reminder(c, today));
+        c.OverdueNotifiedAt = DateTime.UtcNow;
+        Assert.Null(DiwanRules.Reminder(c, today));
+
+        c.DueDate = new DateTime(2026, 11, 20);                       // بعيد
+        c.DueSoonNotifiedAt = c.OverdueNotifiedAt = null;
+        Assert.Null(DiwanRules.Reminder(c, today));
+    }
+
+    [Theory]
+    [InlineData(CorrespondenceStage.Answered)]
+    [InlineData(CorrespondenceStage.Closed)]
+    public void A_finished_item_has_no_reminder(CorrespondenceStage stage)
+    {
+        var c = Incoming(stage); c.DueDate = new DateTime(2026, 11, 1);
+        Assert.Null(DiwanRules.Reminder(c, new DateTime(2026, 11, 12)));
+    }
 }
