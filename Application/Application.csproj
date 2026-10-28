@@ -21,4 +21,9 @@
     <ProjectReference Include="..\Domain\Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- قواعد داخلية (مثل VacationAccess) تُختبر مباشرة دون كشفها للطبقات الأخرى -->
+    <InternalsVisibleTo Include="Projects.Tests" />
+  </ItemGroup>
+
 </Project>

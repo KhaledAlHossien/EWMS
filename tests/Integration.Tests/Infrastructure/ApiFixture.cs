@@ -33,6 +33,10 @@ public sealed class ApiFixture : IAsyncLifetime
     private readonly MsSqlContainer _sql = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest").Build();
     private WebApplicationFactory<Program> _factory = null!;
 
+    /// <summary>خدمات التطبيق الحقيقي، لاختبار طبقة الخدمات مباشرة على القاعدة الحقيقية (كل نداء في نطاقه الخاص)</summary>
+    public IServiceProvider Services => _factory.Services;
+    public IReadOnlyList<PermissionResponseDto> AllPermissions { get; private set; } = [];
+
     public ApiClient Admin { get; private set; } = null!;
     public ApiClient Preparer { get; private set; } = null!;
     public ApiClient Approver { get; private set; } = null!;
@@ -69,6 +73,7 @@ public sealed class ApiFixture : IAsyncLifetime
         var otherDepartment = await CreateDepartmentAsync("قسم آخر", otherBranch);
 
         var permissions = (await Admin.Get<List<PermissionResponseDto>>("/api/Roles/Permissions")).Ok();
+        AllPermissions = permissions;
         var preparerRole = await CreateRoleAsync("معدّ الجدول", PreparerPermissions, permissions);
         var approverRole = await CreateRoleAsync("معتمد الجدول", ApproverPermissions, permissions);
         var outsiderRole = await CreateRoleAsync("غريب", OutsiderPermissions, permissions);
@@ -105,7 +110,7 @@ public sealed class ApiFixture : IAsyncLifetime
     private async Task<int> CreateDepartmentAsync(string name, int branchId) =>
         (await Admin.PostForm<DepartmentResponseDto>("/api/Department/Create", Form(("Name", name), ("Description", "بيانات اختبار"), ("BranchId", branchId.ToString())))).Ok().Id;
 
-    private async Task<int> CreateRoleAsync(string name, IEnumerable<string> names, IReadOnlyList<PermissionResponseDto> all)
+    public async Task<int> CreateRoleAsync(string name, IEnumerable<string> names, IReadOnlyList<PermissionResponseDto> all)
     {
         var fields = new List<KeyValuePair<string, string>> { new("Name", name) };
         foreach (var permission in names)
@@ -113,10 +118,10 @@ public sealed class ApiFixture : IAsyncLifetime
         return (await Admin.PostForm<RoleResponseDto>("/api/Roles/Create", fields)).Ok().Id;
     }
 
-    private async Task CreateUserAsync(string fullName, string email, int roleId, int branchId, int departmentId) =>
+    public async Task<int> CreateUserAsync(string fullName, string email, int roleId, int branchId, int departmentId) =>
         (await Admin.PostForm<UserResponseDto>("/api/Users/Create", Form(
             ("FullName", fullName), ("Email", email), ("Password", Password), ("RoleId", roleId.ToString()),
-            ("BranchId", branchId.ToString()), ("DepartmentId", departmentId.ToString())))).Ok();
+            ("BranchId", branchId.ToString()), ("DepartmentId", departmentId.ToString())))).Ok().Id;
 
     private static List<KeyValuePair<string, string>> Form(params (string Key, string Value)[] fields) =>
         fields.Select(f => new KeyValuePair<string, string>(f.Key, f.Value)).ToList();
