@@ -37,7 +37,8 @@ namespace Application.Features.Diwan
             StatusColor = c.Status?.Color,
             Stage = c.Status is null ? null : (int)c.Status.Stage,
             OutgoingState = c.OutgoingState is null ? null : (int)c.OutgoingState,
-            OutgoingStateAr = c.OutgoingState is OutgoingState s ? DiwanRules.OutgoingStateAr(s) : null,
+            OutgoingStateAr = c.OutgoingState is null ? null : DiwanRules.OutgoingStateAr(c),
+            IsSubmitted = DiwanRules.IsSubmittedDraft(c),
             ProjectId = c.ProjectId,
             ProjectName = c.Project?.Name,
             CurrentUnitName = c.Direction == CorrespondenceDirection.Incoming ? UnitName(c) : null,
@@ -72,6 +73,7 @@ namespace Application.Features.Diwan
             dto.CurrentUserId = c.CurrentUserId;
             dto.CurrentUserName = c.CurrentUser?.FullName;
             dto.ReturnNote = c.ReturnNote;
+            dto.SubmittedAt = c.SubmittedAt;
             dto.ApprovedByName = c.ApprovedByUser?.FullName;
             dto.ApprovedAt = c.ApprovedAt;
             dto.IssuedAt = c.IssuedAt;
@@ -112,7 +114,7 @@ namespace Application.Features.Diwan
             dto.CanChangeStatus = incoming && handles && (open || viewer.IsSuperAdmin || viewer.Has(AppPermissions.CloseCorrespondence));
             dto.CanClose = incoming && open && handles && (viewer.IsSuperAdmin || viewer.Has(AppPermissions.CloseCorrespondence));
             dto.CanAttach = Allowed(() => DiwanRules.EnsureCanAttach(viewer, c));
-            dto.CanSubmit = DiwanRules.IsOutgoingDraft(c) && dto.CanEdit && c.Attachments.Count > 0;
+            dto.CanSubmit = DiwanRules.IsOutgoingDraft(c) && dto.CanEdit && c.Attachments.Count > 0 && c.SubmittedAt == null;
             dto.CanApprove = Allowed(() => DiwanRules.EnsureCanDecideDraft(viewer, c, c.Attachments.Count, true, null));
             dto.CanIssue = Allowed(() => DiwanRules.EnsureCanIssue(viewer, c));
             return dto;

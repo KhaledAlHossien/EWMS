@@ -42,6 +42,8 @@ namespace Application.DTOs.Response
         public int? Stage { get; set; }
         public int? OutgoingState { get; set; }
         public string? OutgoingStateAr { get; set; }
+        /// <summary>مسودة صادر رُفعت للاعتماد وبانتظار قرار المعتمِد</summary>
+        public bool IsSubmitted { get; set; }
         public int? ProjectId { get; set; }
         public string? ProjectName { get; set; }
         public string? CurrentUnitName { get; set; }
@@ -93,6 +95,7 @@ namespace Application.DTOs.Response
         public string? CurrentUserName { get; set; }
 
         public string? ReturnNote { get; set; }
+        public DateTime? SubmittedAt { get; set; }
         public string? ApprovedByName { get; set; }
         public DateTime? ApprovedAt { get; set; }
         public DateTime? IssuedAt { get; set; }

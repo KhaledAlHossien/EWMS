@@ -32,7 +32,10 @@ namespace Application.Features.Diwan
             DiwanRules.EnsureCanEditDraft(viewer, c);
             if (c.Attachments.Count < 1) throw new InvalidOperationException("أرفق نص الكتاب (ملفاً واحداً على الأقل) قبل رفعه للاعتماد");
 
+            if (c.SubmittedAt != null) throw new InvalidOperationException("المسودة مرفوعة للاعتماد وبانتظار قرار المعتمِد");
+
             c.ReturnNote = null;
+            c.SubmittedAt = DateTime.UtcNow;
             await ctx.Diwan.UpdateAsync(c, null, new AuditEntry(viewer.Id, AuditActions.Submitted, AuditEntities.Correspondence, c.Id,
                 $"رفع المسودة للاعتماد {Label(c)}"));
 
@@ -57,6 +60,7 @@ namespace Application.Features.Diwan
             DiwanRules.EnsureCanDecideDraft(viewer, c, c.Attachments.Count, dto.Approve, dto.Note);
 
             var drafterId = c.RegisteredByUserId;
+            c.SubmittedAt = null;   // بُتّ فيها: اعتُمدت أو أُعيدت (الإعادة تحتاج رفعاً جديداً)
             if (dto.Approve)
             {
                 c.OutgoingState = OutgoingState.Approved;

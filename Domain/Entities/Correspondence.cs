@@ -119,6 +119,8 @@ namespace Domain.Entities
         public Correspondence? ReplyTo { get; set; }
         /// <summary>سبب إعادة المسودة من المعتمِد (يُمسح عند اعتمادها)</summary>
         public string? ReturnNote { get; set; }
+        /// <summary>وقت رفع المسودة للاعتماد (UTC). null = لم تُرفع، أو أُعيدت، أو تغيّر محتواها بعد الرفع فتحتاج رفعاً جديداً</summary>
+        public DateTime? SubmittedAt { get; set; }
         public int? ApprovedByUserId { get; set; }
         public User? ApprovedByUser { get; set; }
         public DateTime? ApprovedAt { get; set; }

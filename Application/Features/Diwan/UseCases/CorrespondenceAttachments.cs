@@ -53,6 +53,7 @@ namespace Application.Features.Diwan
             }
 
             var names = string.Join("، ", created.Select(a => $"«{a.FileName}»"));
+            if (DiwanRules.IsOutgoingDraft(c)) c.SubmittedAt = null;   // تغيّر ما رُفع للاعتماد: يُرفع من جديد
             await ctx.Diwan.AddAttachmentsAsync(c, created,
                 new AuditEntry(viewer.Id, AuditActions.Attached, AuditEntities.Correspondence, c.Id, $"إرفاق ملفات بالمعاملة {Label(c)}", names));
             return await ctx.DetailAsync(viewer, c.Id);
@@ -84,6 +85,7 @@ namespace Application.Features.Diwan
             DiwanRules.EnsureCanEditDraft(viewer, c);
 
             var name = attachment.FileName;
+            c.SubmittedAt = null;   // تغيّر ما رُفع للاعتماد: يُرفع من جديد
             await ctx.Diwan.DeleteAttachmentAsync(c, attachment,
                 new AuditEntry(viewer.Id, AuditActions.Deleted, AuditEntities.Correspondence, c.Id, $"حذف مرفق من المسودة {Label(c)}", $"«{name}»"));
             return await ctx.DetailAsync(viewer, c.Id);

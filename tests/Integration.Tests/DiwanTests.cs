@@ -335,7 +335,21 @@ public class DiwanTests(ApiFixture api)
 
         (await org.Clerk.PostFiles<CorrespondenceResponseDto>($"{Base}/Attachments/{draft.Id}", ("الكتاب.pdf", Pdf))).Ok();
         var submitted = (await org.Clerk.Post<CorrespondenceResponseDto>($"{Base}/Submit/{draft.Id}")).Ok();
-        Assert.True(submitted.CanSubmit);
+        Assert.True(submitted.IsSubmitted);
+        Assert.NotNull(submitted.SubmittedAt);
+        Assert.Equal("بانتظار الاعتماد", submitted.OutgoingStateAr);
+        Assert.Equal((int)OutgoingState.Draft, submitted.OutgoingState);   // الحالة الفعلية تبقى مسودة
+        Assert.False(submitted.CanSubmit);                                  // لا إشعار مكرر للمعتمِدين
+        Assert.Equal(HttpStatusCode.BadRequest, (await org.Clerk.Post<CorrespondenceResponseDto>($"{Base}/Submit/{draft.Id}")).Status);
+
+        // تعديل المسودة بعد الرفع يلغي الرفع: تُرفع من جديد
+        var edited = (await org.Clerk.Put<CorrespondenceResponseDto>($"{Base}/Update/{draft.Id}",
+            new { typeId = org.TypeId, party = "المركزية", subject = "إرسال الدراسة (معدّل)", summary = "نص الكتاب", rowVersion = submitted.RowVersion })).Ok();
+        Assert.False(edited.IsSubmitted);
+        Assert.Equal("مسودة", edited.OutgoingStateAr);
+        Assert.True(edited.CanSubmit);
+        submitted = (await org.Clerk.Post<CorrespondenceResponseDto>($"{Base}/Submit/{draft.Id}")).Ok();
+        Assert.True(submitted.IsSubmitted);
 
         await using (var scope = api.Services.CreateAsyncScope())
             Assert.True(await scope.ServiceProvider.GetRequiredService<DataContext>().Notifications
@@ -346,6 +360,7 @@ public class DiwanTests(ApiFixture api)
         var returned = (await org.Approver.Post<CorrespondenceResponseDto>($"{Base}/Decide/{draft.Id}", new { approve = false, note = "عدّل الصياغة" })).Ok();
         Assert.Equal("عدّل الصياغة", returned.ReturnNote);
         Assert.Equal((int)OutgoingState.Draft, returned.OutgoingState);
+        Assert.False(returned.IsSubmitted);
 
         var approved = (await org.Approver.Post<CorrespondenceResponseDto>($"{Base}/Decide/{draft.Id}", new { approve = true })).Ok();
         Assert.Equal((int)OutgoingState.Approved, approved.OutgoingState);
@@ -365,7 +380,7 @@ public class DiwanTests(ApiFixture api)
 
         Assert.Equal(HttpStatusCode.BadRequest, (await org.Clerk.Post<CorrespondenceResponseDto>($"{Base}/Issue/{draft.Id}")).Status);   // مرة واحدة
         var history = (await org.Clerk.Get<List<CorrespondenceHistoryDto>>($"{Base}/History/{draft.Id}")).Ok();
-        Assert.Equal(new[] { "created", "attached", "submitted", "returned", "approved", "issued" }, history.OrderBy(h => h.At).ThenBy(h => h.Id).Select(h => h.Action));
+        Assert.Equal(new[] { "created", "attached", "submitted", "updated", "submitted", "returned", "approved", "issued" }, history.OrderBy(h => h.At).ThenBy(h => h.Id).Select(h => h.Action));
     }
 
     [Fact]

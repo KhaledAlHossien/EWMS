@@ -64,7 +64,11 @@ namespace Application.Features.Diwan
             c.ExternalNumber = external.Length == 0 ? null : external;
             c.ExternalDate = dto.ExternalDate?.Date;
             c.ProjectId = project?.Id;
-            if (!DiwanRules.IsIncoming(c)) c.ReplyToId = replyTo?.Id;
+            if (!DiwanRules.IsIncoming(c))
+            {
+                c.ReplyToId = replyTo?.Id;
+                c.SubmittedAt = null;   // تغيّر ما رُفع للاعتماد: يُرفع من جديد
+            }
 
             if (type.Id != c.TypeId)
             {

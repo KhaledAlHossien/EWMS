@@ -42,6 +42,13 @@ namespace Application.Features.Diwan
             _ => state.ToString()
         };
 
+        /// <summary>تسمية حالة الصادر: المسودة المرفوعة تظهر «بانتظار الاعتماد» (الحالة الفعلية تبقى مسودة)</summary>
+        public static string OutgoingStateAr(Correspondence c) =>
+            IsSubmittedDraft(c) ? "بانتظار الاعتماد" : OutgoingStateAr(c.OutgoingState!.Value);
+
+        /// <summary>مسودة رُفعت للاعتماد ولم يُبتّ فيها بعد</summary>
+        public static bool IsSubmittedDraft(Correspondence c) => IsOutgoingDraft(c) && c.SubmittedAt != null;
+
         public static bool IsValidStage(int value) => Enum.IsDefined(typeof(CorrespondenceStage), value);
 
         // ───────── الحالة والمواعيد ─────────
