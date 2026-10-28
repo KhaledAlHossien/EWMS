@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using System.Net;
 using Application.DTOs.Response;
 using Infrastructure.Persistence.Data;
@@ -105,5 +106,46 @@ public class DevicePasswordTests(ApiFixture api)
         })).Ok();
 
         Assert.Equal(Secret, (await api.Admin.Get<DevicePasswordDto>($"/api/DeviceSites/Password/{created.Id}")).Ok().Password);
+    }
+}
+
+/// <summary>تدوير مفتاح الأجهزة عند الإقلاع على قاعدة حقيقية (DbSeeder.EncryptDevicePasswordsAsync)</summary>
+[Collection(ApiCollection.Name)]
+public class DeviceKeyRotationTests(ApiFixture api)
+{
+    private static string NewKey() => Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+
+    private static global::Infrastructure.Security.DevicePasswordProtector Protector(string key, params string[] old) => new(new Microsoft.Extensions.Configuration.ConfigurationBuilder()
+        .AddInMemoryCollection(new Dictionary<string, string?>(old.Select((k, i) => KeyValuePair.Create<string, string?>($"DeviceInventory:OldPasswordKeys:{i}", k)))
+        {
+            ["DeviceInventory:PasswordKey"] = key
+        }).Build());
+
+    [Fact]
+    public async Task Startup_re_encrypts_passwords_saved_under_an_old_key_and_encrypts_legacy_plain_text()
+    {
+        var id = Guid.NewGuid().ToString("N")[..8];
+        var site = (await api.Admin.Post<SiteResponseDto>("/api/Sites/Create", new { name = "موقع تدوير " + id, description = "", latitude = 33.5138, longitude = 36.2765, contactName = "", contactPhone = "", responsibleParty = "" })).Ok();
+        var device = (await api.Admin.Post<DeviceResponseDto>("/api/Devices/Create", new { name = "جهاز تدوير " + id, model = "M-" + id, description = "", category = "", manufacturer = "" })).Ok();
+        var rotated = (await api.Admin.Post<DeviceSiteResponseDto>("/api/DeviceSites/Create", new { deviceId = device.Id, siteId = site.Id, departmentId = api.DepartmentId, ip = "10.20.30.1", subnetMask = "255.255.255.0", userName = "a", pass = "x", status = 1 })).Ok();
+        var legacy = (await api.Admin.Post<DeviceSiteResponseDto>("/api/DeviceSites/Create", new { deviceId = device.Id, siteId = site.Id, departmentId = api.DepartmentId, ip = "10.20.30.2", subnetMask = "255.255.255.0", userName = "a", pass = "x", status = 1 })).Ok();
+
+        var oldKey = NewKey();
+        var newKey = NewKey();
+        await using var scope = api.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<DataContext>();
+        (await db.DeviceSites.SingleAsync(d => d.Id == rotated.Id)).Pass = Protector(oldKey).Protect("under-old-key");
+        (await db.DeviceSites.SingleAsync(d => d.Id == legacy.Id)).Pass = "plain-legacy";
+        await db.SaveChangesAsync();
+
+        var current = Protector(newKey, oldKey);
+        var changed = await global::Infrastructure.Persistence.Data.DbSeeder.EncryptDevicePasswordsAsync(db, current);
+
+        Assert.True(changed >= 2);
+        db.ChangeTracker.Clear();
+        var rows = await db.DeviceSites.AsNoTracking().Where(d => d.Id == rotated.Id || d.Id == legacy.Id).ToDictionaryAsync(d => d.Id, d => d.Pass);
+        Assert.Equal("under-old-key", Protector(newKey).Unprotect(rows[rotated.Id]));      // بالمفتاح الحالي وحده
+        Assert.Equal("plain-legacy", Protector(newKey).Unprotect(rows[legacy.Id]));
+        Assert.Equal(0, await global::Infrastructure.Persistence.Data.DbSeeder.EncryptDevicePasswordsAsync(db, current));   // مرة ثانية لا شيء
     }
 }

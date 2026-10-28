@@ -238,18 +238,24 @@ namespace Infrastructure.Persistence.Data
         }
 
         /// <summary>
-        /// كلمات سر الأجهزة المحفوظة نصاً قبل التشفير (2026-10-05): تُشفَّر مرة واحدة عند التشغيل.
-        /// المشفّرة (enc:v1:) تُتخطّى، فالتشغيل المتكرر لا يغيّر شيئاً.
+        /// كلمات سر الأجهزة: المحفوظة نصاً قبل التشفير (2026-10-05) تُشفَّر مرة واحدة، والمشفّرة بمفتاح قديم
+        /// (DeviceInventory:OldPasswordKeys بعد تدوير المفتاح) تُعاد تشفيرها بالحالي. المشفّرة بالحالي تُتخطّى،
+        /// فالتشغيل المتكرر لا يغيّر شيئاً. يعيد عدد ما أُعيد تشفيره.
         /// </summary>
-        public static async Task EncryptDevicePasswordsAsync(DataContext context, Application.Interfaces.IDevicePasswordProtector protector)
+        public static async Task<int> EncryptDevicePasswordsAsync(DataContext context, Application.Interfaces.IDevicePasswordProtector protector)
         {
-            var plain = await context.DeviceSites.Where(ds => ds.Pass != "" && !ds.Pass.StartsWith("enc:v1:")).ToListAsync();
-            if (plain.Count == 0) return;
+            var candidates = await context.DeviceSites.Where(ds => ds.Pass != "").ToListAsync();
+            var changed = 0;
+            foreach (var installation in candidates)
+            {
+                if (!protector.IsProtected(installation.Pass)) installation.Pass = protector.Protect(installation.Pass);
+                else if (protector.NeedsRotation(installation.Pass)) installation.Pass = protector.Protect(protector.Unprotect(installation.Pass));
+                else continue;
+                changed++;
+            }
 
-            foreach (var installation in plain)
-                installation.Pass = protector.Protect(installation.Pass);
-
-            await context.SaveChangesAsync();
+            if (changed > 0) await context.SaveChangesAsync();
+            return changed;
         }
 
         /// <summary>

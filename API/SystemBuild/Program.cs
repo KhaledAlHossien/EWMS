@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 // ==================== 0. الإعدادات الإلزامية ====================
 // الأسرار لا تُكتب في appsettings.json: في التطوير appsettings.Development.json، وفي الإنتاج متغيرات البيئة (docs/DEPLOYMENT.md).
 // نقصُ أيٍّ منها يوقف الإقلاع برسالة واضحة بدل أن يفشل لاحقاً عند أول طلب.
-StartupSettings.EnsureValid(builder.Configuration);
+StartupSettings.EnsureValid(builder.Configuration, builder.Environment.IsDevelopment());
 
 // ==================== 1. تسجيل كل الخدمات ====================
 builder.Services.AddAPIServices(builder.Configuration);
@@ -67,7 +67,8 @@ using (var scope = app.Services.CreateScope())
     await DbSeeder.SeedAsync(db, app.Configuration, app.Logger);
     await DbSeeder.BackfillSiteGovernoratesAsync(db);
     await DbSeeder.BackfillVacationSegmentsAsync(db);
-    await DbSeeder.EncryptDevicePasswordsAsync(db, scope.ServiceProvider.GetRequiredService<Application.Interfaces.IDevicePasswordProtector>());
+    var rotated = await DbSeeder.EncryptDevicePasswordsAsync(db, scope.ServiceProvider.GetRequiredService<Application.Interfaces.IDevicePasswordProtector>());
+    if (rotated > 0) app.Logger.LogInformation("أُعيد تشفير {Count} كلمة سر جهاز بالمفتاح الحالي", rotated);
     await DbSeeder.BackfillInstallationUnitsAsync(db, app.Configuration);
 }
 

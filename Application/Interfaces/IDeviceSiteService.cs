@@ -61,6 +61,8 @@ namespace Application.Interfaces
         /// <summary>يفك المشفّرة، ويعيد النص القديم غير المشفّر كما هو (قبل الترحيل)</summary>
         string Unprotect(string stored);
         bool IsProtected(string stored);
+        /// <summary>مشفّرة بمفتاح قديم (DeviceInventory:OldPasswordKeys) لا بالحالي: تُعاد تشفيرها عند الإقلاع بعد تدوير المفتاح</summary>
+        bool NeedsRotation(string stored);
     }
 
     public interface IDeviceInventoryLogService

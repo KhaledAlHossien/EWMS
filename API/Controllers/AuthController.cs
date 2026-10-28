@@ -84,6 +84,17 @@ namespace API.Controllers
             return Ok(new { message = "تم التسجيل بنجاح" });
         }
 
+        // تجديد الجلسة قبل انتهائها (الواجهة تستدعيه تلقائياً للمستخدم النشط): توكن جديد، ويبقى القديم دقيقتين فقط.
+        // 401 عند بلوغ الحد الأقصى لعمر الجلسة (SessionRules) أو انتهاء التوكن أو تعطيل الحساب.
+        [HttpPost("Renew")]
+        [Authorize]
+        public async Task<IActionResult> Renew()
+        {
+            var token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            var renewed = await _authService.RenewAsync(token);
+            return renewed == null ? Unauthorized(new { message = SessionRules.Ended }) : Ok(renewed);
+        }
+
         [HttpPost("logout")]
         [Authorize]
         public async Task<IActionResult> Logout()

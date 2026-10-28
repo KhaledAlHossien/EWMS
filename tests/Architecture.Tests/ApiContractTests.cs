@@ -10,7 +10,7 @@ namespace Architecture.Tests;
 public partial class ApiContractTests
 {
     /// <summary>الأساسيات الهوياتية الوحيدة بلا سياسة صلاحية (docs/architecture/auth-and-permissions.md «Nothing is open to every signed-in user»)</summary>
-    private static readonly HashSet<string> IdentityBasics = ["Auth.Login", "Auth.ChangePassword", "Auth.Logout", "Auth.Me", "Auth.Permissions"];
+    private static readonly HashSet<string> IdentityBasics = ["Auth.Login", "Auth.ChangePassword", "Auth.Logout", "Auth.Me", "Auth.Permissions", "Auth.Renew"];
 
     /// <summary>دين معلن: متحكمان يتجاوزان قاعدة «IMediator فقط». يُنقل المنطق إلى معالج ثم يُحذف الاستثناء (الاختبار يفشل إن بقي بلا حاجة).</summary>
     private static readonly Dictionary<string, string[]> ThinControllerDebt = new()

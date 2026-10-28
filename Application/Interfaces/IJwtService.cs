@@ -7,7 +7,7 @@ namespace Application.Interfaces
 {
     public interface IJwtService
     {
-        string GenerateToken(User user);
+        string GenerateToken(User user, DateTime? expiresAt = null);
         DateTime GetExpirationDate();
         int? ValidateToken(string token);
     }

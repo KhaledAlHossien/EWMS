@@ -13,6 +13,8 @@ namespace Integration.Tests.Infrastructure;
 public sealed class ApiFixture : IAsyncLifetime
 {
     public const string Password = "Test@12345x";
+    private const string JwtKey = "integration-tests-signing-key-0123456789-abcdef";
+    private static readonly string DeviceKey = Convert.ToBase64String(new byte[32].Select((_, i) => (byte)(i + 7)).ToArray());
     private const string AdminEmail = "admin@test.sy";
     private const string AdminPassword = "Admin@12345x";
 
@@ -48,14 +50,19 @@ public sealed class ApiFixture : IAsyncLifetime
     {
         await _sql.StartAsync();
 
+        // الفحص عند الإقلاع (StartupSettings.EnsureValid) يقرأ الإعدادات قبل أن يصل إليها تعديل المصنع، وملف الإعدادات الأساسي بلا أسرار:
+        // نمرّر المفاتيح كمتغيرات بيئة (تُقرأ فوراً) بالقيم نفسها المعرَّفة أدناه.
+        Environment.SetEnvironmentVariable("JwtSettings__Key", JwtKey);
+        Environment.SetEnvironmentVariable("DeviceInventory__PasswordKey", DeviceKey);
+
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
             builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:DefaultConnection"] = _sql.GetConnectionString(),
-                ["JwtSettings:Key"] = "integration-tests-signing-key-0123456789-abcdef",
-                ["DeviceInventory:PasswordKey"] = Convert.ToBase64String(new byte[32].Select((_, i) => (byte)(i + 7)).ToArray()),
+                ["JwtSettings:Key"] = JwtKey,
+                ["DeviceInventory:PasswordKey"] = DeviceKey,
                 ["Seed:AdminEmail"] = AdminEmail,
                 ["Seed:AdminPassword"] = AdminPassword,
                 ["FileStorage:Mode"] = "Database",
@@ -86,6 +93,9 @@ public sealed class ApiFixture : IAsyncLifetime
         Approver = await LoginAsync("approver@test.sy", Password);
         Outsider = await LoginAsync("outsider@test.sy", Password);
     }
+
+    /// <summary>عميل بتوكن معيّن (مثلاً من دخول مباشر عبر الخدمة، دون المرور بحدّ طلبات الدخول)</summary>
+    public ApiClient WithToken(string token, int userId = 0) => new(NewHttpClient(), userId, token);
 
     /// <summary>عميل بلا هوية (لاختبار رفض غير المصادَق)</summary>
     public ApiClient Anonymous() => new(NewHttpClient());

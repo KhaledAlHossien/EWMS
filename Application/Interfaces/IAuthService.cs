@@ -17,5 +17,8 @@ namespace Application.Interfaces
         Task<LoginOutcome> LoginAsync(LoginRequest request);
         Task<bool> RegisterAsync(RegisterRequest request);
         Task<bool> LogoutAsync(string token);
+
+        /// <summary>تجديد الجلسة بتوكن جديد (SessionRules)، أو null إن لم يعد التجديد جائزاً: التوكن مُبطَل/منتهٍ أو الحساب معطّل أو بلغت الجلسة حدّها الأقصى</summary>
+        Task<LoginResponse?> RenewAsync(string token);
     }
 }

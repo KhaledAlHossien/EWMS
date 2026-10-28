@@ -157,3 +157,58 @@ public class SecurityRulesTests
         Assert.Throws<InvalidOperationException>(() => protector.Protect("secret1"));
     }
 }
+
+/// <summary>تدوير مفتاح تشفير الأجهزة: ما شُفّر بمفتاح قديم يُفكّ به ويُعلَّم للتدوير، ثم يُشفَّر بالحالي</summary>
+public class DevicePasswordKeyRotationTests
+{
+    private static string NewKey() => Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+
+    private static DevicePasswordProtector Protector(string key, params string[] old) => new(new ConfigurationBuilder()
+        .AddInMemoryCollection(new Dictionary<string, string?>(old.Select((k, i) => KeyValuePair.Create<string, string?>($"DeviceInventory:OldPasswordKeys:{i}", k)))
+        {
+            ["DeviceInventory:PasswordKey"] = key
+        }).Build());
+
+    [Fact]
+    public void A_value_encrypted_with_an_old_key_is_still_readable_and_flagged_for_rotation()
+    {
+        var oldKey = NewKey();
+        var stored = Protector(oldKey).Protect("legacy-secret1");
+        var rotated = Protector(NewKey(), oldKey);
+
+        Assert.Equal("legacy-secret1", rotated.Unprotect(stored));
+        Assert.True(rotated.NeedsRotation(stored));
+    }
+
+    [Fact]
+    public void After_re_encryption_only_the_current_key_is_needed()
+    {
+        var oldKey = NewKey();
+        var newKey = NewKey();
+        var current = Protector(newKey, oldKey);
+        var moved = current.Protect(current.Unprotect(Protector(oldKey).Protect("legacy-secret1")));
+
+        Assert.False(current.NeedsRotation(moved));
+        Assert.Equal("legacy-secret1", Protector(newKey).Unprotect(moved));          // بلا حاجة للقديم
+        Assert.Throws<InvalidOperationException>(() => Protector(oldKey).Unprotect(moved));
+    }
+
+    [Fact]
+    public void Plain_text_and_values_under_the_current_key_never_need_rotation()
+    {
+        var key = NewKey();
+        var protector = Protector(key, NewKey());
+
+        Assert.False(protector.NeedsRotation("plain"));
+        Assert.False(protector.NeedsRotation(string.Empty));
+        Assert.False(protector.NeedsRotation(protector.Protect("secret123")));
+    }
+
+    [Fact]
+    public void An_unknown_key_still_fails_clearly_instead_of_returning_garbage()
+    {
+        var stored = Protector(NewKey()).Protect("secret123");
+
+        Assert.Throws<InvalidOperationException>(() => Protector(NewKey(), NewKey()).Unprotect(stored));
+    }
+}

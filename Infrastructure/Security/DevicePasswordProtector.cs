@@ -14,6 +14,7 @@ namespace Infrastructure.Security
     {
         private const string Prefix = "enc:v1:";
         private readonly byte[]? _key;
+        private readonly List<byte[]> _oldKeys = [];
 
         public DevicePasswordProtector(IConfiguration configuration)
         {
@@ -22,6 +23,13 @@ namespace Infrastructure.Security
             {
                 try { _key = Convert.FromBase64String(configured); } catch (FormatException) { _key = null; }
                 if (_key is { Length: not 32 }) _key = null;
+            }
+
+            // مفاتيح قديمة لتدوير المفتاح: يفكّ بها ما شُفّر بها، ويُعاد تشفيره بالحالي عند الإقلاع (DbSeeder.EncryptDevicePasswordsAsync)
+            foreach (var old in configuration.GetSection("DeviceInventory:OldPasswordKeys").GetChildren().Select(c => c.Value))
+            {
+                if (string.IsNullOrWhiteSpace(old)) continue;
+                try { var bytes = Convert.FromBase64String(old); if (bytes.Length == 32) _oldKeys.Add(bytes); } catch (FormatException) { }
             }
         }
 
@@ -47,17 +55,34 @@ namespace Infrastructure.Security
             if (string.IsNullOrEmpty(stored) || !IsProtected(stored)) return stored;   // نص قديم قبل الترحيل
             var payload = Convert.FromBase64String(stored[Prefix.Length..]);
             var (nonce, tag, cipher) = (payload[..12], payload[12..28], payload[28..]);
-            var plain = new byte[cipher.Length];
+
+            // المفتاح الحالي أولاً ثم القديمة (وسم GCM يوثّق أي المفاتيح صحيح، فلا التباس)
+            foreach (var key in new[] { Key }.Concat(_oldKeys))
+            {
+                var plain = new byte[cipher.Length];
+                try
+                {
+                    using var aes = new AesGcm(key, 16);
+                    aes.Decrypt(nonce, cipher, tag, plain);
+                    return Encoding.UTF8.GetString(plain);
+                }
+                catch (CryptographicException) { }
+            }
+            throw new InvalidOperationException("تعذّر فك كلمة السر — مفتاح التشفير في الإعدادات لا يطابق المفتاح الذي حُفظت به");
+        }
+
+        public bool NeedsRotation(string stored)
+        {
+            if (_oldKeys.Count == 0 || string.IsNullOrEmpty(stored) || !IsProtected(stored)) return false;
+            var payload = Convert.FromBase64String(stored[Prefix.Length..]);
+            var (nonce, tag, cipher) = (payload[..12], payload[12..28], payload[28..]);
             try
             {
                 using var aes = new AesGcm(Key, 16);
-                aes.Decrypt(nonce, cipher, tag, plain);
+                aes.Decrypt(nonce, cipher, tag, new byte[cipher.Length]);
+                return false;
             }
-            catch (CryptographicException)
-            {
-                throw new InvalidOperationException("تعذّر فك كلمة السر — مفتاح التشفير في الإعدادات لا يطابق المفتاح الذي حُفظت به");
-            }
-            return Encoding.UTF8.GetString(plain);
+            catch (CryptographicException) { return true; }
         }
     }
 }

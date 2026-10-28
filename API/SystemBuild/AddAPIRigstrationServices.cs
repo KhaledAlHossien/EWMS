@@ -5,6 +5,7 @@ using Application.Common;
 using Application.Interfaces;
 using Infrastructure;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.OpenApi;
 
 namespace API.SystemBuild
@@ -36,6 +37,12 @@ namespace API.SystemBuild
                     }));
             });
             services.AddScoped<INotificationPusher, SignalRNotificationPusher>();
+            // حماية البيانات: لا ميزة تستعملها اليوم (الجلسات JWT)، لكن ضبطها صريح كي لا تُولَّد مفاتيحها في مجلد مؤقت إن استعملتها ميزة لاحقاً
+            // (مضادات التزوير، رموز مؤقتة…). DataProtection:KeysPath = مجلد دائم يقبل الكتابة، وإلا مجلد المستخدم الافتراضي.
+            var dataProtection = services.AddDataProtection().SetApplicationName("EWMS");
+            if (configuration["DataProtection:KeysPath"] is { Length: > 0 } keysPath)
+                dataProtection.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+
             services.AddEndpointsApiExplorer();
 
             services.AddSwaggerGen(c =>

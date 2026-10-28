@@ -225,6 +225,7 @@ POST api/Users/Create → CreateUser
 POST api/VacationTypes/Create → CreateVacationType
 POST api/Vacations/Create → CreateVacation
 POST api/WorkTasks/Create → CreateWorkTask
+POST api/[controller]/Renew → (authenticated only)
 POST api/[controller]/login → (anonymous)
 POST api/[controller]/logout → (authenticated only)
 POST api/[controller]/register → CreateUser

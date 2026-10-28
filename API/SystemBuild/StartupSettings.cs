@@ -6,7 +6,7 @@ namespace API.SystemBuild
     /// </summary>
     public static class StartupSettings
     {
-        public static void EnsureValid(IConfiguration configuration)
+        public static void EnsureValid(IConfiguration configuration, bool isDevelopment = false)
         {
             var problems = new List<string>();
 
@@ -21,6 +21,15 @@ namespace API.SystemBuild
             // مفتاح تشفير كلمات سر الأجهزة: 32 بايت بصيغة Base64. ضياعه يُضيّع كل كلمات السر المحفوظة
             if (!IsBase64Key(configuration["DeviceInventory:PasswordKey"], 32))
                 problems.Add("مفتاح تشفير كلمات سر الأجهزة (DeviceInventory__PasswordKey): 32 بايت بصيغة Base64");
+
+            // مفاتيح نُشرت في المستودع لا تصلح خارج التطوير (KnownPublicKeys). Security:AllowKnownDevelopmentKeys=true استثناء انتقالي مؤقت.
+            if (!isDevelopment && !configuration.GetValue("Security:AllowKnownDevelopmentKeys", false))
+            {
+                if (KnownPublicKeys.IsPublic(jwtKey))
+                    problems.Add("مفتاح توقيع الجلسات (JwtSettings__Key) هو مفتاح التطوير المنشور في المستودع: ولّد مفتاحاً جديداً للإنتاج (docs/DEPLOYMENT.md)");
+                if (KnownPublicKeys.IsPublic(configuration["DeviceInventory:PasswordKey"]))
+                    problems.Add("مفتاح تشفير الأجهزة (DeviceInventory__PasswordKey) هو مفتاح التطوير المنشور في المستودع: ولّد مفتاحاً جديداً وضع القديم في DeviceInventory__OldPasswordKeys__0 ليُعاد تشفير كلمات السر الحالية (docs/DEPLOYMENT.md)");
+            }
 
             // مجلد المرفقات (FileStorage:Mode=FileSystem): موجود ويقبل الكتابة — مشاركة لم تُركَّب توقف الإقلاع بدل أن تفشل الرفوع لاحقاً
             if (new Infrastructure.Files.FileStorageSettings(configuration).Problem() is string files)

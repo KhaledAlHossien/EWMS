@@ -6,6 +6,7 @@ using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -18,13 +19,16 @@ namespace Infrastructure.Persistence.Repositories
         private readonly IJwtService _jwtService;
         private readonly ICurrentUserService _currentUserService;
         private readonly INotificationService _notifications;
+        private readonly IConfiguration _configuration;
 
         public AuthService(
             DataContext context,
             IJwtService jwtService,
             ICurrentUserService currentUserService,
-            INotificationService notifications)
+            INotificationService notifications,
+            IConfiguration configuration)
         {
+            _configuration = configuration;
             _notifications = notifications;
             _context = context;
             _jwtService = jwtService;
@@ -74,30 +78,35 @@ namespace Infrastructure.Persistence.Repositories
             user.FailedLoginCount = 0;
             user.LockoutUntil = null;
 
-            // جلب أسماء صلاحيات الدور
+            var started = DateTime.UtcNow;
+            var expiresAt = _jwtService.GetExpirationDate();
+            return new LoginOutcome(await IssueAsync(user, started, expiresAt), null);
+        }
+
+        private int MaxSessionHours => _configuration.GetValue("JwtSettings:MaxSessionHours", SessionRules.DefaultMaxSessionHours);
+        private int DurationMinutes => _configuration.GetValue("JwtSettings:DurationInMinutes", 60);
+
+        /// <summary>يُصدر توكناً ويحفظه (لإبطاله لاحقاً) ويبني ردّ الدخول: يُستعمل عند الدخول وعند التجديد، فالردّ واحد في الحالتين</summary>
+        private async Task<LoginResponse> IssueAsync(User user, DateTime sessionStartedAt, DateTime expiresAt)
+        {
             var permissions = await _context.RolePermissions
                 .Where(rp => rp.RoleId == user.RoleId)
                 .Select(rp => rp.Permission.Name)
                 .ToListAsync();
 
-            // توليد التوكن
-            var token = _jwtService.GenerateToken(user);
-            var expiresAt = _jwtService.GetExpirationDate();
-
-            // حفظ التوكن في قاعدة البيانات (لإبطاله لاحقاً)
-            var userToken = new UserToken
+            var token = _jwtService.GenerateToken(user, expiresAt);
+            await _context.UserTokens.AddAsync(new UserToken
             {
                 UserId = user.Id,
                 Token = token,
                 CreatedAt = DateTime.UtcNow,
                 ExpiresAt = expiresAt,
+                SessionStartedAt = sessionStartedAt,
                 IsRevoked = false
-            };
-
-            await _context.UserTokens.AddAsync(userToken);
+            });
             await _context.SaveChangesAsync();
 
-            return new LoginOutcome(new LoginResponse
+            return new LoginResponse
             {
                 Token = token,
                 ExpiresAt = expiresAt,
@@ -108,7 +117,27 @@ namespace Infrastructure.Persistence.Repositories
                 DepartmentId = user.DepartmentId,
                 OfficeId = user.OfficeId,
                 Permissions = permissions
-            }, null);
+            };
+        }
+
+        public async Task<LoginResponse?> RenewAsync(string token)
+        {
+            var now = DateTime.UtcNow;
+            var current = await _context.UserTokens.FirstOrDefaultAsync(t => t.Token == token);
+            if (current == null || current.IsRevoked || current.ExpiresAt <= now) return null;
+
+            var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == current.UserId);
+            if (user == null || !user.IsActive) return null;
+
+            var started = current.SessionStartedAt ?? current.CreatedAt;
+            if (!SessionRules.CanRenew(now, started, MaxSessionHours)) return null;
+
+            var issued = await IssueAsync(user, started, SessionRules.NextExpiry(now, DurationMinutes, started, MaxSessionHours));
+
+            // التوكن القديم يبقى دقيقتين فقط ثم يموت: طلبات الواجهة التي انطلقت به لا تسقط، ولا يعيش توكنان طويلاً
+            current.ExpiresAt = SessionRules.OldTokenExpiry(now, current.ExpiresAt);
+            await _context.SaveChangesAsync();
+            return issued;
         }
 
         public async Task<bool> RegisterAsync(RegisterRequest request)

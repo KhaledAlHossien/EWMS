@@ -19,7 +19,7 @@ namespace Infrastructure.Persistence.Repositories
             _configuration = configuration;
         }
 
-        public string GenerateToken(User user)
+        public string GenerateToken(User user, DateTime? expiresAt = null)
         {
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!));
@@ -32,14 +32,16 @@ namespace Infrastructure.Persistence.Repositories
                 new Claim(ClaimTypes.Name, user.FullName),
                 new Claim(ClaimTypes.Role, user.Role?.Name ?? string.Empty),
                 new Claim("DepartmentId", user.DepartmentId?.ToString() ?? ""),
-                new Claim("BranchId", user.BranchId?.ToString() ?? "")
+                new Claim("BranchId", user.BranchId?.ToString() ?? ""),
+                // معرّف فريد لكل توكن: تجديدان في الثانية نفسها لا ينتجان النص نفسه (القاعدة تحفظ التوكن فريداً)
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N"))
             };
 
             var token = new JwtSecurityToken(
                 issuer: _configuration["JwtSettings:Issuer"],
                 audience: _configuration["JwtSettings:Audience"],
                 claims: claims,
-                expires: GetExpirationDate(),
+                expires: expiresAt ?? GetExpirationDate(),
                 signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
