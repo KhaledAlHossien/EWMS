@@ -124,6 +124,24 @@ namespace Application.DTOs.Response
         public string Details { get; set; } = string.Empty;
     }
 
+    /// <summary>بيانات طباعة الكتاب الصادر المعتمد (ورقة A4 بترويسة الفرع)</summary>
+    public class CorrespondencePrintDto
+    {
+        public string? Number { get; set; }
+        public bool IsIssued { get; set; }
+        public string BranchName { get; set; } = string.Empty;
+        public string DateHijri { get; set; } = string.Empty;
+        public DateTime Date { get; set; }
+        public string? ExternalNumber { get; set; }
+        public string? ReplyToNumber { get; set; }
+        public string Party { get; set; } = string.Empty;
+        public string Subject { get; set; } = string.Empty;
+        public string Body { get; set; } = string.Empty;
+        public string? ApproverName { get; set; }
+        /// <summary>توقيع المعتمِد لحظة الاعتماد (صورة)، أو null إن اعتُمد بلا توقيع مرفوع</summary>
+        public string? ApproverSignature { get; set; }
+    }
+
     public class ReferralOfficeDto { public int Id { get; set; } public string Name { get; set; } = string.Empty; }
 
     public class ReferralDepartmentDto

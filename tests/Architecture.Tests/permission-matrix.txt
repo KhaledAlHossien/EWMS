@@ -56,6 +56,7 @@ GET api/Branches/GetAll → ViewBranches
 GET api/Correspondence/Attachment/{id} → AnyCorrespondenceView
 GET api/Correspondence/Get/{id} → AnyCorrespondenceView
 GET api/Correspondence/History/{id} → AnyCorrespondenceView
+GET api/Correspondence/Print/{id} → AnyCorrespondenceView
 GET api/Correspondence/ReferralTargets → ReferCorrespondence
 GET api/Correspondence/ReferralUsers → ReferCorrespondence
 GET api/Correspondence/Search → AnyCorrespondenceView

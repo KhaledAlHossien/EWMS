@@ -975,6 +975,54 @@
         },
         "type": "object"
       },
+      "CorrespondencePrintDto": {
+        "additionalProperties": false,
+        "properties": {
+          "approverName": {
+            "nullable": true,
+            "type": "string"
+          },
+          "approverSignature": {
+            "nullable": true,
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "branchName": {
+            "type": "string"
+          },
+          "date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dateHijri": {
+            "type": "string"
+          },
+          "externalNumber": {
+            "nullable": true,
+            "type": "string"
+          },
+          "isIssued": {
+            "type": "boolean"
+          },
+          "number": {
+            "nullable": true,
+            "type": "string"
+          },
+          "party": {
+            "type": "string"
+          },
+          "replyToNumber": {
+            "nullable": true,
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "CorrespondenceReferralDto": {
         "additionalProperties": false,
         "properties": {
@@ -10418,6 +10466,46 @@
               "text/plain": {
                 "schema": {
                   "$ref": "#/components/schemas/CorrespondenceResponseDto"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "Correspondence"
+        ]
+      }
+    },
+    "/api/Correspondence/Print/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrespondencePrintDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrespondencePrintDto"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrespondencePrintDto"
                 }
               }
             },

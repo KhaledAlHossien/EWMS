@@ -42,6 +42,11 @@ namespace API.Controllers
         [Authorize(Policy = "AnyCorrespondenceView")]
         public async Task<ActionResult<List<CorrespondenceHistoryDto>>> History(int id) => Ok(await _mediator.Send(new GetCorrespondenceHistoryQuery(id)));
 
+        /// <summary>بيانات طباعة الكتاب الصادر بعد اعتماده (بتوقيع المعتمِد المثبَّت وقت الاعتماد)</summary>
+        [HttpGet("Print/{id}")]
+        [Authorize(Policy = "AnyCorrespondenceView")]
+        public async Task<ActionResult<CorrespondencePrintDto>> Print(int id) => Ok(await _mediator.Send(new PrintCorrespondenceQuery(id)));
+
         [HttpPost("RegisterIncoming")]
         [Authorize(Policy = "RegisterCorrespondence")]
         public async Task<ActionResult<CorrespondenceResponseDto>> RegisterIncoming([FromBody] RegisterIncomingRequestDto dto)

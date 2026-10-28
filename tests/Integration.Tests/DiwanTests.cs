@@ -448,4 +448,35 @@ public class DiwanTests(ApiFixture api)
         Assert.Equal(HttpStatusCode.BadRequest, (await api.Admin.Delete($"/api/Users/Delete/{org.ClerkId}")).Status);
         Assert.Equal(HttpStatusCode.BadRequest, (await api.Admin.Delete($"/api/Branches/Delete/{api.BranchId}")).Status);
     }
+
+    // ───────── الطباعة ─────────
+
+    [Fact]
+    public async Task Only_an_approved_or_issued_outgoing_can_be_printed_with_the_approver_and_hijri_date()
+    {
+        var org = await OrgAsync();
+        var draft = (await org.Clerk.Post<CorrespondenceResponseDto>($"{Base}/CreateDraft",
+            new { typeId = org.TypeId, party = "المركزية", subject = "كتاب للطباعة", summary = "نص الكتاب كاملاً" })).Ok();
+        (await org.Clerk.PostFiles<CorrespondenceResponseDto>($"{Base}/Attachments/{draft.Id}", ("الكتاب.pdf", Pdf))).Ok();
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await org.Clerk.Get<CorrespondencePrintDto>($"{Base}/Print/{draft.Id}")).Status);   // مسودة
+
+        (await org.Approver.Post<CorrespondenceResponseDto>($"{Base}/Decide/{draft.Id}", new { approve = true })).Ok();
+        var approved = (await org.Clerk.Get<CorrespondencePrintDto>($"{Base}/Print/{draft.Id}")).Ok();
+        Assert.False(approved.IsIssued);
+        Assert.Null(approved.Number);
+        Assert.Equal("نص الكتاب كاملاً", approved.Body);
+        Assert.Contains("ديوان approver", approved.ApproverName);
+        Assert.Matches(@"^\d{4}/\d{1,2}/\d{1,2}$", approved.DateHijri);
+
+        (await org.Clerk.Post<CorrespondenceResponseDto>($"{Base}/Issue/{draft.Id}")).Ok();
+        var issued = (await org.Clerk.Get<CorrespondencePrintDto>($"{Base}/Print/{draft.Id}")).Ok();
+        Assert.True(issued.IsIssued);
+        Assert.Matches($@"^OUT-{DateTime.Today.Year}-\d{{5}}$", issued.Number);
+
+        // من لا يرى المعاملة لا يطبعها، والوارد لا يُطبع
+        Assert.Equal(HttpStatusCode.Forbidden, (await api.Outsider.Get<CorrespondencePrintDto>($"{Base}/Print/{draft.Id}")).Status);
+        var incoming = (await RegisterAsync(org)).Ok();
+        Assert.Equal(HttpStatusCode.BadRequest, (await org.Clerk.Get<CorrespondencePrintDto>($"{Base}/Print/{incoming.Id}")).Status);
+    }
 }
