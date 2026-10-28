@@ -267,6 +267,8 @@ namespace Application.Common
             // الديوان: من يسجّل أو يعالج أو يعتمد يدخل القائمة (يرى ما يخصه)، وحدّ كل صلاحية يطبّقه الـ handler
             ["AnyCorrespondenceView"] = ["ViewCorrespondence", "ViewDepartmentCorrespondence", "ViewBranchCorrespondence", "RegisterCorrespondence",
                 "HandleCorrespondence", "ApproveOutgoingCorrespondence"],
+            // تعديل المعاملة وإرفاق ملفاتها: لمن يسجّل أو يعالج (الحدّ الدقيق في DiwanRules داخل المعالج)
+            ["AnyCorrespondenceWrite"] = ["RegisterCorrespondence", "HandleCorrespondence"],
             // قوائم الأنواع والحالات: لكل من يسجّل أو يفلتر أو يعالج
             ["AnyCorrespondenceLookupView"] = ["ViewCorrespondenceLookups", "CreateCorrespondenceLookup", "EditCorrespondenceLookup", "DeleteCorrespondenceLookup",
                 "RegisterCorrespondence", "HandleCorrespondence"],

@@ -45,7 +45,7 @@ namespace Infrastructure.Files
 
         public FileStore(FileStorageSettings settings) => _settings = settings;
 
-        [GeneratedRegex("^(vacations|tasks|map-files|projects)/[0-9]{4}/[0-9]{2}/[0-9a-f]{32}\\z")]
+        [GeneratedRegex("^(vacations|tasks|map-files|projects|diwan)/[0-9]{4}/[0-9]{2}/[0-9a-f]{32}\\z")]
         private static partial Regex KeyPattern();
 
         public static bool IsValidKey(string key) => KeyPattern().IsMatch(key);

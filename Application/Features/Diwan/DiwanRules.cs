@@ -159,6 +159,24 @@ namespace Application.Features.Diwan
                 : OrganizationRole.IsInDepartmentItself(viewer.User, c.CurrentDepartmentId);
         }
 
+        /// <summary>
+        /// «صندوقي الوارد»: الوارد المفتوح الذي تحمله وحدتي الآن (أو سُمّيتُ به) وأنا أملك المعالجة. شرط قابل للترجمة إلى SQL
+        /// ومطابق لـ<see cref="CanHandle"/>. مدير النظام: كل وارد مفتوح.
+        /// </summary>
+        public static Expression<Func<Correspondence, bool>> Inbox(Viewer viewer)
+        {
+            if (viewer.IsSuperAdmin) return c => c.Direction == CorrespondenceDirection.Incoming && c.Status!.Stage != CorrespondenceStage.Closed;
+            if (!viewer.Has(AppPermissions.HandleCorrespondence)) return c => false;
+
+            var userId = viewer.Id;
+            int? officeId = viewer.User.OfficeId;
+            int? departmentId = officeId == null ? viewer.User.DepartmentId : null;
+            return c => c.Direction == CorrespondenceDirection.Incoming && c.Status!.Stage != CorrespondenceStage.Closed
+                && (c.CurrentUserId == userId
+                    || (officeId != null && c.CurrentOfficeId == officeId)
+                    || (departmentId != null && c.CurrentOfficeId == null && c.CurrentDepartmentId == departmentId));
+        }
+
         // ───────── الوارد: التسجيل والإحالة والحالة ─────────
 
         /// <summary>تسجيل معاملة في فرع المستخدم (مدير النظام ونظرة المؤسسة يسجّلون لأي فرع يختارونه)</summary>

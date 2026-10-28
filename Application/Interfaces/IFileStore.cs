@@ -24,8 +24,9 @@ namespace Application.Interfaces
         public const string Tasks = "tasks";
         public const string MapFiles = "map-files";
         public const string Projects = "projects";
+        public const string Diwan = "diwan";
 
-        public static readonly string[] All = [Vacations, Tasks, MapFiles, Projects];
+        public static readonly string[] All = [Vacations, Tasks, MapFiles, Projects, Diwan];
     }
 
     /// <summary>صيانة المخزن من خدمة الخلفية</summary>

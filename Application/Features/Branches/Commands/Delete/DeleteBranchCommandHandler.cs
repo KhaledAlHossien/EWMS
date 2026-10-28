@@ -9,13 +9,15 @@ namespace Application.Features.Branches.Commands.Delete
         private readonly IDeviceSiteService _installations;
         private readonly IMapLayerService _mapLayers;
         private readonly IProjectService _projects;
+        private readonly IDiwanService _diwan;
 
-        public DeleteBranchCommandHandler(IBranchService branchService, IDeviceSiteService installations, IMapLayerService mapLayers, IProjectService projects)
+        public DeleteBranchCommandHandler(IBranchService branchService, IDeviceSiteService installations, IMapLayerService mapLayers, IProjectService projects, IDiwanService diwan)
         {
             _branchService = branchService;
             _installations = installations;
             _mapLayers = mapLayers;
             _projects = projects;
+            _diwan = diwan;
         }
 
         public async Task<bool> Handle(DeleteBranchCommand request, CancellationToken cancellationToken)
@@ -40,6 +42,9 @@ namespace Application.Features.Branches.Commands.Delete
 
             if (await _projects.ExistsForBranchAsync(request.Id))
                 throw new InvalidOperationException("لا يمكن حذف فرع له مشاريع — أُلغِ مشاريعه وأبقِ الفرع، فوثائقها وسجلها لا تُحذف");
+
+            if (await _diwan.ExistsForBranchAsync(request.Id))
+                throw new InvalidOperationException("لا يمكن حذف فرع له معاملات أو أنواع معاملات أو حالات في الديوان — أغلق معاملاته وأبقِ الفرع، فسجلّها لا يُحذف");
 
             return await _branchService.DeleteAsync(branch);
         }

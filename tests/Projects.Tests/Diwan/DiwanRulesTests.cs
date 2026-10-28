@@ -397,4 +397,31 @@ public class DiwanRulesTests
 
         Assert.Throws<InvalidOperationException>(() => DiwanRules.EnsureCanAttach(ViewerOf(UserOf(Handler), AppPermissions.HandleCorrespondence), c));
     }
+
+    // ───────── صندوق الوارد ─────────
+
+    [Fact]
+    public void The_inbox_matches_open_incoming_items_held_by_my_unit_or_naming_me()
+    {
+        var holder = ViewerOf(UserOf(Handler, department: Studies), AppPermissions.HandleCorrespondence);
+        var inbox = DiwanRules.Inbox(holder).Compile();
+
+        Assert.True(inbox(Incoming(department: Studies)));
+        Assert.False(inbox(Incoming(department: Survey)));
+        Assert.False(inbox(Incoming(CorrespondenceStage.Closed, department: Studies)), "المغلقة ليست في الصندوق");
+        Assert.False(inbox(Outgoing()));
+        Assert.True(inbox(Incoming(department: Survey, user: Handler)), "سُمّيتُ بها");
+        Assert.False(inbox(Incoming(department: Studies, office: StudiesOffice)), "عند مكتب داخل قسمي لا عند قسمي نفسه");
+    }
+
+    [Fact]
+    public void The_inbox_of_an_office_user_is_the_office_and_without_the_permission_it_is_empty()
+    {
+        var officeUser = ViewerOf(UserOf(Handler, department: Studies, office: StudiesOffice), AppPermissions.HandleCorrespondence);
+        var inbox = DiwanRules.Inbox(officeUser).Compile();
+        Assert.True(inbox(Incoming(department: Studies, office: StudiesOffice)));
+        Assert.False(inbox(Incoming(department: Studies)));
+
+        Assert.False(DiwanRules.Inbox(ViewerOf(UserOf(Handler, department: Studies))).Compile()(Incoming(department: Studies)));
+    }
 }
