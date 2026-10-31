@@ -57,7 +57,7 @@ Request flow: Controller → MediatR → ValidationBehavior → Handler → `IXx
 | Reports center | [reports-center](docs/architecture/reports-center.md) |
 | Projects, documents, schedule/delay/extension (phases 0–1) | [projects](docs/architecture/projects.md) |
 | Diwan: incoming/outgoing correspondence, referrals (phase 2, steps 2.1–2.4 done) | [diwan](docs/architecture/diwan.md) |
-| Studies & technical offices: study orders, per-office deliverables, sending to the center (phase 3, steps 3.1–3.3 done) | [studies](docs/architecture/studies.md) |
+| Studies & technical offices: study orders, per-office deliverables, sending to the center (phase 3 done: 3.1–3.4) | [studies](docs/architecture/studies.md) |
 | CI, test layers, permission matrix, regression tests, handler structure | [quality-gates](docs/architecture/quality-gates.md) |
 
 ## Running and testing (short)
