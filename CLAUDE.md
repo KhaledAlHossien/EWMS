@@ -59,6 +59,7 @@ Request flow: Controller → MediatR → ValidationBehavior → Handler → `IXx
 | Diwan: incoming/outgoing correspondence, referrals (phase 2, steps 2.1–2.4 done) | [diwan](docs/architecture/diwan.md) |
 | Studies & technical offices: study orders, per-office deliverables, sending to the center (phase 3 done: 3.1–3.4) | [studies](docs/architecture/studies.md) |
 | Contracts, handover & warranty: contracts, contractors, evaluation, committees, retention, handover records and notes (phase 4, steps 4.1–4.4 done) | [contracts-and-handover](docs/architecture/contracts-and-handover.md) |
+| Pricing office: pricing requests, offers comparison (same unit and currency only), recommendation/approval, agreement minutes (phase 5, step 5A.1 done) | [pricing](docs/architecture/pricing.md) |
 | CI, test layers, permission matrix, regression tests, handler structure | [quality-gates](docs/architecture/quality-gates.md) |
 
 ## Running and testing (short)

@@ -263,6 +263,19 @@ namespace Application.Common
             new("RequestHandover",              "تسجيل طلب استلام (أولي أو نهائي) على مشروع يراه"),
             new("ManageHandover",               "تشكيل لجنة الاستلام وتسجيل الكشف والنتيجة والمحضر وإلغاء الطلب"),
             new("FollowHandoverNotes",          "تسجيل ملاحظات اللجنة وإسنادها وتسجيل معالجتها والتحقق منها (غير من عالجها)"),
+
+            // مكتب التسعير (المرحلة 5أ، 2026-10-31): حدّ طلبات التسعير ومحاضر الاتفاق فرع المستخدم (ونظرة المؤسسة كل الفروع)، ومقدّم الطلب والمكلَّف يريانه دائماً.
+            // الأسعار والكميات أرقام يدوية؛ لا مقارنة بين وحدات أو عملات مختلفة، ولا اختيار آلي لأقل سعر؛ من أوصى بالاختيار لا يعتمده، ومن أعدّ المحضر لا يعتمده.
+            new("ViewPricingRequests",          "عرض كل طلبات التسعير في فرعه وعروضها ومقارنتها (مقدّم الطلب والمكلَّف يريان طلباتهما دائماً)"),
+            new("RegisterPricingRequest",       "تسجيل طلب تسعير وبنوده وربطه بمشروع يراه وبعقد (ويرى ما سجّله)"),
+            new("AssignPricingRequest",         "تعديل طلبات التسعير في فرعه وتكليف موظف المكتب أو تغيير المكلَّف وإلغاء الطلب"),
+            new("PreparePricingOffers",         "تسجيل العروض الواردة على طلب كُلِّف به ومطابقتها الفنية واختيار عرض لكل بند وتوثيق التوصية"),
+            new("ApprovePricingRequest",        "الاعتماد النهائي لنتيجة طلب تسعير أو رفضها أو إعادتها لجمع العروض (غير من أوصى بها)"),
+            new("SendPricingResult",            "تسجيل إرسال نتيجة طلب تسعير معتمدة إلى الجهة المختصة (مهندس الموقع أو مكتب العقود)"),
+            new("ViewPricingAgreements",        "عرض محاضر الاتفاق مع المتعهدين الجدد في فرعه"),
+            new("PreparePricingAgreement",      "إعداد محضر اتفاق مع متعهد جديد وتعديله وإرساله للاعتماد (لمدير مكتب التسعير وحده)"),
+            new("ApprovePricingAgreement",      "اعتماد محضر اتفاق مرسل أو إعادته للتصحيح (غير من أعدّه)"),
+            new("ExportPricingReport",          "سحب تقارير التسعير (الطلبات والمحاضر في فرعه)"),
         ];
 
         /// <summary>
@@ -298,7 +311,7 @@ namespace Application.Common
             // مركز التقارير: من يملك صلاحية سحب أي تقرير يفتح المركز، وصلاحية كل تقرير يفحصها الـ handler
             ["AnyReportExport"] = ["ExportVacationsReport", "ExportVacationUsageReport", "ExportUsersReport", "ExportStructureReport",
                 "ExportMaintenanceRequestsReport", "ExportTechniciansReport", "ExportSparePartMovementsReport", "ExportSparePartStockReport",
-                "ExportInstallationsReport", "ExportSitesReport", "ExportMapEntriesReport", "ExportProjectsReport", "ExportCorrespondenceReport", "ExportOverdueCorrespondenceReport", "ExportStudiesReport", "ExportContractsReport"],
+                "ExportInstallationsReport", "ExportSitesReport", "ExportMapEntriesReport", "ExportProjectsReport", "ExportCorrespondenceReport", "ExportOverdueCorrespondenceReport", "ExportStudiesReport", "ExportContractsReport", "ExportPricingReport"],
             ["AnySiteView"] = ["ViewSites", "CreateSite", "EditSite", "DeleteSite", "ViewDevices", "ViewBranchDevices", "CreateDevice", "EditDevice", "DeleteDevice",
                 "ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry", "CreateProject", "EditProject"],
             // المشاريع: من ينشئ أو يعدّل يدخل القائمة (يرى ما أنشأه)، وحدّ كل صلاحية يطبّقه الـ handler
@@ -330,6 +343,9 @@ namespace Application.Common
                 "EvaluateContractor", "ReviewContractorEvaluation"],
             // الاستلام: من يطلب أو يدير أو يتابع ملاحظات يدخل القائمة، والحدّ الدقيق في HandoverRules داخل المعالج
             ["AnyHandoverView"] = ["ViewHandovers", "RequestHandover", "ManageHandover", "FollowHandoverNotes"],
+            // التسعير: من يسجّل أو يكلّف أو يعدّ العروض أو يعتمد أو يرسل يدخل القائمة، والحدّ الدقيق في PricingRules داخل المعالج
+            ["AnyPricingRequestView"] = ["ViewPricingRequests", "RegisterPricingRequest", "AssignPricingRequest", "PreparePricingOffers", "ApprovePricingRequest", "SendPricingResult"],
+            ["AnyPricingAgreementView"] = ["ViewPricingAgreements", "PreparePricingAgreement", "ApprovePricingAgreement"],
         };
 
         // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة
@@ -433,5 +449,15 @@ namespace Application.Common
         public const string RequestHandover = "RequestHandover";
         public const string ManageHandover = "ManageHandover";
         public const string FollowHandoverNotes = "FollowHandoverNotes";
+        public const string ViewPricingRequests = "ViewPricingRequests";
+        public const string RegisterPricingRequest = "RegisterPricingRequest";
+        public const string AssignPricingRequest = "AssignPricingRequest";
+        public const string PreparePricingOffers = "PreparePricingOffers";
+        public const string ApprovePricingRequest = "ApprovePricingRequest";
+        public const string SendPricingResult = "SendPricingResult";
+        public const string ViewPricingAgreements = "ViewPricingAgreements";
+        public const string PreparePricingAgreement = "PreparePricingAgreement";
+        public const string ApprovePricingAgreement = "ApprovePricingAgreement";
+        public const string ExportPricingReport = "ExportPricingReport";
     }
 }

@@ -311,7 +311,9 @@ namespace Infrastructure.Persistence.Repositories
                 || await _context.RetentionDecisions.AnyAsync(x => x.DocumentVersion!.DocumentId == documentId)
                 || await _context.ContractorEvaluations.AnyAsync(x => x.DocumentVersion!.DocumentId == documentId)
                 || await _context.HandoverRecords.AnyAsync(x => x.MinutesVersion!.DocumentId == documentId || x.SupervisionReportVersion!.DocumentId == documentId)
-                || await _context.HandoverNotes.AnyAsync(x => x.EvidenceVersion!.DocumentId == documentId))
+                || await _context.HandoverNotes.AnyAsync(x => x.EvidenceVersion!.DocumentId == documentId)
+                || await _context.PricingOffers.AnyAsync(x => x.DocumentVersion!.DocumentId == documentId)
+                || await _context.PricingAgreements.AnyAsync(x => x.DocumentVersion!.DocumentId == documentId))
                 throw new InvalidOperationException("هذه الوثيقة مثبَّتة في سجل عقد أو استلام: لا تُحذف — أضف إصداراً جديداً بدلاً من ذلك");
 
             _context.ProjectDocumentVersions.RemoveRange(document.Versions);   // المحتوى (وضع Database) يُحذف بالتسلسل

@@ -63,6 +63,12 @@ namespace Infrastructure.Persistence.Data
         public DbSet<EvaluationScore> EvaluationScores { get; set; }
         public DbSet<HandoverRecord> HandoverRecords { get; set; }
         public DbSet<HandoverNote> HandoverNotes { get; set; }
+        public DbSet<PricingRequest> PricingRequests { get; set; }
+        public DbSet<PricingRequestItem> PricingRequestItems { get; set; }
+        public DbSet<PricingOffer> PricingOffers { get; set; }
+        public DbSet<PricingOfferLine> PricingOfferLines { get; set; }
+        public DbSet<PricingAgreement> PricingAgreements { get; set; }
+        public DbSet<PricingAgreementLine> PricingAgreementLines { get; set; }
         public DbSet<ProjectMember> ProjectMembers { get; set; }
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectDocumentVersion> ProjectDocumentVersions { get; set; }
@@ -1594,6 +1600,133 @@ namespace Infrastructure.Persistence.Data
                 entity.HasIndex(n => n.FixedByUserId);
                 entity.HasIndex(n => n.VerifiedByUserId);
                 entity.HasIndex(n => n.EvidenceVersionId);
+            });
+
+            // ───────── مكتب التسعير (المرحلة 5أ): كل المفاتيح الأجنبية Restrict، ولا حذف متسلسل؛ الأسعار والكميات أرقام يدوية ─────────
+            builder.Entity<PricingRequest>(entity =>
+            {
+                entity.Property(r => r.Title).HasMaxLength(200).IsRequired();
+                entity.Property(r => r.Description).HasMaxLength(4000);
+                entity.Property(r => r.Status).HasConversion<int>();
+                entity.Property(r => r.DueDate).HasColumnType("date");
+                entity.Property(r => r.OverdueNotifiedFor).HasColumnType("date");
+                entity.Property(r => r.RecommendationNote).HasMaxLength(2000);
+                entity.Property(r => r.DecisionNote).HasMaxLength(1000);
+                entity.Property(r => r.ResultRecipient).HasMaxLength(150);
+                entity.Property(r => r.ResultNote).HasMaxLength(1000);
+                entity.Property(r => r.RowVersion).IsRowVersion();
+                entity.HasOne(r => r.Branch).WithMany().HasForeignKey(r => r.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.Project).WithMany().HasForeignKey(r => r.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.Contract).WithMany().HasForeignKey(r => r.ContractId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.Correspondence).WithMany().HasForeignKey(r => r.CorrespondenceId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.RegisteredByUser).WithMany().HasForeignKey(r => r.RegisteredByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.Assignee).WithMany().HasForeignKey(r => r.AssigneeUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.AssignedByUser).WithMany().HasForeignKey(r => r.AssignedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.RecommendedByUser).WithMany().HasForeignKey(r => r.RecommendedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.DecidedByUser).WithMany().HasForeignKey(r => r.DecidedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.ResultSentByUser).WithMany().HasForeignKey(r => r.ResultSentByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(r => new { r.BranchId, r.Status });
+                entity.HasIndex(r => r.ProjectId);
+                entity.HasIndex(r => r.ContractId);
+                entity.HasIndex(r => r.CorrespondenceId);
+                entity.HasIndex(r => r.RegisteredByUserId);
+                entity.HasIndex(r => r.AssigneeUserId);
+                entity.HasIndex(r => r.AssignedByUserId);
+                entity.HasIndex(r => r.RecommendedByUserId);
+                entity.HasIndex(r => r.DecidedByUserId);
+                entity.HasIndex(r => r.ResultSentByUserId);
+            });
+
+            builder.Entity<PricingRequestItem>(entity =>
+            {
+                entity.Property(i => i.Description).HasMaxLength(500).IsRequired();
+                entity.Property(i => i.Specifications).HasMaxLength(2000);
+                entity.Property(i => i.Quantity).HasPrecision(18, 3);
+                entity.Property(i => i.Unit).HasMaxLength(30).IsRequired();
+                entity.ToTable(t => t.HasCheckConstraint("CK_PricingRequestItems_Quantity", "[Quantity] > 0"));
+                entity.HasOne(i => i.PricingRequest).WithMany(r => r.Items).HasForeignKey(i => i.PricingRequestId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(i => new { i.PricingRequestId, i.SortOrder });
+            });
+
+            builder.Entity<PricingOffer>(entity =>
+            {
+                entity.Property(o => o.OfferNumber).HasMaxLength(100);
+                entity.Property(o => o.ReceivedAt).HasColumnType("date");
+                entity.Property(o => o.ValidUntil).HasColumnType("date");
+                entity.Property(o => o.Currency).HasMaxLength(3).IsRequired();
+                entity.Property(o => o.SupplyTerms).HasMaxLength(2000);
+                entity.Property(o => o.Note).HasMaxLength(2000);
+                entity.Property(o => o.RowVersion).IsRowVersion();
+                entity.HasOne(o => o.PricingRequest).WithMany(r => r.Offers).HasForeignKey(o => o.PricingRequestId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(o => o.Supplier).WithMany().HasForeignKey(o => o.SupplierId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(o => o.DocumentVersion).WithMany().HasForeignKey(o => o.DocumentVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(o => o.RecordedByUser).WithMany().HasForeignKey(o => o.RecordedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(o => new { o.PricingRequestId, o.SupplierId }).IsUnique();
+                entity.HasIndex(o => o.SupplierId);
+                entity.HasIndex(o => o.DocumentVersionId);
+                entity.HasIndex(o => o.RecordedByUserId);
+            });
+
+            builder.Entity<PricingOfferLine>(entity =>
+            {
+                entity.Property(l => l.UnitPrice).HasPrecision(18, 4);
+                entity.Property(l => l.Unit).HasMaxLength(30).IsRequired();
+                entity.Property(l => l.Conformity).HasConversion<int>();
+                entity.Property(l => l.ConformityNote).HasMaxLength(1000);
+                entity.Property(l => l.SelectionReason).HasMaxLength(1000);
+                entity.ToTable(t => t.HasCheckConstraint("CK_PricingOfferLines_Price", "[UnitPrice] >= 0"));
+                entity.HasOne(l => l.PricingOffer).WithMany(o => o.Lines).HasForeignKey(l => l.PricingOfferId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(l => l.Item).WithMany().HasForeignKey(l => l.PricingRequestItemId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(l => new { l.PricingOfferId, l.PricingRequestItemId }).IsUnique();
+                // بند مختار واحد على الأكثر لكل بند طلب
+                entity.HasIndex(l => l.PricingRequestItemId).IsUnique().HasFilter("[IsSelected] = 1").HasDatabaseName("IX_PricingOfferLines_OneSelected");
+            });
+
+            builder.Entity<PricingAgreement>(entity =>
+            {
+                entity.Property(a => a.Number).HasMaxLength(100);
+                entity.Property(a => a.AgreementDate).HasColumnType("date");
+                entity.Property(a => a.TechnicalSpecs).HasMaxLength(4000);
+                entity.Property(a => a.ExecutionMethod).HasMaxLength(2000);
+                entity.Property(a => a.Currency).HasMaxLength(3).IsRequired();
+                entity.Property(a => a.Notes).HasMaxLength(2000);
+                entity.Property(a => a.Status).HasConversion<int>();
+                entity.Property(a => a.ApprovalNote).HasMaxLength(1000);
+                entity.Property(a => a.ReturnNote).HasMaxLength(1000);
+                entity.Property(a => a.RowVersion).IsRowVersion();
+                entity.HasOne(a => a.Branch).WithMany().HasForeignKey(a => a.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(a => a.Supplier).WithMany().HasForeignKey(a => a.SupplierId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(a => a.Project).WithMany().HasForeignKey(a => a.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(a => a.Contract).WithMany().HasForeignKey(a => a.ContractId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(a => a.PricingRequest).WithMany().HasForeignKey(a => a.PricingRequestId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(a => a.DocumentVersion).WithMany().HasForeignKey(a => a.DocumentVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(a => a.PreparedByUser).WithMany().HasForeignKey(a => a.PreparedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(a => a.ApprovedByUser).WithMany().HasForeignKey(a => a.ApprovedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(a => new { a.BranchId, a.Status });
+                // الرقم الرسمي فريد داخل الفرع حين يُدخَل
+                entity.HasIndex(a => new { a.BranchId, a.Number }).IsUnique().HasFilter("[Number] IS NOT NULL").HasDatabaseName("IX_PricingAgreements_BranchNumber");
+                entity.HasIndex(a => a.SupplierId);
+                entity.HasIndex(a => a.ProjectId);
+                entity.HasIndex(a => a.ContractId);
+                entity.HasIndex(a => a.PricingRequestId);
+                entity.HasIndex(a => a.DocumentVersionId);
+                entity.HasIndex(a => a.PreparedByUserId);
+                entity.HasIndex(a => a.ApprovedByUserId);
+            });
+
+            builder.Entity<PricingAgreementLine>(entity =>
+            {
+                entity.Property(l => l.Description).HasMaxLength(500).IsRequired();
+                entity.Property(l => l.Quantity).HasPrecision(18, 3);
+                entity.Property(l => l.Unit).HasMaxLength(30).IsRequired();
+                entity.Property(l => l.UnitPrice).HasPrecision(18, 4);
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_PricingAgreementLines_Quantity", "[Quantity] > 0");
+                    t.HasCheckConstraint("CK_PricingAgreementLines_Price", "[UnitPrice] >= 0");
+                });
+                entity.HasOne(l => l.PricingAgreement).WithMany(a => a.Lines).HasForeignKey(l => l.PricingAgreementId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(l => new { l.PricingAgreementId, l.SortOrder });
             });
         }
     }

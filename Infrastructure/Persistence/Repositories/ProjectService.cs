@@ -141,7 +141,9 @@ namespace Infrastructure.Persistence.Repositories
             await _context.Projects.AnyAsync(p => p.BranchId == branchId)
             || await _context.DeliverableTypes.AnyAsync(t => t.BranchId == branchId)
             || await _context.Contractors.AnyAsync(c => c.BranchId == branchId)
-            || await _context.EvaluationCriteria.AnyAsync(c => c.BranchId == branchId);
+            || await _context.EvaluationCriteria.AnyAsync(c => c.BranchId == branchId)
+            || await _context.PricingRequests.AnyAsync(r => r.BranchId == branchId)
+            || await _context.PricingAgreements.AnyAsync(a => a.BranchId == branchId);
 
         // مشاركة موظفي القسم لا تمنع حذفه (المنع بحارس «له مستخدمون» أصلاً)؛ المانع هنا مشروع يعالجه القسم
         public Task<bool> ExistsForDepartmentAsync(int departmentId) =>
@@ -178,6 +180,10 @@ namespace Infrastructure.Persistence.Repositories
             || await _context.ContractorEvaluations.AnyAsync(e => e.EvaluatedByUserId == userId || e.ReviewedByUserId == userId)
             || await _context.HandoverRecords.AnyAsync(h => h.RequestedByUserId == userId || h.ConcludedByUserId == userId)
             || await _context.HandoverNotes.AnyAsync(n => n.ResponsibleUserId == userId || n.FixedByUserId == userId || n.VerifiedByUserId == userId)
+            || await _context.PricingRequests.AnyAsync(r => r.RegisteredByUserId == userId || r.AssigneeUserId == userId || r.AssignedByUserId == userId
+                || r.RecommendedByUserId == userId || r.DecidedByUserId == userId || r.ResultSentByUserId == userId)
+            || await _context.PricingOffers.AnyAsync(o => o.RecordedByUserId == userId)
+            || await _context.PricingAgreements.AnyAsync(a => a.PreparedByUserId == userId || a.ApprovedByUserId == userId)
             || await _context.AuditLogs.AnyAsync(a => a.UserId == userId);
     }
 
