@@ -2,6 +2,7 @@ using Application.Features.AssignedTasks;
 using Application.Features.Contracts;
 using Application.Features.Diwan;
 using Application.Features.Handover;
+using Application.Features.Pricing;
 using Application.Features.MapLayers;
 using Application.Features.Schedules;
 using Application.Features.Studies;
@@ -157,6 +158,22 @@ namespace API.Background
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogError(ex, "تعذّر فحص ملاحظات الاستلام — تُعاد المحاولة في الدورة التالية");
+                }
+
+                try
+                {
+                    // مواعيد طلبات التسعير: تجاوز الموعد (تنبيه لا قرار)
+                    using var pricing = _scopes.CreateScope();
+                    var latePricing = await PricingReminders.RunAsync(
+                        pricing.ServiceProvider.GetRequiredService<IPricingService>(),
+                        pricing.ServiceProvider.GetRequiredService<IUserPermissionService>(),
+                        pricing.ServiceProvider.GetRequiredService<INotificationService>(),
+                        DateTime.Now);
+                    if (latePricing > 0) _logger.LogInformation("نُبّه عن {Count} طلب تسعير تجاوز موعده", latePricing);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "تعذّر فحص مواعيد طلبات التسعير — تُعاد المحاولة في الدورة التالية");
                 }
 
                 try

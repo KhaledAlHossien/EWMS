@@ -51,6 +51,11 @@ namespace Application.Interfaces
         /// <summary>حفظ محضر محمَّل (بيانات، حالة…) مع حذف البنود المستبعدة صراحةً، والأثر معاً</summary>
         Task SaveAgreementAsync(PricingAgreement agreement, IReadOnlyCollection<PricingAgreementLine> removed, byte[]? rowVersion, AuditEntry audit);
 
+        // ───────── التذكيرات ─────────
+        /// <summary>طلبات لم تنتهِ (مسجَّلة أو قيد الجمع أو بانتظار الاعتماد) وتجاوزت موعدها ولم يُنبَّه عن موعدها بعد</summary>
+        Task<List<PricingRequest>> GetOverdueCandidatesAsync(DateTime today, int take);
+        Task MarkOverdueNotifiedAsync(int requestId, DateTime dueDate);
+
         // ───────── الوثائق ─────────
         Task<ProjectDocumentVersion?> GetVersionAsync(int versionId);
     }

@@ -81,6 +81,8 @@ namespace Infrastructure
             services.AddScoped<IReport, Infrastructure.Reports.StudiesReport>();
             services.AddScoped<IReport, Infrastructure.Reports.ContractsReport>();
             services.AddScoped<IReport, Infrastructure.Reports.ContractorEvaluationsReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.PricingRequestsReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.PricingAgreementsReport>();
             services.AddScoped<IReport, Infrastructure.Reports.CorrespondenceRegisterReport>();
             services.AddScoped<IReport, Infrastructure.Reports.OverdueCorrespondenceReport>();
 

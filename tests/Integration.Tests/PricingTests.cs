@@ -1,6 +1,8 @@
 using System.Net;
 using Application.DTOs.Request;
+using System.Text.Json;
 using Application.DTOs.Response;
+using Application.Features.Pricing;
 using Application.Interfaces;
 using Integration.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,7 +42,7 @@ public class PricingTests(ApiFixture api)
         var registrantRole = await api.CreateRoleAsync("مهندس موقع تسعير " + suffix, ["RegisterPricingRequest", "ViewNotifications"], all);
         var managerRole = await api.CreateRoleAsync("مدير مكتب التسعير " + suffix,
             ["ViewPricingRequests", "AssignPricingRequest", "SendPricingResult", "ViewPricingAgreements", "PreparePricingAgreement", "ApprovePricingAgreement",
-             "ViewContractors", "CreateContractor", "ViewNotifications"], all);
+             "ViewContractors", "CreateContractor", "ExportPricingReport", "ViewNotifications"], all);
         var workerRole = await api.CreateRoleAsync("موظف تسعير " + suffix, ["PreparePricingOffers", "ViewContractors", "ViewNotifications"], all);
         var approverRole = await api.CreateRoleAsync("معتمد تسعير " + suffix, ["ViewPricingRequests", "ApprovePricingRequest", "ViewPricingAgreements", "ApprovePricingAgreement", "ViewNotifications"], all);
         var otherRole = await api.CreateRoleAsync("مهندس آخر " + suffix, ["RegisterPricingRequest"], all);
@@ -359,5 +361,60 @@ public class PricingTests(ApiFixture api)
         var other = await SupplierAsync();
         (await org.Manager.Post<PricingAgreementDetailDto>($"{Agreements}/Create", AgreementBody(other.Id, null))).Ok();
         Assert.Equal(HttpStatusCode.BadRequest, (await api.Admin.Delete($"/api/Contractors/Delete/{other.Id}")).Status);
+    }
+
+    // ───────── التذكير والتقارير ─────────
+
+    [Fact]
+    public async Task An_overdue_request_is_notified_once_per_due_date_and_its_status_never_changes_by_time()
+    {
+        var org = await OrgAsync();
+        var request = await NewRequestAsync(org, due: DateTime.Today.AddDays(-3));
+        Assert.True(request.IsOverdue);
+
+        async Task<int> RunAsync()
+        {
+            await using var scope = api.Services.CreateAsyncScope();
+            return await PricingReminders.RunAsync(scope.ServiceProvider.GetRequiredService<IPricingService>(), scope.ServiceProvider.GetRequiredService<IUserPermissionService>(),
+                scope.ServiceProvider.GetRequiredService<INotificationService>(), DateTime.Now);
+        }
+
+        Assert.True(await RunAsync() >= 1);
+        Assert.Equal(0, await RunAsync());                                          // مرة لكل موعد
+
+        // تغيير الموعد إلى موعد متأخر آخر يسمح بتنبيه جديد (يُعاد قراءة نسخة الصف بعد تحديث التذكير له)
+        var fresh = (await org.Registrant.Get<PricingDetailDto>($"{Base}/Get/{request.Id}")).Ok();
+        (await org.Registrant.Put<PricingDetailDto>($"{Base}/Update/{fresh.Id}", new
+        {
+            title = fresh.Title, description = fresh.Description, outsideContractScope = true, dueDate = DateTime.Today.AddDays(-1),
+            items = fresh.Items.Select(i => new { description = i.Description, specifications = i.Specifications, quantity = i.Quantity, unit = i.Unit }).ToArray(), rowVersion = fresh.RowVersion
+        })).Ok();
+        Assert.True(await RunAsync() >= 1);
+
+        Assert.Equal(1, (await org.Registrant.Get<PricingDetailDto>($"{Base}/Get/{request.Id}")).Ok().Status);      // لم تتغير الحالة بالتنبيه
+        var overdue = (await org.Registrant.Get<PagedResultDto<PricingListItemDto>>($"{Base}/Search?overdueOnly=true&mine=true")).Ok();
+        Assert.Contains(overdue.Items, r => r.Id == request.Id);
+    }
+
+    [Fact]
+    public async Task The_pricing_reports_list_the_requests_and_the_agreements_for_whoever_holds_the_export_permission()
+    {
+        var org = await OrgAsync();
+        var request = await NewRequestAsync(org);
+        var supplier = await SupplierAsync();
+        var number = $"PA-{Guid.NewGuid():N}"[..11];
+        (await org.Manager.Post<PricingAgreementDetailDto>($"{Agreements}/Create", AgreementBody(supplier.Id, number))).Ok();
+
+        var requests = await org.Manager.Post<JsonElement>("/api/Reports/Preview/pricing-requests", new { filters = new Dictionary<string, string>() });
+        Assert.Equal(HttpStatusCode.OK, requests.Status);
+        Assert.Contains(request.Number, requests.Raw);
+
+        var agreements = await org.Manager.Post<JsonElement>("/api/Reports/Preview/pricing-agreements", new { filters = new Dictionary<string, string>() });
+        Assert.Equal(HttpStatusCode.OK, agreements.Status);
+        Assert.Contains(number, agreements.Raw);
+
+        // بلا صلاحية التقارير لا يُسحب، وبلا صلاحية عرض المحاضر لا يُسحب تقريرها
+        Assert.Equal(HttpStatusCode.Forbidden, (await org.Registrant.Post<JsonElement>("/api/Reports/Preview/pricing-requests", new { filters = new Dictionary<string, string>() })).Status);
+        Assert.Equal(HttpStatusCode.Forbidden, (await org.Worker.Post<JsonElement>("/api/Reports/Preview/pricing-agreements", new { filters = new Dictionary<string, string>() })).Status);
     }
 }

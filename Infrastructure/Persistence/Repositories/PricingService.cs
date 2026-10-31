@@ -196,6 +196,21 @@ namespace Infrastructure.Persistence.Repositories
             await SaveAsync();
         }
 
+        // ───────── التذكيرات ─────────
+
+        public Task<List<PricingRequest>> GetOverdueCandidatesAsync(DateTime today, int take)
+        {
+            var day = today.Date;
+            return _context.PricingRequests.AsNoTracking()
+                .Where(r => (r.Status == PricingRequestStatus.Registered || r.Status == PricingRequestStatus.Collecting || r.Status == PricingRequestStatus.Recommended)
+                            && r.DueDate != null && r.DueDate < day && (r.OverdueNotifiedFor == null || r.OverdueNotifiedFor != r.DueDate))
+                .OrderBy(r => r.DueDate).ThenBy(r => r.Id).Take(take).ToListAsync();
+        }
+
+        public Task MarkOverdueNotifiedAsync(int requestId, DateTime dueDate) =>
+            _context.PricingRequests.Where(r => r.Id == requestId && r.DueDate == dueDate)
+                .ExecuteUpdateAsync(s => s.SetProperty(r => r.OverdueNotifiedFor, dueDate));
+
         // ───────── الوثائق ─────────
 
         public Task<ProjectDocumentVersion?> GetVersionAsync(int versionId) =>

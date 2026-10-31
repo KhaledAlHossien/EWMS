@@ -62,6 +62,8 @@ namespace Domain.Enums
         Correspondence = 5,
         Study = 6,
         Contract = 7,
-        Handover = 8
+        Handover = 8,
+        PricingRequest = 9,
+        PricingAgreement = 10
     }
 }

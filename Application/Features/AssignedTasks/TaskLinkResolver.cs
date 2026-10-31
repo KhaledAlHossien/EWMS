@@ -22,9 +22,10 @@ namespace Application.Features.AssignedTasks
         private readonly IStudyService _studies;
         private readonly IContractService _contracts;
         private readonly IHandoverService _handovers;
+        private readonly IPricingService _pricing;
 
         public TaskLinkResolver(IMaintenanceRequestService maintenance, IVacationService vacations, ISiteService sites, IProjectService projects, IDiwanService diwan, IStudyService studies,
-            IContractService contracts, IHandoverService handovers)
+            IContractService contracts, IHandoverService handovers, IPricingService pricing)
         {
             _maintenance = maintenance;
             _vacations = vacations;
@@ -34,6 +35,7 @@ namespace Application.Features.AssignedTasks
             _studies = studies;
             _contracts = contracts;
             _handovers = handovers;
+            _pricing = pricing;
         }
 
         public sealed record Described(bool Exists, bool Available, string Label);
@@ -47,6 +49,8 @@ namespace Application.Features.AssignedTasks
             TaskLinkType.Study => "دراسة",
             TaskLinkType.Contract => "عقد",
             TaskLinkType.Handover => "استلام",
+            TaskLinkType.PricingRequest => "طلب تسعير",
+            TaskLinkType.PricingAgreement => "محضر اتفاق",
             _ => "موقع"
         };
 
@@ -92,6 +96,18 @@ namespace Application.Features.AssignedTasks
         private static bool CanViewHandover(Viewer viewer, Domain.Entities.HandoverRecord record)
         {
             try { Features.Handover.HandoverRules.EnsureCanView(viewer, record.Project); return true; }
+            catch (UnauthorizedAccessException) { return false; }
+        }
+
+        private static bool CanViewPricing(Viewer viewer, Domain.Entities.PricingRequest request)
+        {
+            try { Features.Pricing.PricingRules.EnsureCanView(viewer, request); return true; }
+            catch (UnauthorizedAccessException) { return false; }
+        }
+
+        private static bool CanViewAgreement(Viewer viewer, Domain.Entities.PricingAgreement agreement)
+        {
+            try { Features.Pricing.PricingRules.EnsureCanViewAgreement(viewer, agreement); return true; }
             catch (UnauthorizedAccessException) { return false; }
         }
 
@@ -147,6 +163,20 @@ namespace Application.Features.AssignedTasks
                     if (handover == null) return new(false, false, string.Empty);
                     return CanViewHandover(viewer, handover)
                         ? new(true, true, $"{Features.Handover.HandoverRules.Number(handover.Id, handover.CreatedAt)} — {handover.Project.Name} ({Features.Handover.HandoverRules.KindAr(handover.Kind)})")
+                        : new(true, false, string.Empty);
+
+                case TaskLinkType.PricingRequest:
+                    var pricingRequest = await _pricing.GetByIdAsync(id);
+                    if (pricingRequest == null) return new(false, false, string.Empty);
+                    return CanViewPricing(viewer, pricingRequest)
+                        ? new(true, true, $"{Features.Pricing.PricingRules.Number(pricingRequest.Id, pricingRequest.CreatedAt)} — {pricingRequest.Title}")
+                        : new(true, false, string.Empty);
+
+                case TaskLinkType.PricingAgreement:
+                    var agreement = await _pricing.GetAgreementAsync(id);
+                    if (agreement == null) return new(false, false, string.Empty);
+                    return CanViewAgreement(viewer, agreement)
+                        ? new(true, true, $"{Features.Pricing.PricingRules.AgreementNumber(agreement.Id, agreement.CreatedAt)} — {agreement.Supplier.Name}")
                         : new(true, false, string.Empty);
 
                 default:
