@@ -11,6 +11,8 @@ namespace Application.Features.AssignedTasks
     /// <summary>
     /// قواعد لوحة المهام — Role-Permission فقط (قرار المستخدم 2026-10-03)، وحدّ كل صلاحية ثابت:
     /// - AssignTaskToDepartment: الإسناد لأقسام فرعي. AssignTaskToOffice: لمكاتب قسمي. AssignTaskToUser: لموظفي مكتبي.
+    ///   AssignTaskToDepartmentUser: لموظفي قسمي كلهم (وتفويض مهام قسمي إليهم مباشرة). AssignTaskToBranchUser: لموظفي فرعي كلهم.
+    ///   (2026-10-28، بعد أن لم يجد رئيس قسم بلا مكتب طريقاً لإسناد موظف: كل حدّ صلاحية مستقلة.)
     /// - HandleUnitTasks: أتولى المهام المسندة لوحدتي نفسها (قسمي إن كنت أتبع للقسم مباشرة، أو مكتبي) —
     ///   أغيّر حالتها وأفوّض أجزاء منها درجة واحدة نزولاً (مهمة قسم ← مكتب منه، مهمة مكتب ← موظف منه).
     /// - مهمة الموظف يتولاها الموظف نفسه بلا صلاحية.
@@ -27,17 +29,48 @@ namespace Application.Features.AssignedTasks
             var types = new List<AssignedTaskTargetType>();
             if (v.Has(AppPermissions.AssignTaskToDepartment) && v.User.BranchId != null) types.Add(AssignedTaskTargetType.Department);
             if (v.Has(AppPermissions.AssignTaskToOffice) && v.User.DepartmentId != null) types.Add(AssignedTaskTargetType.Office);
-            if (v.Has(AppPermissions.AssignTaskToUser) && v.User.OfficeId != null) types.Add(AssignedTaskTargetType.User);
+            if (CanAssignToAnyUser(v)) types.Add(AssignedTaskTargetType.User);
             return types;
         }
 
-        /// <summary>الجهة التي تُفوَّض إليها أجزاء مهمة (درجة واحدة نزولاً)، أو null إن لم يكن لها تفويض</summary>
-        public static AssignedTaskTargetType? DelegationTargetFor(AssignedTask t) => t.TargetType switch
+        /// <summary>يملك صلاحية إسناد لموظف بحدّ يناسب موضعه (مكتبه أو قسمه أو فرعه)</summary>
+        public static bool CanAssignToAnyUser(Viewer v) =>
+            (v.Has(AppPermissions.AssignTaskToUser) && v.User.OfficeId != null)
+            || (v.Has(AppPermissions.AssignTaskToDepartmentUser) && v.User.DepartmentId != null)
+            || (v.Has(AppPermissions.AssignTaskToBranchUser) && v.User.BranchId != null);
+
+        /// <summary>
+        /// هل يجوز أن يُسنِد هذا المستخدم مهمة لهذا الموظف؟ الحدّ لكل صلاحية: موظفو مكتبي / قسمي / فرعي (تُجمع الحدود).
+        /// لا يُسنَد الموظف لنفسه ولا لحساب معطَّل.
+        /// </summary>
+        public static bool CanAssignToUser(Viewer v, User assignee)
         {
-            AssignedTaskTargetType.Department => AssignedTaskTargetType.Office,
-            AssignedTaskTargetType.Office => AssignedTaskTargetType.User,
-            _ => null
-        };
+            if (assignee.Id == v.Id || !assignee.IsActive) return false;
+            var me = v.User;
+            return (v.Has(AppPermissions.AssignTaskToUser) && me.OfficeId != null && assignee.OfficeId == me.OfficeId)
+                || (v.Has(AppPermissions.AssignTaskToDepartmentUser) && me.DepartmentId != null && assignee.DepartmentId == me.DepartmentId)
+                || (v.Has(AppPermissions.AssignTaskToBranchUser) && me.BranchId != null && assignee.BranchId == me.BranchId);
+        }
+
+        /// <summary>
+        /// أنواع الجهات التي يفوّض إليها المتولّي أجزاء مهمة (درجة نزولاً): مهمة قسم ← مكتب منه، وأيضاً ← موظف في القسم مباشرة
+        /// لمن يملك صلاحية موظفي القسم/الفرع؛ مهمة مكتب ← موظف منه. مهمة الموظف لا تُفوَّض.
+        /// </summary>
+        public static List<AssignedTaskTargetType> DelegationTypesFor(AssignedTask t, Viewer v)
+        {
+            var types = new List<AssignedTaskTargetType>();
+            switch (t.TargetType)
+            {
+                case AssignedTaskTargetType.Department:
+                    types.Add(AssignedTaskTargetType.Office);
+                    if (v.Has(AppPermissions.AssignTaskToDepartmentUser) || v.Has(AppPermissions.AssignTaskToBranchUser)) types.Add(AssignedTaskTargetType.User);
+                    break;
+                case AssignedTaskTargetType.Office:
+                    types.Add(AssignedTaskTargetType.User);
+                    break;
+            }
+            return types;
+        }
 
         public static string TargetTypeLabel(AssignedTaskTargetType? type) => type switch
         {
@@ -158,8 +191,8 @@ namespace Application.Features.AssignedTasks
 
             var user = v.User;
             var handles = v.Has(AppPermissions.HandleUnitTasks);
-            int? byBranch = v.Has(AppPermissions.AssignTaskToDepartment) ? user.BranchId : null;
-            int? byDepartment = v.Has(AppPermissions.AssignTaskToOffice) || (handles && user.OfficeId == null) ? user.DepartmentId : null;
+            int? byBranch = v.Has(AppPermissions.AssignTaskToDepartment) || v.Has(AppPermissions.AssignTaskToBranchUser) ? user.BranchId : null;
+            int? byDepartment = v.Has(AppPermissions.AssignTaskToOffice) || v.Has(AppPermissions.AssignTaskToDepartmentUser) || (handles && user.OfficeId == null) ? user.DepartmentId : null;
             int? byOffice = v.Has(AppPermissions.AssignTaskToUser) || handles ? user.OfficeId : null;
             var userId = user.Id;
 
@@ -271,7 +304,9 @@ namespace Application.Features.AssignedTasks
             dto.CanDelete = isCreator && t.Status == AssignedTaskStatus.Todo && t.SubTasks.Count == 0;
             dto.CanComment = CanView(t, viewer);
             // يفوّض من يتولى مهمة قسم (← مكاتبه) أو مهمة مكتب (← موظفيه)
-            dto.CanDelegate = handles && (t.Status is AssignedTaskStatus.Todo or AssignedTaskStatus.InProgress) && DelegationTargetFor(t) != null;
+            var delegation = handles && (t.Status is AssignedTaskStatus.Todo or AssignedTaskStatus.InProgress) ? DelegationTypesFor(t, viewer) : [];
+            dto.CanDelegate = delegation.Count > 0;
+            dto.DelegationTypes = delegation.Select(x => new TaskTargetTypeDto { Value = x.ToString(), Label = TargetTypeLabel(x) }).ToList();
 
             // المرفقات: يرفق من يطّلع على المهمة، ويحذف الرافع أو المُسنِد — كله قبل «تم التنفيذ» (بعدها سجل ثابت)
             // وأثناء المراجعة لا يغيّر فيها إلا المُراجِع (IsFrozenFor)

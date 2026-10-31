@@ -78,6 +78,8 @@ namespace Application.Common
             new("AssignTaskToDepartment", "إسناد مهام لأقسام فرعه"),
             new("AssignTaskToOffice",     "إسناد مهام لمكاتب قسمه"),
             new("AssignTaskToUser",       "إسناد مهام لموظفي مكتبه"),
+            new("AssignTaskToDepartmentUser", "إسناد مهام لموظفي قسمه (في أي مكتب منه ومن يتبع للقسم مباشرة)، وتفويض مهام قسمه إليهم مباشرة"),
+            new("AssignTaskToBranchUser", "إسناد مهام لموظفي فرعه كلهم (في أي قسم أو مكتب)"),
             new("HandleUnitTasks",        "تولّي المهام المسندة لوحدته (تغيير حالتها وتفويضها)"),
             new("ViewTaskStats",          "عرض إحصائيات المهام ضمن نطاقه (الإنجاز في الموعد والمتأخرات لكل جهة)"),
 
@@ -310,6 +312,8 @@ namespace Application.Common
         public const string AssignTaskToDepartment = "AssignTaskToDepartment";
         public const string AssignTaskToOffice = "AssignTaskToOffice";
         public const string AssignTaskToUser = "AssignTaskToUser";
+        public const string AssignTaskToDepartmentUser = "AssignTaskToDepartmentUser";
+        public const string AssignTaskToBranchUser = "AssignTaskToBranchUser";
         public const string HandleUnitTasks = "HandleUnitTasks";
         public const string ViewTaskStats = "ViewTaskStats";
         public const string ViewDepartmentMaintenance = "ViewDepartmentMaintenance";

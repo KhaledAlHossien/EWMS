@@ -11,7 +11,7 @@ namespace Application.DTOs.Request
         public int Priority { get; set; } = 2;
         public DateTime? DueDate { get; set; }
         public int TargetId { get; set; }
-        /// <summary>Department | Office | User — مطلوب إن كان للمستخدم أكثر من نوع إسناد (يُتجاهل في التفويض: نوعه من المهمة الأصل)</summary>
+        /// <summary>Department | Office | User — مطلوب إن كان للمستخدم أكثر من نوع إسناد، وفي التفويض إن أمكن التفويض لأكثر من نوع (مكتب أو موظف)</summary>
         public string? TargetType { get; set; }
         /// <summary>بنود تحقق تُنشأ مع المهمة (من قالب أو يدوياً)</summary>
         public List<string>? ChecklistItems { get; set; }

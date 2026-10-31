@@ -53,6 +53,8 @@ namespace Application.DTOs.Response
         public bool CanComment { get; set; }
         /// <summary>تفويض جزء منها لجهة أدنى (رئيس القسم ← مكاتبه، رئيس المكتب ← موظفيه)</summary>
         public bool CanDelegate { get; set; }
+        /// <summary>أنواع الجهات التي أفوّض إليها هذه المهمة (مكتب و/أو موظف)؛ فارغة إن لم أستطع التفويض</summary>
+        public List<TaskTargetTypeDto> DelegationTypes { get; set; } = [];
 
         public List<AssignedTaskCardDto> SubTasks { get; set; } = [];
         public List<AssignedTaskActivityDto> Activities { get; set; } = [];
@@ -106,6 +108,8 @@ namespace Application.DTOs.Response
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string HeadNames { get; set; } = string.Empty; // من سيتولاها (رئيس القسم/المكتب)
+        /// <summary>للموظف: وحدته (القسم والمكتب) لتمييز الأسماء المتشابهة</summary>
+        public string Detail { get; set; } = string.Empty;
     }
 
     public class TaskTargetTypeDto

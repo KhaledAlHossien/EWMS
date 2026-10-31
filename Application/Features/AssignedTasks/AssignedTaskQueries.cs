@@ -143,10 +143,17 @@ namespace Application.Features.AssignedTasks
                 if (!AssignedTaskRules.CanHandle(parent, viewer))
                     throw new UnauthorizedAccessException("يمكنك تفويض المهام الواردة إليك فقط");
 
-                return AssignedTaskRules.DelegationTargetFor(parent) switch
+                var allowed = AssignedTaskRules.DelegationTypesFor(parent, viewer);
+                var wanted = string.IsNullOrWhiteSpace(request.Type)
+                    ? allowed.Cast<AssignedTaskTargetType?>().FirstOrDefault()
+                    : Enum.TryParse<AssignedTaskTargetType>(request.Type, true, out var asked) && allowed.Contains(asked) ? asked
+                    : throw new UnauthorizedAccessException("لا تملك صلاحية التفويض لهذا النوع من الجهات");
+
+                return wanted switch
                 {
                     AssignedTaskTargetType.Office when parent.DepartmentId is int d => await OfficesAsync(d),
-                    AssignedTaskTargetType.User when parent.OfficeId is int o => await UsersAsync(o, user.Id),
+                    AssignedTaskTargetType.User when parent.TargetType == AssignedTaskTargetType.Office && parent.OfficeId is int o => await UsersAsync(o, user.Id),
+                    AssignedTaskTargetType.User when parent.DepartmentId is int d => await UsersOfDepartmentAsync(d, user.Id),
                     _ => []
                 };
             }
@@ -161,10 +168,32 @@ namespace Application.Features.AssignedTasks
             {
                 AssignedTaskTargetType.Department when user.BranchId is int b => await DepartmentsAsync(b),
                 AssignedTaskTargetType.Office when user.DepartmentId is int d => await OfficesAsync(d),
-                AssignedTaskTargetType.User when user.OfficeId is int o => await UsersAsync(o, user.Id),
+                AssignedTaskTargetType.User => await AssignableUsersAsync(viewer),
                 _ => []
             };
         }
+
+        /// <summary>موظفو حدّي: يُجمع الأوسع من صلاحياتي (الفرع ثم القسم ثم المكتب) ثم يُفلتر بقاعدة الإسناد نفسها</summary>
+        private async Task<List<TaskTargetOptionDto>> AssignableUsersAsync(Viewer viewer)
+        {
+            var me = viewer.User;
+            var candidates = viewer.Has(AppPermissions.AssignTaskToBranchUser) && me.BranchId is int b ? await _userService.GetByBranchAsync(b)
+                : viewer.Has(AppPermissions.AssignTaskToDepartmentUser) && me.DepartmentId is int d ? await _userService.GetByDepartmentAsync(d)
+                : me.OfficeId is int o ? await _userService.GetByOfficeAsync(o)
+                : [];
+            return candidates.Where(u => AssignedTaskRules.CanAssignToUser(viewer, u)).OrderBy(u => u.FullName).Select(ToUserOption).ToList();
+        }
+
+        private async Task<List<TaskTargetOptionDto>> UsersOfDepartmentAsync(int departmentId, int excludeUserId) =>
+            (await _userService.GetByDepartmentAsync(departmentId))
+                .Where(u => u.IsActive && u.Id != excludeUserId).OrderBy(u => u.FullName).Select(ToUserOption).ToList();
+
+        private static TaskTargetOptionDto ToUserOption(User u) => new()
+        {
+            Id = u.Id,
+            Name = u.FullName,
+            Detail = string.Join(" / ", new[] { u.Department?.Name, u.Office?.Name }.Where(x => !string.IsNullOrEmpty(x)))
+        };
 
         private async Task<List<TaskTargetOptionDto>> DepartmentsAsync(int branchId)
         {

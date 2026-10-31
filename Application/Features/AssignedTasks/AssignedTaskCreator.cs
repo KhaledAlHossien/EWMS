@@ -62,8 +62,12 @@ namespace Application.Features.AssignedTasks
                     throw new InvalidOperationException("لا يمكن التفويض من مهمة منجزة");
                 if (parent.Status == AssignedTaskStatus.InReview)
                     throw new InvalidOperationException("لا يمكن التفويض من مهمة بانتظار المراجعة");
-                targetType = AssignedTaskRules.DelegationTargetFor(parent)
-                    ?? throw new InvalidOperationException("لا يمكن تفويض مهمة موجّهة لموظف");
+                var allowed = AssignedTaskRules.DelegationTypesFor(parent, viewer);
+                if (allowed.Count == 0) throw new InvalidOperationException("لا يمكن تفويض مهمة موجّهة لموظف");
+                if (string.IsNullOrWhiteSpace(spec.TargetType))
+                    targetType = allowed.Count == 1 ? allowed[0] : throw new ArgumentException("اختر نوع الجهة المفوَّض إليها (مكتب أو موظف)");
+                else if (!Enum.TryParse(spec.TargetType, true, out targetType) || !allowed.Contains(targetType))
+                    throw new UnauthorizedAccessException("لا تملك صلاحية التفويض لهذا النوع من الجهات");
             }
             else
             {
@@ -159,9 +163,20 @@ namespace Application.Features.AssignedTasks
                 case AssignedTaskTargetType.User:
                     var assignee = await _userService.GetByIdAsync(targetId)
                         ?? throw new KeyNotFoundException("الموظف غير موجود");
-                    if (officeLimit == null || assignee.OfficeId != officeLimit || assignee.Id == user.Id || !assignee.IsActive)
-                        throw new UnauthorizedAccessException(parent != null
-                            ? "يمكنك التفويض لموظفي مكتب المهمة فقط" : "يمكنك إسناد المهام لموظفي مكتبك فقط");
+                    if (assignee.Id == user.Id || !assignee.IsActive)
+                        throw new UnauthorizedAccessException("لا تُسند المهمة لنفسك ولا لحساب معطَّل");
+                    if (parent == null)
+                    {
+                        if (!AssignedTaskRules.CanAssignToUser(viewer, assignee))
+                            throw new UnauthorizedAccessException("هذا الموظف خارج حدّ صلاحية الإسناد لديك (مكتبك أو قسمك أو فرعك حسب صلاحيتك)");
+                    }
+                    else if (parent.TargetType == AssignedTaskTargetType.Office)
+                    {
+                        if (officeLimit == null || assignee.OfficeId != officeLimit)
+                            throw new UnauthorizedAccessException("يمكنك التفويض لموظفي مكتب المهمة فقط");
+                    }
+                    else if (departmentLimit == null || assignee.DepartmentId != departmentLimit)
+                        throw new UnauthorizedAccessException("يمكنك التفويض لموظفي قسم المهمة فقط");
                     task.BranchId = assignee.BranchId ?? 0;
                     task.DepartmentId = assignee.DepartmentId;
                     task.OfficeId = assignee.OfficeId;

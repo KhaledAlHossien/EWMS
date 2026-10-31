@@ -395,6 +395,12 @@
             "format": "int32",
             "type": "integer"
           },
+          "delegationTypes": {
+            "items": {
+              "$ref": "#/components/schemas/TaskTargetTypeDto"
+            },
+            "type": "array"
+          },
           "description": {
             "type": "string"
           },
@@ -7627,6 +7633,9 @@
       "TaskTargetOptionDto": {
         "additionalProperties": false,
         "properties": {
+          "detail": {
+            "type": "string"
+          },
           "headNames": {
             "type": "string"
           },
