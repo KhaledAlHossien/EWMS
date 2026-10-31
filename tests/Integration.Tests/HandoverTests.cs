@@ -253,7 +253,8 @@ public class HandoverTests(ApiFixture api)
         Assert.Equal(0, await RunAsync());                                // مرة لكل موعد
 
         // تغيير الموعد إلى موعد متأخر آخر يسمح بتنبيه جديد
-        var note = noted.Notes.Single();
+        // التذكير يحدّث الملاحظة مباشرة (تتغير نسخة الصف): أعد قراءتها قبل التعديل
+        var note = (await org.Office.Get<HandoverDetailDto>($"{Base}/Get/{formed.Id}")).Ok().Notes.Single();
         (await org.Office.Put<HandoverDetailDto>($"{Base}/Note/{note.Id}", new { description = "ملاحظة متأخرة", responsibleUserId = org.EngineerId, dueDate = DateTime.Today.AddDays(-2), rowVersion = note.RowVersion })).Ok();
         Assert.True(await RunAsync() >= 1);
 
