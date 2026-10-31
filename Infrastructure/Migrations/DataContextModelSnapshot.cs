@@ -515,6 +515,496 @@ namespace Infrastructure.Migrations
                     b.ToTable("Branches");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Committee", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("ContractId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DecisionNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("DecisionVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FormedAt")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("HandoverRecordId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Recommendations")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DecisionVersionId");
+
+                    b.HasIndex("HandoverRecordId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Committees_OnePerHandover")
+                        .HasFilter("[HandoverRecordId] IS NOT NULL");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("Committees", t =>
+                        {
+                            t.HasCheckConstraint("CK_Committees_Owner", "([Kind] = 1 AND [ContractId] IS NOT NULL AND [HandoverRecordId] IS NULL) OR ([Kind] = 2 AND [HandoverRecordId] IS NOT NULL AND [ContractId] IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.CommitteeMember", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Capacity")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("CommitteeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ExternalName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<bool>("IsChair")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommitteeId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CommitteeMembers_OneChair")
+                        .HasFilter("[IsChair] = 1");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("CommitteeId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CommitteeMembers_OnePerUser")
+                        .HasFilter("[UserId] IS NOT NULL");
+
+                    b.ToTable("CommitteeMembers", t =>
+                        {
+                            t.HasCheckConstraint("CK_CommitteeMembers_Who", "([UserId] IS NOT NULL AND [ExternalName] IS NULL) OR ([UserId] IS NULL AND [ExternalName] IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.Contract", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AwardNote")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("AwardedAt")
+                        .HasColumnType("date");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ContractDate")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("ContractorId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CorrespondenceId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<int?>("DurationDays")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ExecutionOrderDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ExecutionOrderNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Method")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Number")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TenderNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("TenderOpenedAt")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("TenderSentAt")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("Value")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("WarrantyEnd")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("WarrantyMonths")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("WarrantyNotifiedFor")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("WarrantyStart")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractorId");
+
+                    b.HasIndex("CorrespondenceId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("WarrantyEnd");
+
+                    b.HasIndex("BranchId", "Number")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Contracts_BranchNumber")
+                        .HasFilter("[Number] IS NOT NULL");
+
+                    b.HasIndex("ProjectId", "Status");
+
+                    b.ToTable("Contracts", t =>
+                        {
+                            t.HasCheckConstraint("CK_Contracts_Duration", "[DurationDays] IS NULL OR [DurationDays] > 0");
+
+                            t.HasCheckConstraint("CK_Contracts_Value", "[Value] IS NULL OR [Value] >= 0");
+
+                            t.HasCheckConstraint("CK_Contracts_Warranty", "[WarrantyEnd] IS NULL OR [WarrantyStart] IS NULL OR [WarrantyEnd] >= [WarrantyStart]");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.ContractAmendment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ApprovedAt")
+                        .HasColumnType("date");
+
+                    b.Property<int>("ContractId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int?>("DocumentVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DurationChangeDays")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RecordedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal?>("ValueChange")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentVersionId");
+
+                    b.HasIndex("RecordedByUserId");
+
+                    b.HasIndex("ContractId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("ContractAmendments");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ContractOffer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ContractId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ContractorId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsAwarded")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RecordedByUserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ContractOffers_OneAwarded")
+                        .HasFilter("[IsAwarded] = 1");
+
+                    b.HasIndex("ContractorId");
+
+                    b.HasIndex("RecordedByUserId");
+
+                    b.HasIndex("ContractId", "ContractorId")
+                        .IsUnique();
+
+                    b.ToTable("ContractOffers", t =>
+                        {
+                            t.HasCheckConstraint("CK_ContractOffers_Amount", "[Amount] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.Contractor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("RegistrationNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Contractors");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ContractorEvaluation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ContractId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ContractorId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DocumentVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EvaluatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EvaluationDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("ReviewNote")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReviewedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractorId");
+
+                    b.HasIndex("DocumentVersionId");
+
+                    b.HasIndex("EvaluatedByUserId");
+
+                    b.HasIndex("ReviewedByUserId");
+
+                    b.HasIndex("ContractId", "Status");
+
+                    b.ToTable("ContractorEvaluations");
+                });
+
             modelBuilder.Entity("Domain.Entities.Correspondence", b =>
                 {
                     b.Property<int>("Id")
@@ -1133,6 +1623,270 @@ namespace Infrastructure.Migrations
                     b.HasIndex("SiteId", "Ip");
 
                     b.ToTable("DeviceSites");
+                });
+
+            modelBuilder.Entity("Domain.Entities.EvaluationCriterion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("Weight")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("EvaluationCriteria", t =>
+                        {
+                            t.HasCheckConstraint("CK_EvaluationCriteria_Weight", "[Weight] IS NULL OR [Weight] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.EvaluationScore", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CriterionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CriterionName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("EvaluationId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal?>("Score")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal?>("Weight")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CriterionId");
+
+                    b.HasIndex("EvaluationId", "CriterionId")
+                        .IsUnique();
+
+                    b.ToTable("EvaluationScores", t =>
+                        {
+                            t.HasCheckConstraint("CK_EvaluationScores_Score", "[Score] IS NULL OR ([Score] >= 0 AND [Score] <= 100)");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.HandoverNote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("EvidenceVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FixNote")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("FixedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("FixedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("HandoverRecordId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ResponsibleName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int?>("ResponsibleUserId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("VerifiedByUserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EvidenceVersionId");
+
+                    b.HasIndex("FixedByUserId");
+
+                    b.HasIndex("ResponsibleUserId");
+
+                    b.HasIndex("VerifiedByUserId");
+
+                    b.HasIndex("HandoverRecordId", "Status");
+
+                    b.ToTable("HandoverNotes");
+                });
+
+            modelBuilder.Entity("Domain.Entities.HandoverRecord", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ConcludedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ConcludedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ContractId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CorrespondenceId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("InspectionDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MinutesVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RequestNote")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("date");
+
+                    b.Property<int>("RequestedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Result")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ResultNote")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SupervisionReportVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConcludedByUserId");
+
+                    b.HasIndex("ContractId");
+
+                    b.HasIndex("CorrespondenceId");
+
+                    b.HasIndex("MinutesVersionId");
+
+                    b.HasIndex("ProjectId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_HandoverRecords_OneFinalConcluded")
+                        .HasFilter("[Kind] = 2 AND [Status] = 3 AND [Result] = 1");
+
+                    b.HasIndex("RequestedByUserId");
+
+                    b.HasIndex("SupervisionReportVersionId");
+
+                    b.HasIndex("ProjectId", "Kind")
+                        .IsUnique()
+                        .HasDatabaseName("IX_HandoverRecords_OneOpenPerKind")
+                        .HasFilter("[Status] IN (1, 2)");
+
+                    b.HasIndex("ProjectId", "Kind", "Status");
+
+                    b.ToTable("HandoverRecords");
                 });
 
             modelBuilder.Entity("Domain.Entities.Maintenance.DamageType", b =>
@@ -2569,6 +3323,94 @@ namespace Infrastructure.Migrations
                     b.HasIndex("UserId", "CreatedAt");
 
                     b.ToTable("ReportExportLogs");
+                });
+
+            modelBuilder.Entity("Domain.Entities.RetentionDecision", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApprovingAuthority")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("DecidedAt")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Decision")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DocumentVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RecordedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RetentionEntryId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentVersionId");
+
+                    b.HasIndex("RecordedByUserId");
+
+                    b.HasIndex("RetentionEntryId");
+
+                    b.ToTable("RetentionDecisions");
+                });
+
+            modelBuilder.Entity("Domain.Entities.RetentionEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ContractId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RecordedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("WithheldAt")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractId");
+
+                    b.HasIndex("RecordedByUserId");
+
+                    b.ToTable("RetentionEntries", t =>
+                        {
+                            t.HasCheckConstraint("CK_RetentionEntries_Amount", "[Amount] > 0");
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.Role", b =>
@@ -4034,6 +4876,202 @@ namespace Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Committee", b =>
+                {
+                    b.HasOne("Domain.Entities.Contract", "Contract")
+                        .WithMany("Committees")
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ProjectDocumentVersion", "DecisionVersion")
+                        .WithMany()
+                        .HasForeignKey("DecisionVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.HandoverRecord", "HandoverRecord")
+                        .WithOne("Committee")
+                        .HasForeignKey("Domain.Entities.Committee", "HandoverRecordId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("DecisionVersion");
+
+                    b.Navigation("HandoverRecord");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CommitteeMember", b =>
+                {
+                    b.HasOne("Domain.Entities.Committee", "Committee")
+                        .WithMany("Members")
+                        .HasForeignKey("CommitteeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Committee");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Contract", b =>
+                {
+                    b.HasOne("Domain.Entities.Contractor", "Contractor")
+                        .WithMany()
+                        .HasForeignKey("ContractorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Correspondence", "Correspondence")
+                        .WithMany()
+                        .HasForeignKey("CorrespondenceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Contractor");
+
+                    b.Navigation("Correspondence");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ContractAmendment", b =>
+                {
+                    b.HasOne("Domain.Entities.Contract", "Contract")
+                        .WithMany("Amendments")
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ProjectDocumentVersion", "DocumentVersion")
+                        .WithMany()
+                        .HasForeignKey("DocumentVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "RecordedByUser")
+                        .WithMany()
+                        .HasForeignKey("RecordedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("DocumentVersion");
+
+                    b.Navigation("RecordedByUser");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ContractOffer", b =>
+                {
+                    b.HasOne("Domain.Entities.Contract", "Contract")
+                        .WithMany("Offers")
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Contractor", "Contractor")
+                        .WithMany()
+                        .HasForeignKey("ContractorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "RecordedByUser")
+                        .WithMany()
+                        .HasForeignKey("RecordedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("Contractor");
+
+                    b.Navigation("RecordedByUser");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Contractor", b =>
+                {
+                    b.HasOne("Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ContractorEvaluation", b =>
+                {
+                    b.HasOne("Domain.Entities.Contract", "Contract")
+                        .WithMany("Evaluations")
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Contractor", "Contractor")
+                        .WithMany()
+                        .HasForeignKey("ContractorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ProjectDocumentVersion", "DocumentVersion")
+                        .WithMany()
+                        .HasForeignKey("DocumentVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "EvaluatedByUser")
+                        .WithMany()
+                        .HasForeignKey("EvaluatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "ReviewedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("Contractor");
+
+                    b.Navigation("DocumentVersion");
+
+                    b.Navigation("EvaluatedByUser");
+
+                    b.Navigation("ReviewedByUser");
+                });
+
             modelBuilder.Entity("Domain.Entities.Correspondence", b =>
                 {
                     b.HasOne("Domain.Entities.User", "ApprovedByUser")
@@ -4309,6 +5347,129 @@ namespace Infrastructure.Migrations
                     b.Navigation("Device");
 
                     b.Navigation("Site");
+                });
+
+            modelBuilder.Entity("Domain.Entities.EvaluationCriterion", b =>
+                {
+                    b.HasOne("Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("Domain.Entities.EvaluationScore", b =>
+                {
+                    b.HasOne("Domain.Entities.EvaluationCriterion", "Criterion")
+                        .WithMany()
+                        .HasForeignKey("CriterionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ContractorEvaluation", "Evaluation")
+                        .WithMany("Scores")
+                        .HasForeignKey("EvaluationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Criterion");
+
+                    b.Navigation("Evaluation");
+                });
+
+            modelBuilder.Entity("Domain.Entities.HandoverNote", b =>
+                {
+                    b.HasOne("Domain.Entities.ProjectDocumentVersion", "EvidenceVersion")
+                        .WithMany()
+                        .HasForeignKey("EvidenceVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "FixedByUser")
+                        .WithMany()
+                        .HasForeignKey("FixedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.HandoverRecord", "HandoverRecord")
+                        .WithMany("Notes")
+                        .HasForeignKey("HandoverRecordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "ResponsibleUser")
+                        .WithMany()
+                        .HasForeignKey("ResponsibleUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "VerifiedByUser")
+                        .WithMany()
+                        .HasForeignKey("VerifiedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("EvidenceVersion");
+
+                    b.Navigation("FixedByUser");
+
+                    b.Navigation("HandoverRecord");
+
+                    b.Navigation("ResponsibleUser");
+
+                    b.Navigation("VerifiedByUser");
+                });
+
+            modelBuilder.Entity("Domain.Entities.HandoverRecord", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "ConcludedByUser")
+                        .WithMany()
+                        .HasForeignKey("ConcludedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Contract", "Contract")
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Correspondence", "Correspondence")
+                        .WithMany()
+                        .HasForeignKey("CorrespondenceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.ProjectDocumentVersion", "MinutesVersion")
+                        .WithMany()
+                        .HasForeignKey("MinutesVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "RequestedByUser")
+                        .WithMany()
+                        .HasForeignKey("RequestedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ProjectDocumentVersion", "SupervisionReportVersion")
+                        .WithMany()
+                        .HasForeignKey("SupervisionReportVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ConcludedByUser");
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("Correspondence");
+
+                    b.Navigation("MinutesVersion");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("RequestedByUser");
+
+                    b.Navigation("SupervisionReportVersion");
                 });
 
             modelBuilder.Entity("Domain.Entities.Maintenance.DeviceMaintenance", b =>
@@ -4914,6 +6075,51 @@ namespace Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Domain.Entities.RetentionDecision", b =>
+                {
+                    b.HasOne("Domain.Entities.ProjectDocumentVersion", "DocumentVersion")
+                        .WithMany()
+                        .HasForeignKey("DocumentVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "RecordedByUser")
+                        .WithMany()
+                        .HasForeignKey("RecordedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.RetentionEntry", "RetentionEntry")
+                        .WithMany("Decisions")
+                        .HasForeignKey("RetentionEntryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DocumentVersion");
+
+                    b.Navigation("RecordedByUser");
+
+                    b.Navigation("RetentionEntry");
+                });
+
+            modelBuilder.Entity("Domain.Entities.RetentionEntry", b =>
+                {
+                    b.HasOne("Domain.Entities.Contract", "Contract")
+                        .WithMany("RetentionEntries")
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "RecordedByUser")
+                        .WithMany()
+                        .HasForeignKey("RecordedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("RecordedByUser");
+                });
+
             modelBuilder.Entity("Domain.Entities.RolePermission", b =>
                 {
                     b.HasOne("Domain.Entities.Permission", "Permission")
@@ -5514,6 +6720,29 @@ namespace Infrastructure.Migrations
                     b.Navigation("Items");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Committee", b =>
+                {
+                    b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Contract", b =>
+                {
+                    b.Navigation("Amendments");
+
+                    b.Navigation("Committees");
+
+                    b.Navigation("Evaluations");
+
+                    b.Navigation("Offers");
+
+                    b.Navigation("RetentionEntries");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ContractorEvaluation", b =>
+                {
+                    b.Navigation("Scores");
+                });
+
             modelBuilder.Entity("Domain.Entities.Correspondence", b =>
                 {
                     b.Navigation("Attachments");
@@ -5524,6 +6753,13 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Entities.CorrespondenceAttachment", b =>
                 {
                     b.Navigation("Content");
+                });
+
+            modelBuilder.Entity("Domain.Entities.HandoverRecord", b =>
+                {
+                    b.Navigation("Committee");
+
+                    b.Navigation("Notes");
                 });
 
             modelBuilder.Entity("Domain.Entities.Maintenance.SparePart", b =>
@@ -5568,6 +6804,11 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Entities.ProjectSchedule", b =>
                 {
                     b.Navigation("Tasks");
+                });
+
+            modelBuilder.Entity("Domain.Entities.RetentionEntry", b =>
+                {
+                    b.Navigation("Decisions");
                 });
 
             modelBuilder.Entity("Domain.Entities.ScheduleDelay", b =>

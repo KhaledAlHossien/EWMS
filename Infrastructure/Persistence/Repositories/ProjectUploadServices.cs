@@ -305,6 +305,14 @@ namespace Infrastructure.Persistence.Repositories
             ProjectDocumentRules.EnsureCanDelete(document);
             if (await _context.StudyDeliverables.AnyAsync(d => d.DocumentId == documentId) || await _context.StudySubmissions.AnyAsync(x => x.DecisionVersion!.DocumentId == documentId))
                 throw new InvalidOperationException("هذه الوثيقة ملف مخرج في أمر دراسة: لا تُحذف — أضف إصداراً جديداً بدلاً من ذلك");
+            // مثبَّتة في سجل عقد أو استلام (ملحق، قرار تشكيل، قرار احتجاز، تقييم، محضر، ملاحظة): سجلات تاريخية لا تفقد وثائقها
+            if (await _context.ContractAmendments.AnyAsync(x => x.DocumentVersion!.DocumentId == documentId)
+                || await _context.Committees.AnyAsync(x => x.DecisionVersion!.DocumentId == documentId)
+                || await _context.RetentionDecisions.AnyAsync(x => x.DocumentVersion!.DocumentId == documentId)
+                || await _context.ContractorEvaluations.AnyAsync(x => x.DocumentVersion!.DocumentId == documentId)
+                || await _context.HandoverRecords.AnyAsync(x => x.MinutesVersion!.DocumentId == documentId || x.SupervisionReportVersion!.DocumentId == documentId)
+                || await _context.HandoverNotes.AnyAsync(x => x.EvidenceVersion!.DocumentId == documentId))
+                throw new InvalidOperationException("هذه الوثيقة مثبَّتة في سجل عقد أو استلام: لا تُحذف — أضف إصداراً جديداً بدلاً من ذلك");
 
             _context.ProjectDocumentVersions.RemoveRange(document.Versions);   // المحتوى (وضع Database) يُحذف بالتسلسل
             _context.ProjectDocuments.Remove(document);

@@ -139,7 +139,9 @@ namespace Infrastructure.Persistence.Repositories
 
         public async Task<bool> ExistsForBranchAsync(int branchId) =>
             await _context.Projects.AnyAsync(p => p.BranchId == branchId)
-            || await _context.DeliverableTypes.AnyAsync(t => t.BranchId == branchId);
+            || await _context.DeliverableTypes.AnyAsync(t => t.BranchId == branchId)
+            || await _context.Contractors.AnyAsync(c => c.BranchId == branchId)
+            || await _context.EvaluationCriteria.AnyAsync(c => c.BranchId == branchId);
 
         // مشاركة موظفي القسم لا تمنع حذفه (المنع بحارس «له مستخدمون» أصلاً)؛ المانع هنا مشروع يعالجه القسم
         public Task<bool> ExistsForDepartmentAsync(int departmentId) =>
@@ -166,6 +168,16 @@ namespace Infrastructure.Persistence.Repositories
             || await _context.StudyOrders.AnyAsync(o => o.CreatedByUserId == userId)
             || await _context.StudyDeliverables.AnyAsync(d => d.AssigneeUserId == userId || d.SubmittedByUserId == userId || d.ReviewedByUserId == userId)
             || await _context.StudySubmissions.AnyAsync(s => s.SentByUserId == userId || s.DecidedByUserId == userId)
+            || await _context.Contracts.AnyAsync(c => c.CreatedByUserId == userId)
+            || await _context.ContractOffers.AnyAsync(o => o.RecordedByUserId == userId)
+            || await _context.ContractAmendments.AnyAsync(a => a.RecordedByUserId == userId)
+            || await _context.Committees.AnyAsync(c => c.CreatedByUserId == userId)
+            || await _context.CommitteeMembers.AnyAsync(m => m.UserId == userId)
+            || await _context.RetentionEntries.AnyAsync(r => r.RecordedByUserId == userId)
+            || await _context.RetentionDecisions.AnyAsync(d => d.RecordedByUserId == userId)
+            || await _context.ContractorEvaluations.AnyAsync(e => e.EvaluatedByUserId == userId || e.ReviewedByUserId == userId)
+            || await _context.HandoverRecords.AnyAsync(h => h.RequestedByUserId == userId || h.ConcludedByUserId == userId)
+            || await _context.HandoverNotes.AnyAsync(n => n.ResponsibleUserId == userId || n.FixedByUserId == userId || n.VerifiedByUserId == userId)
             || await _context.AuditLogs.AnyAsync(a => a.UserId == userId);
     }
 

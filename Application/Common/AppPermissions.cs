@@ -238,6 +238,31 @@ namespace Application.Common
             new("EditDeliverableType",       "تعديل أنواع المخرجات الفنية في فرعه وتعطيلها"),
             new("DeleteDeliverableType",     "حذف نوع مخرج فني في فرعه لا مخرجات عليه"),
             new("ExportStudiesReport",       "سحب تقرير الدراسات (الأوامر التي يراها)"),
+
+            // العقود والتسليم والكفالة (المرحلة 4، 2026-10-31): حدّ سجلات العقود والاستلام هو حدّ رؤية المشروع (ProjectRules.Visible) — تحتاج معها «عرض المشاريع»؛
+            // والمقاولون ومعايير التقييم بيانات الفرع. المبالغ والنسب تُدخَل يدوياً بلا معادلات. من يعدّ التقييم لا يراجعه.
+            new("ViewContracts",                "عرض العقود ومناقصاتها وعروضها ولجانها وملاحقها وضمانها ومبالغها المحتجزة في المشاريع التي يراها"),
+            new("CreateContract",               "فتح سجل عقد على مشروع يراه عند وصول أمر التنفيذ وتحديد طبيعة التعاقد"),
+            new("EditContract",                 "تعديل بيانات العقد ومناقصته وعروضه وإرساؤه وضمانه وتغيير حالته (في المشاريع التي يراها)"),
+            new("ManageContractCommittees",     "تشكيل اللجنة الفنية والمالية لعقد وتسجيل أعضائها وتوصياتها"),
+            new("AddContractAmendment",         "تسجيل ملحق معتمد على عقد"),
+            new("RecordContractRetention",      "تسجيل المبالغ المحتجزة على عقد وقرار الإفراج عنها أو استمرار احتجازها"),
+            new("ExportContractsReport",        "سحب تقارير العقود والمقاولين والضمانات (العقود التي يراها)"),
+            new("ViewContractors",              "عرض المقاولين في فرعه (للتعاقد والتقييم والفلاتر)"),
+            new("CreateContractor",             "إضافة مقاول لفرعه"),
+            new("EditContractor",               "تعديل بيانات المقاولين في فرعه وتعطيلهم"),
+            new("DeleteContractor",             "حذف مقاول في فرعه لا عقود ولا عروض ولا تقييمات عليه"),
+            new("ViewContractorEvaluations",    "عرض تقييمات المقاولين على عقود المشاريع التي يراها"),
+            new("EvaluateContractor",           "إعداد تقييم المقاول على عقد في مشروع هو مشارك فيه وإرساله إلى مكتب العقود"),
+            new("ReviewContractorEvaluation",   "مراجعة تقييم مرسل وحفظه في ملف المقاول (غير من أعدّه)"),
+            new("ViewEvaluationCriteria",       "عرض معايير تقييم المقاولين في فرعه"),
+            new("CreateEvaluationCriterion",    "إضافة معيار تقييم لفرعه"),
+            new("EditEvaluationCriterion",      "تعديل معايير التقييم في فرعه وتعطيلها"),
+            new("DeleteEvaluationCriterion",    "حذف معيار تقييم في فرعه لا درجات عليه"),
+            new("ViewHandovers",                "عرض محاضر الاستلام ولجانها وملاحظاتها في المشاريع التي يراها"),
+            new("RequestHandover",              "تسجيل طلب استلام (أولي أو نهائي) على مشروع يراه"),
+            new("ManageHandover",               "تشكيل لجنة الاستلام وتسجيل الكشف والنتيجة والمحضر وإلغاء الطلب"),
+            new("FollowHandoverNotes",          "تسجيل ملاحظات اللجنة وإسنادها وتسجيل معالجتها والتحقق منها (غير من عالجها)"),
         ];
 
         /// <summary>
@@ -273,7 +298,7 @@ namespace Application.Common
             // مركز التقارير: من يملك صلاحية سحب أي تقرير يفتح المركز، وصلاحية كل تقرير يفحصها الـ handler
             ["AnyReportExport"] = ["ExportVacationsReport", "ExportVacationUsageReport", "ExportUsersReport", "ExportStructureReport",
                 "ExportMaintenanceRequestsReport", "ExportTechniciansReport", "ExportSparePartMovementsReport", "ExportSparePartStockReport",
-                "ExportInstallationsReport", "ExportSitesReport", "ExportMapEntriesReport", "ExportProjectsReport", "ExportCorrespondenceReport", "ExportOverdueCorrespondenceReport", "ExportStudiesReport"],
+                "ExportInstallationsReport", "ExportSitesReport", "ExportMapEntriesReport", "ExportProjectsReport", "ExportCorrespondenceReport", "ExportOverdueCorrespondenceReport", "ExportStudiesReport", "ExportContractsReport"],
             ["AnySiteView"] = ["ViewSites", "CreateSite", "EditSite", "DeleteSite", "ViewDevices", "ViewBranchDevices", "CreateDevice", "EditDevice", "DeleteDevice",
                 "ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry", "CreateProject", "EditProject"],
             // المشاريع: من ينشئ أو يعدّل يدخل القائمة (يرى ما أنشأه)، وحدّ كل صلاحية يطبّقه الـ handler
@@ -294,6 +319,17 @@ namespace Application.Common
             // قائمة أنواع المخرجات: لكل من يسند أو يفتح أمراً أو يفلتر
             ["AnyDeliverableTypeView"] = ["ViewDeliverableTypes", "CreateDeliverableType", "EditDeliverableType", "DeleteDeliverableType",
                 "CreateStudyOrder", "EditStudyOrder", "ViewStudies"],
+            // العقود: من يعمل على عقد (ينشئ أو يعدّل أو يلحق أو يحتجز أو يقيّم) يدخل القائمة، والحدّ الدقيق في ContractRules داخل المعالج
+            ["AnyContractView"] = ["ViewContracts", "CreateContract", "EditContract", "ManageContractCommittees", "AddContractAmendment", "RecordContractRetention",
+                "ViewContractorEvaluations", "EvaluateContractor", "ReviewContractorEvaluation"],
+            // قائمة المقاولين: لكل من يتعاقد أو يقيّم أو يفلتر
+            ["AnyContractorView"] = ["ViewContractors", "CreateContractor", "EditContractor", "DeleteContractor",
+                "ViewContracts", "CreateContract", "EditContract", "EvaluateContractor", "ViewContractorEvaluations"],
+            // معايير التقييم: لكل من يقيّم أو يراجع أو يديرها
+            ["AnyEvaluationCriterionView"] = ["ViewEvaluationCriteria", "CreateEvaluationCriterion", "EditEvaluationCriterion", "DeleteEvaluationCriterion",
+                "EvaluateContractor", "ReviewContractorEvaluation"],
+            // الاستلام: من يطلب أو يدير أو يتابع ملاحظات يدخل القائمة، والحدّ الدقيق في HandoverRules داخل المعالج
+            ["AnyHandoverView"] = ["ViewHandovers", "RequestHandover", "ManageHandover", "FollowHandoverNotes"],
         };
 
         // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة
@@ -375,5 +411,27 @@ namespace Application.Common
         public const string EditDeliverableType = "EditDeliverableType";
         public const string DeleteDeliverableType = "DeleteDeliverableType";
         public const string ExportStudiesReport = "ExportStudiesReport";
+        public const string ViewContracts = "ViewContracts";
+        public const string CreateContract = "CreateContract";
+        public const string EditContract = "EditContract";
+        public const string ManageContractCommittees = "ManageContractCommittees";
+        public const string AddContractAmendment = "AddContractAmendment";
+        public const string RecordContractRetention = "RecordContractRetention";
+        public const string ExportContractsReport = "ExportContractsReport";
+        public const string ViewContractors = "ViewContractors";
+        public const string CreateContractor = "CreateContractor";
+        public const string EditContractor = "EditContractor";
+        public const string DeleteContractor = "DeleteContractor";
+        public const string ViewContractorEvaluations = "ViewContractorEvaluations";
+        public const string EvaluateContractor = "EvaluateContractor";
+        public const string ReviewContractorEvaluation = "ReviewContractorEvaluation";
+        public const string ViewEvaluationCriteria = "ViewEvaluationCriteria";
+        public const string CreateEvaluationCriterion = "CreateEvaluationCriterion";
+        public const string EditEvaluationCriterion = "EditEvaluationCriterion";
+        public const string DeleteEvaluationCriterion = "DeleteEvaluationCriterion";
+        public const string ViewHandovers = "ViewHandovers";
+        public const string RequestHandover = "RequestHandover";
+        public const string ManageHandover = "ManageHandover";
+        public const string FollowHandoverNotes = "FollowHandoverNotes";
     }
 }

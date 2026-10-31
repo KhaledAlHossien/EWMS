@@ -50,6 +50,19 @@ namespace Infrastructure.Persistence.Data
         public DbSet<StudyOrder> StudyOrders { get; set; }
         public DbSet<StudyDeliverable> StudyDeliverables { get; set; }
         public DbSet<StudySubmission> StudySubmissions { get; set; }
+        public DbSet<Contractor> Contractors { get; set; }
+        public DbSet<Contract> Contracts { get; set; }
+        public DbSet<ContractOffer> ContractOffers { get; set; }
+        public DbSet<ContractAmendment> ContractAmendments { get; set; }
+        public DbSet<Committee> Committees { get; set; }
+        public DbSet<CommitteeMember> CommitteeMembers { get; set; }
+        public DbSet<RetentionEntry> RetentionEntries { get; set; }
+        public DbSet<RetentionDecision> RetentionDecisions { get; set; }
+        public DbSet<EvaluationCriterion> EvaluationCriteria { get; set; }
+        public DbSet<ContractorEvaluation> ContractorEvaluations { get; set; }
+        public DbSet<EvaluationScore> EvaluationScores { get; set; }
+        public DbSet<HandoverRecord> HandoverRecords { get; set; }
+        public DbSet<HandoverNote> HandoverNotes { get; set; }
         public DbSet<ProjectMember> ProjectMembers { get; set; }
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectDocumentVersion> ProjectDocumentVersions { get; set; }
@@ -1340,6 +1353,246 @@ namespace Infrastructure.Persistence.Data
                 entity.HasIndex(s => s.DecidedByUserId);
                 entity.HasIndex(s => s.OutgoingCorrespondenceId);
                 entity.HasIndex(s => s.DecisionVersionId);
+            });
+
+            // ───────── العقود والتسليم والكفالة (المرحلة 4): كل المفاتيح الأجنبية Restrict، ولا حذف متسلسل؛ المبالغ يدوية بلا معادلات ─────────
+            builder.Entity<Contractor>(entity =>
+            {
+                entity.Property(c => c.Name).HasMaxLength(200).IsRequired();
+                entity.Property(c => c.RegistrationNumber).HasMaxLength(100);
+                entity.Property(c => c.ContactName).HasMaxLength(150);
+                entity.Property(c => c.Phone).HasMaxLength(50);
+                entity.Property(c => c.Address).HasMaxLength(300);
+                entity.Property(c => c.Notes).HasMaxLength(2000);
+                entity.Property(c => c.RowVersion).IsRowVersion();
+                entity.HasOne(c => c.Branch).WithMany().HasForeignKey(c => c.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(c => new { c.BranchId, c.Name }).IsUnique();
+            });
+
+            builder.Entity<Contract>(entity =>
+            {
+                entity.Property(c => c.ExecutionOrderNumber).HasMaxLength(100);
+                entity.Property(c => c.ExecutionOrderDate).HasColumnType("date");
+                entity.Property(c => c.Method).HasConversion<int>();
+                entity.Property(c => c.Status).HasConversion<int>();
+                entity.Property(c => c.Number).HasMaxLength(100);
+                entity.Property(c => c.ContractDate).HasColumnType("date");
+                entity.Property(c => c.StartDate).HasColumnType("date");
+                entity.Property(c => c.Value).HasPrecision(18, 2);
+                entity.Property(c => c.Currency).HasMaxLength(3).IsRequired();
+                entity.Property(c => c.Scope).HasMaxLength(4000);
+                entity.Property(c => c.Notes).HasMaxLength(2000);
+                entity.Property(c => c.TenderNumber).HasMaxLength(100);
+                entity.Property(c => c.TenderSentAt).HasColumnType("date");
+                entity.Property(c => c.TenderOpenedAt).HasColumnType("date");
+                entity.Property(c => c.AwardedAt).HasColumnType("date");
+                entity.Property(c => c.AwardNote).HasMaxLength(1000);
+                entity.Property(c => c.WarrantyStart).HasColumnType("date");
+                entity.Property(c => c.WarrantyEnd).HasColumnType("date");
+                entity.Property(c => c.WarrantyNotifiedFor).HasColumnType("date");
+                entity.Property(c => c.RowVersion).IsRowVersion();
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_Contracts_Value", "[Value] IS NULL OR [Value] >= 0");
+                    t.HasCheckConstraint("CK_Contracts_Duration", "[DurationDays] IS NULL OR [DurationDays] > 0");
+                    t.HasCheckConstraint("CK_Contracts_Warranty", "[WarrantyEnd] IS NULL OR [WarrantyStart] IS NULL OR [WarrantyEnd] >= [WarrantyStart]");
+                });
+                entity.HasOne(c => c.Project).WithMany().HasForeignKey(c => c.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.Correspondence).WithMany().HasForeignKey(c => c.CorrespondenceId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.Contractor).WithMany().HasForeignKey(c => c.ContractorId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.CreatedByUser).WithMany().HasForeignKey(c => c.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(c => new { c.ProjectId, c.Status });
+                // الرقم الرسمي فريد داخل الفرع حين يُدخَل
+                entity.HasIndex(c => new { c.BranchId, c.Number }).IsUnique().HasFilter("[Number] IS NOT NULL").HasDatabaseName("IX_Contracts_BranchNumber");
+                entity.HasIndex(c => c.ContractorId);
+                entity.HasIndex(c => c.CorrespondenceId);
+                entity.HasIndex(c => c.CreatedByUserId);
+                entity.HasIndex(c => c.WarrantyEnd);
+            });
+
+            builder.Entity<ContractOffer>(entity =>
+            {
+                entity.Property(o => o.Amount).HasPrecision(18, 2);
+                entity.Property(o => o.ReceivedAt).HasColumnType("date");
+                entity.Property(o => o.Note).HasMaxLength(1000);
+                entity.ToTable(t => t.HasCheckConstraint("CK_ContractOffers_Amount", "[Amount] >= 0"));
+                entity.HasOne(o => o.Contract).WithMany(c => c.Offers).HasForeignKey(o => o.ContractId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(o => o.Contractor).WithMany().HasForeignKey(o => o.ContractorId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(o => o.RecordedByUser).WithMany().HasForeignKey(o => o.RecordedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(o => new { o.ContractId, o.ContractorId }).IsUnique();
+                // عرض واحد مُرسًّى عليه لكل عقد
+                entity.HasIndex(o => o.ContractId).IsUnique().HasFilter("[IsAwarded] = 1").HasDatabaseName("IX_ContractOffers_OneAwarded");
+                entity.HasIndex(o => o.ContractorId);
+                entity.HasIndex(o => o.RecordedByUserId);
+            });
+
+            builder.Entity<ContractAmendment>(entity =>
+            {
+                entity.Property(a => a.Title).HasMaxLength(200).IsRequired();
+                entity.Property(a => a.Description).HasMaxLength(2000);
+                entity.Property(a => a.ValueChange).HasPrecision(18, 2);
+                entity.Property(a => a.ApprovedAt).HasColumnType("date");
+                entity.HasOne(a => a.Contract).WithMany(c => c.Amendments).HasForeignKey(a => a.ContractId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(a => a.DocumentVersion).WithMany().HasForeignKey(a => a.DocumentVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(a => a.RecordedByUser).WithMany().HasForeignKey(a => a.RecordedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(a => new { a.ContractId, a.Number }).IsUnique();
+                entity.HasIndex(a => a.DocumentVersionId);
+                entity.HasIndex(a => a.RecordedByUserId);
+            });
+
+            builder.Entity<Committee>(entity =>
+            {
+                entity.Property(c => c.Kind).HasConversion<int>();
+                entity.Property(c => c.FormedAt).HasColumnType("date");
+                entity.Property(c => c.DecisionNumber).HasMaxLength(100);
+                entity.Property(c => c.Recommendations).HasMaxLength(4000);
+                entity.Property(c => c.RowVersion).IsRowVersion();
+                // اللجنة الفنية والمالية لعقد، ولجنة الاستلام لمحضر استلام (واحد منهما فقط)
+                entity.ToTable(t => t.HasCheckConstraint("CK_Committees_Owner",
+                    "([Kind] = 1 AND [ContractId] IS NOT NULL AND [HandoverRecordId] IS NULL) OR ([Kind] = 2 AND [HandoverRecordId] IS NOT NULL AND [ContractId] IS NULL)"));
+                entity.HasOne(c => c.Project).WithMany().HasForeignKey(c => c.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.Contract).WithMany(x => x.Committees).HasForeignKey(c => c.ContractId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.HandoverRecord).WithOne(h => h.Committee).HasForeignKey<Committee>(c => c.HandoverRecordId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.DecisionVersion).WithMany().HasForeignKey(c => c.DecisionVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(c => c.CreatedByUser).WithMany().HasForeignKey(c => c.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(c => c.ProjectId);
+                entity.HasIndex(c => c.ContractId);
+                entity.HasIndex(c => c.HandoverRecordId).IsUnique().HasFilter("[HandoverRecordId] IS NOT NULL").HasDatabaseName("IX_Committees_OnePerHandover");
+                entity.HasIndex(c => c.DecisionVersionId);
+                entity.HasIndex(c => c.CreatedByUserId);
+            });
+
+            builder.Entity<CommitteeMember>(entity =>
+            {
+                entity.Property(m => m.ExternalName).HasMaxLength(150);
+                entity.Property(m => m.Capacity).HasMaxLength(100).IsRequired();
+                // موظف أو اسم خارجي (واحد منهما)
+                entity.ToTable(t => t.HasCheckConstraint("CK_CommitteeMembers_Who", "([UserId] IS NOT NULL AND [ExternalName] IS NULL) OR ([UserId] IS NULL AND [ExternalName] IS NOT NULL)"));
+                entity.HasOne(m => m.Committee).WithMany(c => c.Members).HasForeignKey(m => m.CommitteeId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(m => m.User).WithMany().HasForeignKey(m => m.UserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(m => new { m.CommitteeId, m.UserId }).IsUnique().HasFilter("[UserId] IS NOT NULL").HasDatabaseName("IX_CommitteeMembers_OnePerUser");
+                // رئيس واحد لكل لجنة
+                entity.HasIndex(m => m.CommitteeId).IsUnique().HasFilter("[IsChair] = 1").HasDatabaseName("IX_CommitteeMembers_OneChair");
+                entity.HasIndex(m => m.UserId);
+            });
+
+            builder.Entity<RetentionEntry>(entity =>
+            {
+                entity.Property(r => r.Amount).HasPrecision(18, 2);
+                entity.Property(r => r.WithheldAt).HasColumnType("date");
+                entity.Property(r => r.Note).HasMaxLength(1000);
+                entity.ToTable(t => t.HasCheckConstraint("CK_RetentionEntries_Amount", "[Amount] > 0"));
+                entity.HasOne(r => r.Contract).WithMany(c => c.RetentionEntries).HasForeignKey(r => r.ContractId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.RecordedByUser).WithMany().HasForeignKey(r => r.RecordedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(r => r.ContractId);
+                entity.HasIndex(r => r.RecordedByUserId);
+            });
+
+            builder.Entity<RetentionDecision>(entity =>
+            {
+                entity.Property(d => d.Decision).HasConversion<int>();
+                entity.Property(d => d.DecidedAt).HasColumnType("date");
+                entity.Property(d => d.ApprovingAuthority).HasMaxLength(200).IsRequired();
+                entity.Property(d => d.Note).HasMaxLength(1000);
+                entity.HasOne(d => d.RetentionEntry).WithMany(r => r.Decisions).HasForeignKey(d => d.RetentionEntryId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.DocumentVersion).WithMany().HasForeignKey(d => d.DocumentVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(d => d.RecordedByUser).WithMany().HasForeignKey(d => d.RecordedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(d => d.RetentionEntryId);
+                entity.HasIndex(d => d.DocumentVersionId);
+                entity.HasIndex(d => d.RecordedByUserId);
+            });
+
+            builder.Entity<EvaluationCriterion>(entity =>
+            {
+                entity.Property(c => c.Name).HasMaxLength(150).IsRequired();
+                entity.Property(c => c.Description).HasMaxLength(500);
+                entity.Property(c => c.Weight).HasPrecision(5, 2);
+                entity.Property(c => c.RowVersion).IsRowVersion();
+                entity.ToTable(t => t.HasCheckConstraint("CK_EvaluationCriteria_Weight", "[Weight] IS NULL OR [Weight] > 0"));
+                entity.HasOne(c => c.Branch).WithMany().HasForeignKey(c => c.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(c => new { c.BranchId, c.Name }).IsUnique();
+            });
+
+            builder.Entity<ContractorEvaluation>(entity =>
+            {
+                entity.Property(e => e.EvaluationDate).HasColumnType("date");
+                entity.Property(e => e.Status).HasConversion<int>();
+                entity.Property(e => e.Notes).HasMaxLength(2000);
+                entity.Property(e => e.ReviewNote).HasMaxLength(1000);
+                entity.Property(e => e.RowVersion).IsRowVersion();
+                entity.HasOne(e => e.Contract).WithMany(c => c.Evaluations).HasForeignKey(e => e.ContractId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Contractor).WithMany().HasForeignKey(e => e.ContractorId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.EvaluatedByUser).WithMany().HasForeignKey(e => e.EvaluatedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.ReviewedByUser).WithMany().HasForeignKey(e => e.ReviewedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.DocumentVersion).WithMany().HasForeignKey(e => e.DocumentVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => new { e.ContractId, e.Status });
+                entity.HasIndex(e => e.ContractorId);
+                entity.HasIndex(e => e.EvaluatedByUserId);
+                entity.HasIndex(e => e.ReviewedByUserId);
+                entity.HasIndex(e => e.DocumentVersionId);
+            });
+
+            builder.Entity<EvaluationScore>(entity =>
+            {
+                entity.Property(s => s.CriterionName).HasMaxLength(150).IsRequired();
+                entity.Property(s => s.Weight).HasPrecision(5, 2);
+                entity.Property(s => s.Score).HasPrecision(5, 2);
+                entity.Property(s => s.Note).HasMaxLength(500);
+                entity.ToTable(t => t.HasCheckConstraint("CK_EvaluationScores_Score", "[Score] IS NULL OR ([Score] >= 0 AND [Score] <= 100)"));
+                entity.HasOne(s => s.Evaluation).WithMany(e => e.Scores).HasForeignKey(s => s.EvaluationId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(s => s.Criterion).WithMany().HasForeignKey(s => s.CriterionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(s => new { s.EvaluationId, s.CriterionId }).IsUnique();
+                entity.HasIndex(s => s.CriterionId);
+            });
+
+            builder.Entity<HandoverRecord>(entity =>
+            {
+                entity.Property(h => h.Kind).HasConversion<int>();
+                entity.Property(h => h.Status).HasConversion<int>();
+                entity.Property(h => h.Result).HasConversion<int?>();
+                entity.Property(h => h.RequestedAt).HasColumnType("date");
+                entity.Property(h => h.InspectionDate).HasColumnType("date");
+                entity.Property(h => h.RequestNote).HasMaxLength(1000);
+                entity.Property(h => h.ResultNote).HasMaxLength(2000);
+                entity.Property(h => h.RowVersion).IsRowVersion();
+                entity.HasOne(h => h.Project).WithMany().HasForeignKey(h => h.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(h => h.Contract).WithMany().HasForeignKey(h => h.ContractId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(h => h.RequestedByUser).WithMany().HasForeignKey(h => h.RequestedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(h => h.Correspondence).WithMany().HasForeignKey(h => h.CorrespondenceId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(h => h.MinutesVersion).WithMany().HasForeignKey(h => h.MinutesVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(h => h.SupervisionReportVersion).WithMany().HasForeignKey(h => h.SupervisionReportVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(h => h.ConcludedByUser).WithMany().HasForeignKey(h => h.ConcludedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(h => new { h.ProjectId, h.Kind, h.Status });
+                // طلب استلام واحد غير منتهٍ لكل مشروع ونوع (طلب أو لجنة مشكَّلة)
+                entity.HasIndex(h => new { h.ProjectId, h.Kind }).IsUnique().HasFilter("[Status] IN (1, 2)").HasDatabaseName("IX_HandoverRecords_OneOpenPerKind");
+                // استلام نهائي واحد بلا ملاحظات لكل مشروع
+                entity.HasIndex(h => h.ProjectId).IsUnique().HasFilter("[Kind] = 2 AND [Status] = 3 AND [Result] = 1").HasDatabaseName("IX_HandoverRecords_OneFinalConcluded");
+                entity.HasIndex(h => h.ContractId);
+                entity.HasIndex(h => h.RequestedByUserId);
+                entity.HasIndex(h => h.CorrespondenceId);
+                entity.HasIndex(h => h.MinutesVersionId);
+                entity.HasIndex(h => h.SupervisionReportVersionId);
+                entity.HasIndex(h => h.ConcludedByUserId);
+            });
+
+            builder.Entity<HandoverNote>(entity =>
+            {
+                entity.Property(n => n.Description).HasMaxLength(2000).IsRequired();
+                entity.Property(n => n.ResponsibleName).HasMaxLength(150);
+                entity.Property(n => n.DueDate).HasColumnType("date");
+                entity.Property(n => n.Status).HasConversion<int>();
+                entity.Property(n => n.FixNote).HasMaxLength(1000);
+                entity.Property(n => n.RowVersion).IsRowVersion();
+                entity.HasOne(n => n.HandoverRecord).WithMany(h => h.Notes).HasForeignKey(n => n.HandoverRecordId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(n => n.ResponsibleUser).WithMany().HasForeignKey(n => n.ResponsibleUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(n => n.FixedByUser).WithMany().HasForeignKey(n => n.FixedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(n => n.VerifiedByUser).WithMany().HasForeignKey(n => n.VerifiedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(n => n.EvidenceVersion).WithMany().HasForeignKey(n => n.EvidenceVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(n => new { n.HandoverRecordId, n.Status });
+                entity.HasIndex(n => n.ResponsibleUserId);
+                entity.HasIndex(n => n.FixedByUserId);
+                entity.HasIndex(n => n.VerifiedByUserId);
+                entity.HasIndex(n => n.EvidenceVersionId);
             });
         }
     }
