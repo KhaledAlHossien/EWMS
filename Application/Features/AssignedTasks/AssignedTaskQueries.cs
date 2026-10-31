@@ -130,46 +130,59 @@ namespace Application.Features.AssignedTasks
             return AssignedTaskRules.ToDetail(task, viewer);
         }
 
+        /// <summary>
+        /// جهات الإسناد في قائمة واحدة مجمّعة (أقسام ثم مكاتب ثم موظفون) بحسب ما تسمح به صلاحياتي، وكل عنصر يحمل نوعه (Kind) فيستنتج
+        /// الخادم النوع من الجهة المختارة ولا يختاره المستخدم. type اختياري (لتقييد القائمة بنوع واحد)، وparentTaskId لجهات التفويض.
+        /// </summary>
         public async Task<List<TaskTargetOptionDto>> Handle(GetTaskTargetsQuery request, CancellationToken ct)
         {
             var viewer = await CurrentAsync();
-            var user = viewer.User;
 
-            // التفويض: الجهات أدنى بدرجة ضمن وحدة المهمة الأصل
+            AssignedTask? parent = null;
+            List<AssignedTaskTargetType> allowed;
             if (request.ParentTaskId is int parentId)
             {
-                var parent = await _taskService.GetByIdAsync(parentId)
-                    ?? throw new KeyNotFoundException("المهمة غير موجودة");
+                // التفويض: الجهات أدنى بدرجة ضمن وحدة المهمة الأصل
+                parent = await _taskService.GetByIdAsync(parentId) ?? throw new KeyNotFoundException("المهمة غير موجودة");
                 if (!AssignedTaskRules.CanHandle(parent, viewer))
                     throw new UnauthorizedAccessException("يمكنك تفويض المهام الواردة إليك فقط");
+                allowed = AssignedTaskRules.DelegationTypesFor(parent, viewer);
+            }
+            else allowed = AssignedTaskRules.TargetTypesFor(viewer);
 
-                var allowed = AssignedTaskRules.DelegationTypesFor(parent, viewer);
-                var wanted = string.IsNullOrWhiteSpace(request.Type)
-                    ? allowed.Cast<AssignedTaskTargetType?>().FirstOrDefault()
-                    : Enum.TryParse<AssignedTaskTargetType>(request.Type, true, out var asked) && allowed.Contains(asked) ? asked
-                    : throw new UnauthorizedAccessException("لا تملك صلاحية التفويض لهذا النوع من الجهات");
+            List<AssignedTaskTargetType> wanted = string.IsNullOrWhiteSpace(request.Type) ? allowed
+                : Enum.TryParse<AssignedTaskTargetType>(request.Type, true, out var asked) && allowed.Contains(asked) ? [asked]
+                : throw new UnauthorizedAccessException(parent == null ? "لا تملك صلاحية الإسناد لهذا النوع من الجهات" : "لا تملك صلاحية التفويض لهذا النوع من الجهات");
 
-                return wanted switch
+            var result = new List<TaskTargetOptionDto>();
+            foreach (var type in wanted)
+            {
+                var options = await OptionsAsync(viewer, parent, type);
+                foreach (var option in options) option.Kind = type.ToString();
+                result.AddRange(options);
+            }
+            return result;
+        }
+
+        private Task<List<TaskTargetOptionDto>> OptionsAsync(Viewer viewer, AssignedTask? parent, AssignedTaskTargetType type)
+        {
+            var user = viewer.User;
+            if (parent != null)
+            {
+                return type switch
                 {
-                    AssignedTaskTargetType.Office when parent.DepartmentId is int d => await OfficesAsync(d),
-                    AssignedTaskTargetType.User when parent.TargetType == AssignedTaskTargetType.Office && parent.OfficeId is int o => await UsersAsync(o, user.Id),
-                    AssignedTaskTargetType.User when parent.DepartmentId is int d => await UsersOfDepartmentAsync(d, user.Id),
-                    _ => []
+                    AssignedTaskTargetType.Office when parent.DepartmentId is int d => OfficesAsync(d),
+                    AssignedTaskTargetType.User when parent.TargetType == AssignedTaskTargetType.Office && parent.OfficeId is int o => UsersAsync(o, user.Id),
+                    AssignedTaskTargetType.User when parent.DepartmentId is int d => UsersOfDepartmentAsync(d, user.Id),
+                    _ => Task.FromResult(new List<TaskTargetOptionDto>())
                 };
             }
-
-            var types = AssignedTaskRules.TargetTypesFor(viewer);
-            var type = string.IsNullOrWhiteSpace(request.Type)
-                ? types.Cast<AssignedTaskTargetType?>().FirstOrDefault()
-                : Enum.TryParse<AssignedTaskTargetType>(request.Type, true, out var parsed) && types.Contains(parsed) ? parsed
-                : throw new UnauthorizedAccessException("لا تملك صلاحية الإسناد لهذا النوع من الجهات");
-
             return type switch
             {
-                AssignedTaskTargetType.Department when user.BranchId is int b => await DepartmentsAsync(b),
-                AssignedTaskTargetType.Office when user.DepartmentId is int d => await OfficesAsync(d),
-                AssignedTaskTargetType.User => await AssignableUsersAsync(viewer),
-                _ => []
+                AssignedTaskTargetType.Department when user.BranchId is int b => DepartmentsAsync(b),
+                AssignedTaskTargetType.Office when user.DepartmentId is int d => OfficesAsync(d),
+                AssignedTaskTargetType.User => AssignableUsersAsync(viewer),
+                _ => Task.FromResult(new List<TaskTargetOptionDto>())
             };
         }
 

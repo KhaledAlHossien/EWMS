@@ -98,6 +98,35 @@ public class AssignedTaskUserTargetsTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task Targets_come_as_one_grouped_list_with_each_item_carrying_its_kind_so_no_type_is_chosen()
+    {
+        var org = await OrgAsync();
+
+        // بلا نوع: كل ما تسمح به صلاحياتي في قائمة واحدة (مكاتب ثم موظفون) وكل عنصر بنوعه
+        var all = (await org.DepartmentHead.Get<List<TaskTargetOptionDto>>($"{Base}/Targets")).Ok();
+        Assert.All(all, o => Assert.Contains(o.Kind, new[] { "Office", "User" }));
+        Assert.Contains(all, o => o.Kind == "Office");
+        Assert.Contains(all, o => o.Kind == "User" && o.Id == org.DirectWorkerId);
+        var firstUser = all.FindIndex(o => o.Kind == "User");
+        Assert.DoesNotContain(all.Take(firstUser), o => o.Kind != "Office");   // المكاتب قبل الموظفين
+
+        // الاختيار بالنوع الذي يحمله العنصر ينشئ المهمة بلا اختيار نوع منفصل
+        var pick = all.First(o => o.Kind == "User" && o.Id == org.OtherOfficeWorkerId);
+        var created = (await org.DepartmentHead.Post<AssignedTaskDetailDto>($"{Base}/Create", Task("من القائمة المجمّعة", pick.Id, pick.Kind))).Ok();
+        Assert.Equal("User", created.TargetType);
+
+        // التفويض: مكاتب القسم وموظفوه معاً في قائمة واحدة
+        var task = (await org.BranchHead.Post<AssignedTaskDetailDto>($"{Base}/Create", Task("مهمة قسم للتفويض", org.DepartmentId, "Department"))).Ok();
+        var delegation = (await org.DepartmentHead.Get<List<TaskTargetOptionDto>>($"{Base}/Targets?parentTaskId={task.Id}")).Ok();
+        Assert.Contains(delegation, o => o.Kind == "Office");
+        Assert.Contains(delegation, o => o.Kind == "User" && o.Id == org.DirectWorkerId);
+        Assert.DoesNotContain(delegation, o => o.Kind == "Department");
+        // من بلا صلاحية موظفي القسم لا يرى موظفين في التفويض
+        var oldStyle = (await org.OldStyleHead.Get<List<TaskTargetOptionDto>>($"{Base}/Targets?parentTaskId={task.Id}")).Ok();
+        Assert.All(oldStyle, o => Assert.Equal("Office", o.Kind));
+    }
+
+    [Fact]
     public async Task The_office_permission_alone_does_not_open_employees_for_someone_without_an_office()
     {
         var org = await OrgAsync();

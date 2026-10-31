@@ -108,6 +108,8 @@ namespace Application.DTOs.Response
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string HeadNames { get; set; } = string.Empty; // من سيتولاها (رئيس القسم/المكتب)
+        /// <summary>نوع الجهة: Department | Office | User (تُجمَّع القائمة به ويُرسَل مع الاختيار)</summary>
+        public string Kind { get; set; } = string.Empty;
         /// <summary>للموظف: وحدته (القسم والمكتب) لتمييز الأسماء المتشابهة</summary>
         public string Detail { get; set; } = string.Empty;
     }
