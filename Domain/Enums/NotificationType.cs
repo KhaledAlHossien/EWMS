@@ -47,6 +47,12 @@
         StudyCenterDecided = 65,              // سُجّل قرار المركزية على دراسة
         ContractEvaluationSubmitted = 70,     // تقييم مقاول بانتظار مراجعتك
         ContractEvaluationReviewed = 71,      // حُفظ تقييم أعددتَه في ملف المقاول
-        ContractEvaluationReturned = 72       // أُعيد إليك تقييم مقاول لاستكماله
+        ContractEvaluationReturned = 72,      // أُعيد إليك تقييم مقاول لاستكماله
+        ContractWarrantyEnding = 73,          // ينتهي ضمان عقد قريباً (مرشّح متابعة)
+        HandoverRequested = 74,               // طلب استلام بانتظار تشكيل لجنته
+        HandoverConcluded = 75,               // سُجّلت نتيجة طلب استلام قدّمته
+        HandoverNoteAssigned = 76,            // أُسندت إليك ملاحظة استلام (أو أُعيدت إليك معالجتها)
+        HandoverNoteFixed = 77,               // عولجت ملاحظة استلام وتنتظر التحقق
+        HandoverNoteOverdue = 78              // ملاحظة استلام تجاوزت موعد معالجتها
     }
 }

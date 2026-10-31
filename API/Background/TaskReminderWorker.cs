@@ -1,5 +1,7 @@
 using Application.Features.AssignedTasks;
+using Application.Features.Contracts;
 using Application.Features.Diwan;
+using Application.Features.Handover;
 using Application.Features.MapLayers;
 using Application.Features.Schedules;
 using Application.Features.Studies;
@@ -123,6 +125,38 @@ namespace API.Background
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     _logger.LogError(ex, "تعذّر فحص مواعيد مخرجات الدراسات — تُعاد المحاولة في الدورة التالية");
+                }
+
+                try
+                {
+                    // ضمان العقود: قرب انتهاء الضمان (تنبيه لا قرار)
+                    using var contracts = _scopes.CreateScope();
+                    var warranty = await ContractReminders.RunAsync(
+                        contracts.ServiceProvider.GetRequiredService<IContractService>(),
+                        contracts.ServiceProvider.GetRequiredService<IUserPermissionService>(),
+                        contracts.ServiceProvider.GetRequiredService<INotificationService>(),
+                        DateTime.Now);
+                    if (warranty > 0) _logger.LogInformation("نُبّه عن {Count} عقد يقترب ضمانه من نهايته", warranty);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "تعذّر فحص ضمانات العقود — تُعاد المحاولة في الدورة التالية");
+                }
+
+                try
+                {
+                    // ملاحظات الاستلام: تجاوز موعد المعالجة (تنبيه لا قرار)
+                    using var handovers = _scopes.CreateScope();
+                    var overdueNotes = await HandoverReminders.RunAsync(
+                        handovers.ServiceProvider.GetRequiredService<IHandoverService>(),
+                        handovers.ServiceProvider.GetRequiredService<IUserPermissionService>(),
+                        handovers.ServiceProvider.GetRequiredService<INotificationService>(),
+                        DateTime.Now);
+                    if (overdueNotes > 0) _logger.LogInformation("نُبّه عن {Count} ملاحظة استلام تجاوزت موعد معالجتها", overdueNotes);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "تعذّر فحص ملاحظات الاستلام — تُعاد المحاولة في الدورة التالية");
                 }
 
                 try

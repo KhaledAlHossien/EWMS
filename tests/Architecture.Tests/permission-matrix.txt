@@ -18,6 +18,7 @@ DELETE api/DeviceSites/Delete/{id} → DeleteDevice
 DELETE api/DeviceTypes/Delete/{id} → DeleteMaintenanceLookup
 DELETE api/Devices/Delete/{id} → DeleteDevice
 DELETE api/EvaluationCriteria/Delete/{id} → DeleteEvaluationCriterion
+DELETE api/Handovers/Note/{noteId} → FollowHandoverNotes
 DELETE api/MaintenanceDevices/Delete/{id} → DeleteMaintenanceDevice
 DELETE api/MaintenanceRequestStatuses/Delete/{id} → DeleteMaintenanceLookup
 DELETE api/MaintenanceRequests/Delete/{id} → DeleteMaintenanceRequest
@@ -97,6 +98,9 @@ GET api/Devices/Get/{id} → AnyDeviceView
 GET api/Devices/GetAll → AnyDeviceView
 GET api/Devices/History/{id} → AnyDeviceView
 GET api/EvaluationCriteria/GetAll → AnyEvaluationCriterionView
+GET api/Handovers/ClosureWarnings/{projectId} → AnyHandoverView
+GET api/Handovers/Get/{id} → AnyHandoverView
+GET api/Handovers/Search → AnyHandoverView
 GET api/MaintenanceDevices/BySerial → ViewMaintenanceDevices
 GET api/MaintenanceDevices/Get/{id} → ViewMaintenanceDevices
 GET api/MaintenanceDevices/GetAll → ViewMaintenanceDevices
@@ -234,6 +238,14 @@ POST api/DeviceSites/Import → CreateDevice
 POST api/DeviceTypes/Create → CreateMaintenanceLookup
 POST api/Devices/Create → CreateDevice
 POST api/EvaluationCriteria/Create → CreateEvaluationCriterion
+POST api/Handovers/Cancel/{id} → ManageHandover
+POST api/Handovers/Committee/{id} → ManageHandover
+POST api/Handovers/Conclude/{id} → ManageHandover
+POST api/Handovers/Note/{noteId}/Fix → FollowHandoverNotes
+POST api/Handovers/Note/{noteId}/Reject → FollowHandoverNotes
+POST api/Handovers/Note/{noteId}/Verify → FollowHandoverNotes
+POST api/Handovers/Notes/{id} → FollowHandoverNotes
+POST api/Handovers/Request → RequestHandover
 POST api/MaintenanceDevices/Create → CreateMaintenanceDevice
 POST api/MaintenanceRequestStatuses/Create → CreateMaintenanceLookup
 POST api/MaintenanceRequests/Create → CreateMaintenanceRequest
@@ -313,6 +325,8 @@ PUT api/DeviceSites/Verify/{id} → EditDevice
 PUT api/DeviceTypes/Update/{id} → EditMaintenanceLookup
 PUT api/Devices/Update/{id} → EditDevice
 PUT api/EvaluationCriteria/Update/{id} → EditEvaluationCriterion
+PUT api/Handovers/Committee/{id} → ManageHandover
+PUT api/Handovers/Note/{noteId} → FollowHandoverNotes
 PUT api/MaintenanceDevices/Update/{id} → EditMaintenanceDevice
 PUT api/MaintenanceRequestStatuses/Update/{id} → EditMaintenanceLookup
 PUT api/MaintenanceRequests/Assign/{id} → AssignMaintenanceRequest

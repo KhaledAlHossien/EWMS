@@ -20,8 +20,11 @@ namespace Application.Features.AssignedTasks
         private readonly IProjectService _projects;
         private readonly IDiwanService _diwan;
         private readonly IStudyService _studies;
+        private readonly IContractService _contracts;
+        private readonly IHandoverService _handovers;
 
-        public TaskLinkResolver(IMaintenanceRequestService maintenance, IVacationService vacations, ISiteService sites, IProjectService projects, IDiwanService diwan, IStudyService studies)
+        public TaskLinkResolver(IMaintenanceRequestService maintenance, IVacationService vacations, ISiteService sites, IProjectService projects, IDiwanService diwan, IStudyService studies,
+            IContractService contracts, IHandoverService handovers)
         {
             _maintenance = maintenance;
             _vacations = vacations;
@@ -29,6 +32,8 @@ namespace Application.Features.AssignedTasks
             _projects = projects;
             _diwan = diwan;
             _studies = studies;
+            _contracts = contracts;
+            _handovers = handovers;
         }
 
         public sealed record Described(bool Exists, bool Available, string Label);
@@ -40,6 +45,8 @@ namespace Application.Features.AssignedTasks
             TaskLinkType.Project => "مشروع",
             TaskLinkType.Correspondence => "معاملة",
             TaskLinkType.Study => "دراسة",
+            TaskLinkType.Contract => "عقد",
+            TaskLinkType.Handover => "استلام",
             _ => "موقع"
         };
 
@@ -73,6 +80,18 @@ namespace Application.Features.AssignedTasks
         private static bool CanViewStudy(Viewer viewer, Domain.Entities.StudyOrder study)
         {
             try { Features.Studies.StudyRules.EnsureCanView(viewer, study.Project); return true; }
+            catch (UnauthorizedAccessException) { return false; }
+        }
+
+        private static bool CanViewContract(Viewer viewer, Domain.Entities.Contract contract)
+        {
+            try { Features.Contracts.ContractRules.EnsureCanView(viewer, contract.Project); return true; }
+            catch (UnauthorizedAccessException) { return false; }
+        }
+
+        private static bool CanViewHandover(Viewer viewer, Domain.Entities.HandoverRecord record)
+        {
+            try { Features.Handover.HandoverRules.EnsureCanView(viewer, record.Project); return true; }
             catch (UnauthorizedAccessException) { return false; }
         }
 
@@ -114,6 +133,20 @@ namespace Application.Features.AssignedTasks
                     if (study == null) return new(false, false, string.Empty);
                     return CanViewStudy(viewer, study)
                         ? new(true, true, $"{Features.Studies.StudyRules.Number(study.Id, study.CreatedAt)} — {study.Title}")
+                        : new(true, false, string.Empty);
+
+                case TaskLinkType.Contract:
+                    var contract = await _contracts.GetByIdAsync(id);
+                    if (contract == null) return new(false, false, string.Empty);
+                    return CanViewContract(viewer, contract)
+                        ? new(true, true, $"{Features.Contracts.ContractRules.Number(contract.Id, contract.CreatedAt)} — {contract.Project.Name}")
+                        : new(true, false, string.Empty);
+
+                case TaskLinkType.Handover:
+                    var handover = await _handovers.GetByIdAsync(id);
+                    if (handover == null) return new(false, false, string.Empty);
+                    return CanViewHandover(viewer, handover)
+                        ? new(true, true, $"{Features.Handover.HandoverRules.Number(handover.Id, handover.CreatedAt)} — {handover.Project.Name} ({Features.Handover.HandoverRules.KindAr(handover.Kind)})")
                         : new(true, false, string.Empty);
 
                 default:

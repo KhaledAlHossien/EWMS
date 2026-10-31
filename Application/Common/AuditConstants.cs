@@ -55,5 +55,6 @@ namespace Application.Common
         public const string Contractor = "Contractor";
         public const string EvaluationCriterion = "EvaluationCriterion";
         public const string ContractEvaluation = "ContractorEvaluation";
+        public const string Handover = "HandoverRecord";
     }
 }

@@ -289,6 +289,30 @@ namespace Infrastructure.Persistence.Repositories
             await SaveAsync();
         }
 
+        // ───────── التذكيرات ─────────
+
+        public Task<List<Contract>> GetWarrantyCandidatesAsync(DateTime today, int windowDays, int take)
+        {
+            var day = today.Date;
+            var until = day.AddDays(windowDays);
+            return _context.Contracts.AsNoTracking()
+                .Include(c => c.Project).ThenInclude(p => p.Members).ThenInclude(m => m.User)
+                .Where(c => (c.Status == ContractStatus.Active || c.Status == ContractStatus.Completed)
+                            && c.WarrantyEnd != null && c.WarrantyEnd >= day && c.WarrantyEnd <= until
+                            && (c.WarrantyNotifiedFor == null || c.WarrantyNotifiedFor != c.WarrantyEnd))
+                .OrderBy(c => c.WarrantyEnd).ThenBy(c => c.Id).Take(take).AsSplitQuery().ToListAsync();
+        }
+
+        public Task MarkWarrantyNotifiedAsync(int contractId, DateTime warrantyEnd) =>
+            _context.Contracts.Where(c => c.Id == contractId && c.WarrantyEnd == warrantyEnd)
+                .ExecuteUpdateAsync(s => s.SetProperty(c => c.WarrantyNotifiedFor, warrantyEnd));
+
+        // ───────── ملف المشروع ─────────
+
+        public Task<List<Contract>> GetByProjectAsync(int projectId) =>
+            _context.Contracts.AsNoTracking().Include(c => c.RetentionEntries).ThenInclude(r => r.Decisions)
+                .Where(c => c.ProjectId == projectId).AsSplitQuery().ToListAsync();
+
         // ───────── الوثائق ─────────
 
         public Task<ProjectDocumentVersion?> GetVersionAsync(int versionId) =>

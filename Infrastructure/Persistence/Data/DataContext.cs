@@ -1580,6 +1580,7 @@ namespace Infrastructure.Persistence.Data
                 entity.Property(n => n.Description).HasMaxLength(2000).IsRequired();
                 entity.Property(n => n.ResponsibleName).HasMaxLength(150);
                 entity.Property(n => n.DueDate).HasColumnType("date");
+                entity.Property(n => n.OverdueNotifiedFor).HasColumnType("date");
                 entity.Property(n => n.Status).HasConversion<int>();
                 entity.Property(n => n.FixNote).HasMaxLength(1000);
                 entity.Property(n => n.RowVersion).IsRowVersion();

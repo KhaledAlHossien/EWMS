@@ -40,39 +40,6 @@ namespace Application.Features.Contracts
         }
     }
 
-    internal static class CommitteeInput
-    {
-        /// <summary>
-        /// الأعضاء والتشكيل بعد التحقق: الموظفون نشطون ومن فرع المشروع، والرئيس واحد، والتاريخ معقول — وتُحمَّل أسماؤهم لعرضها.
-        /// </summary>
-        public static async Task<(List<CommitteeMember> Members, ProjectDocumentVersion? Decision)> ResolveAsync(ContractContext ctx, Contract contract, CommitteeRequestDto dto)
-        {
-            var inputs = dto.Members.Select(m => new ContractRules.MemberInput(m.UserId, m.ExternalName, m.Capacity, m.IsChair)).ToList();
-            if (ContractRules.ValidateMembers(inputs) is string members) throw new InvalidOperationException(members);
-            if (ContractRules.ValidateCommittee(dto.DecisionNumber, dto.Recommendations, dto.FormedAt, DateTime.Today) is string committee) throw new InvalidOperationException(committee);
-
-            var result = new List<CommitteeMember>();
-            foreach (var m in dto.Members)
-            {
-                User? user = null;
-                if (m.UserId is int id)
-                {
-                    user = await ctx.Users.GetByIdAsync(id) ?? throw new KeyNotFoundException("موظف غير موجود");
-                    if (!user.IsActive) throw new InvalidOperationException($"حساب «{user.FullName}» معطّل");
-                    if (!OrganizationRole.InBranch(user, contract.BranchId)) throw new InvalidOperationException($"«{user.FullName}» من فرع آخر");
-                }
-                result.Add(new CommitteeMember
-                {
-                    UserId = user?.Id, User = user, ExternalName = user == null ? m.ExternalName!.Trim() : null, Capacity = m.Capacity.Trim(), IsChair = m.IsChair
-                });
-            }
-            return (result, await ctx.ResolveVersionAsync(dto.DecisionVersionId, contract.ProjectId));
-        }
-
-        public static string Describe(IEnumerable<CommitteeMember> members) =>
-            string.Join("، ", members.OrderByDescending(m => m.IsChair).Select(m => $"{(m.User?.FullName ?? m.ExternalName)} ({m.Capacity}{(m.IsChair ? "، رئيس" : string.Empty)})"));
-    }
-
     public class CreateCommitteeHandler(ContractContext ctx) : IRequestHandler<CreateCommitteeCommand, ContractDetailDto>
     {
         public async Task<ContractDetailDto> Handle(CreateCommitteeCommand request, CancellationToken ct)
@@ -81,7 +48,8 @@ namespace Application.Features.Contracts
             var dto = request.Dto;
             var contract = await ctx.LoadAsync(viewer, request.ContractId);
             ContractRules.EnsureCanManageCommittee(viewer, contract);
-            var (members, decision) = await CommitteeInput.ResolveAsync(ctx, contract, dto);
+            var members = await CommitteeInput.ResolveMembersAsync(ctx.Users, contract.BranchId, dto);
+            var decision = await ctx.ResolveVersionAsync(dto.DecisionVersionId, contract.ProjectId);
 
             var committee = new Committee
             {
@@ -105,7 +73,8 @@ namespace Application.Features.Contracts
             var dto = request.Dto;
             var (contract, committee) = await ctx.LoadCommitteeAsync(viewer, request.CommitteeId);
             ContractRules.EnsureCanManageCommittee(viewer, contract);
-            var (members, decision) = await CommitteeInput.ResolveAsync(ctx, contract, dto);
+            var members = await CommitteeInput.ResolveMembersAsync(ctx.Users, contract.BranchId, dto);
+            var decision = await ctx.ResolveVersionAsync(dto.DecisionVersionId, contract.ProjectId);
 
             var removed = committee.Members.ToList();
             var details = Lines(

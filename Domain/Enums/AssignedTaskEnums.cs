@@ -60,6 +60,8 @@ namespace Domain.Enums
         Site = 3,
         Project = 4,
         Correspondence = 5,
-        Study = 6
+        Study = 6,
+        Contract = 7,
+        Handover = 8
     }
 }

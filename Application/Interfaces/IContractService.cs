@@ -71,6 +71,15 @@ namespace Application.Interfaces
         Task SaveEvaluationAsync(Contract contract, ContractorEvaluation evaluation, IReadOnlyCollection<EvaluationScore> removed, byte[]? rowVersion, AuditEntry audit);
         Task DeleteEvaluationAsync(Contract contract, ContractorEvaluation evaluation, AuditEntry audit);
 
+        // ───────── التذكيرات ─────────
+        /// <summary>عقود (سارية أو منجزة) ينتهي ضمانها خلال النافذة ولم يُنبَّه عن نهايتها بعد (بمشروعها ومشاركيه لتحديد المخوَّلين)</summary>
+        Task<List<Contract>> GetWarrantyCandidatesAsync(DateTime today, int windowDays, int take);
+        Task MarkWarrantyNotifiedAsync(int contractId, DateTime warrantyEnd);
+
+        // ───────── ملف المشروع ─────────
+        /// <summary>عقود المشروع بمحتجزاتها وقراراتها (لتنبيه الإغلاق)</summary>
+        Task<List<Contract>> GetByProjectAsync(int projectId);
+
         // ───────── الوثائق ─────────
         /// <summary>إصدار من إضبارة المشروع (لتثبيته في ملحق أو قرار أو تقييم)</summary>
         Task<ProjectDocumentVersion?> GetVersionAsync(int versionId);

@@ -41,6 +41,7 @@ namespace Application
             services.AddScoped<Application.Features.Diwan.DiwanContext>();
             services.AddScoped<Application.Features.Studies.StudyContext>();
             services.AddScoped<Application.Features.Contracts.ContractContext>();
+            services.AddScoped<Application.Features.Handover.HandoverContext>();
 
             return services;
         }

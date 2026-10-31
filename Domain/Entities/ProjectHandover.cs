@@ -102,6 +102,9 @@ namespace Domain.Entities
         public int? EvidenceVersionId { get; set; }
         public ProjectDocumentVersion? EvidenceVersion { get; set; }
 
+        /// <summary>موعد المعالجة الذي نُبّه عن تجاوزه (مرة لكل موعد؛ تغيير الموعد يسمح بتنبيه جديد)</summary>
+        public DateTime? OverdueNotifiedFor { get; set; }
+
         public DateTime CreatedAt { get; set; }
         public byte[] RowVersion { get; set; } = [];
     }

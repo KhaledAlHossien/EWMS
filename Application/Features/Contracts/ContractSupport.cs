@@ -127,16 +127,7 @@ namespace Application.Features.Contracts
                 ApprovedAt = a.ApprovedAt, DocumentVersionId = a.DocumentVersionId, RecordedByName = a.RecordedByUser?.FullName ?? string.Empty, RecordedAt = a.RecordedAt
             }).ToList();
 
-            var canCommittee = dto.CanManageCommittee;
-            dto.Committees = c.Committees.OrderBy(x => x.FormedAt).ThenBy(x => x.Id).Select(x => new CommitteeDto
-            {
-                Id = x.Id, Kind = (int)x.Kind, KindAr = ContractRules.CommitteeKindAr(x.Kind), FormedAt = x.FormedAt, DecisionNumber = x.DecisionNumber,
-                DecisionVersionId = x.DecisionVersionId, Recommendations = x.Recommendations, CanEdit = canCommittee, RowVersion = x.RowVersion,
-                Members = x.Members.OrderByDescending(m => m.IsChair).ThenBy(m => m.Id).Select(m => new CommitteeMemberDto
-                {
-                    UserId = m.UserId, Name = m.User?.FullName ?? m.ExternalName ?? string.Empty, IsExternal = m.UserId == null, Capacity = m.Capacity, IsChair = m.IsChair
-                }).ToList()
-            }).ToList();
+            dto.Committees = c.Committees.OrderBy(x => x.FormedAt).ThenBy(x => x.Id).Select(x => ToCommittee(x, dto.CanManageCommittee)).ToList();
 
             dto.Retention = c.RetentionEntries.OrderBy(e => e.WithheldAt).ThenBy(e => e.Id).Select(e =>
             {
@@ -158,6 +149,17 @@ namespace Application.Features.Contracts
                 .Select(e => ToEvaluation(c, e, viewer)).ToList();
             return dto;
         }
+
+        /// <summary>لجنة (فنية ومالية لعقد، أو لجنة استلام) بأعضائها</summary>
+        public static CommitteeDto ToCommittee(Committee x, bool canEdit) => new()
+        {
+            Id = x.Id, Kind = (int)x.Kind, KindAr = ContractRules.CommitteeKindAr(x.Kind), FormedAt = x.FormedAt, DecisionNumber = x.DecisionNumber,
+            DecisionVersionId = x.DecisionVersionId, Recommendations = x.Recommendations, CanEdit = canEdit, RowVersion = x.RowVersion,
+            Members = x.Members.OrderByDescending(m => m.IsChair).ThenBy(m => m.Id).Select(m => new CommitteeMemberDto
+            {
+                UserId = m.UserId, Name = m.User?.FullName ?? m.ExternalName ?? string.Empty, IsExternal = m.UserId == null, Capacity = m.Capacity, IsChair = m.IsChair
+            }).ToList()
+        };
 
         public static ContractEvaluationDto ToEvaluation(Contract c, ContractorEvaluation e, Viewer viewer)
         {

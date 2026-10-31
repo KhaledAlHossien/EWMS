@@ -44,7 +44,7 @@ public class ProjectMembersAndLinksTests
 
     // ───────── ربط المهام بمشروع: من لا يرى المشروع يعرف أن هناك رابطاً دون أي بيانات عنه ─────────
 
-    private static TaskLinkResolver ResolverFor(Project? project) => new(null!, null!, null!, new StubProjects(project), null!, null!);
+    private static TaskLinkResolver ResolverFor(Project? project) => new(null!, null!, null!, new StubProjects(project), null!, null!, null!, null!);
 
     [Fact]
     public async Task A_task_link_to_a_visible_project_shows_its_number_and_name()

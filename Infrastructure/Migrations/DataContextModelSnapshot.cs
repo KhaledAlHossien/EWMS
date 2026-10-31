@@ -1754,6 +1754,9 @@ namespace Infrastructure.Migrations
                     b.Property<int>("HandoverRecordId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("OverdueNotifiedFor")
+                        .HasColumnType("date");
+
                     b.Property<string>("ResponsibleName")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
