@@ -96,6 +96,7 @@ namespace Infrastructure
             services.AddScoped<IProjectService, ProjectService>();
             services.AddScoped<IDiwanService, DiwanService>();
             services.AddScoped<IStudyService, StudyService>();
+            services.AddScoped<IContractService, ContractService>();
             services.AddScoped<IAuditLogService, AuditLogService>();
             services.AddScoped<IScheduleService, ScheduleService>();
             services.AddScoped<IScheduleChangeService, ScheduleChangeService>();

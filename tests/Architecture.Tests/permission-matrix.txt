@@ -5,6 +5,8 @@ DELETE api/AssignedTasks/Link/{linkId} → ViewTaskBoard
 DELETE api/AssignedTasks/Recurrences/{id} → ViewTaskBoard
 DELETE api/AssignedTasks/Templates/{id} → ViewTaskBoard
 DELETE api/Branches/Delete/{id} → DeleteBranch
+DELETE api/Contractors/Delete/{id} → DeleteContractor
+DELETE api/Contracts/Evaluation/{id} → EvaluateContractor
 DELETE api/Correspondence/Attachment/{id} → RegisterCorrespondence
 DELETE api/CorrespondenceStatuses/Delete/{id} → DeleteCorrespondenceLookup
 DELETE api/CorrespondenceTypes/Delete/{id} → DeleteCorrespondenceLookup
@@ -15,6 +17,7 @@ DELETE api/DeviceCompanies/Delete/{id} → DeleteMaintenanceLookup
 DELETE api/DeviceSites/Delete/{id} → DeleteDevice
 DELETE api/DeviceTypes/Delete/{id} → DeleteMaintenanceLookup
 DELETE api/Devices/Delete/{id} → DeleteDevice
+DELETE api/EvaluationCriteria/Delete/{id} → DeleteEvaluationCriterion
 DELETE api/MaintenanceDevices/Delete/{id} → DeleteMaintenanceDevice
 DELETE api/MaintenanceRequestStatuses/Delete/{id} → DeleteMaintenanceLookup
 DELETE api/MaintenanceRequests/Delete/{id} → DeleteMaintenanceRequest
@@ -55,6 +58,10 @@ GET api/AssignedTasks/Targets → ViewTaskBoard
 GET api/AssignedTasks/Templates → ViewTaskBoard
 GET api/Branches/Get/{id} → ViewBranches
 GET api/Branches/GetAll → ViewBranches
+GET api/Contractors/Evaluations/{id} → ViewContractorEvaluations
+GET api/Contractors/GetAll → AnyContractorView
+GET api/Contracts/Get/{id} → AnyContractView
+GET api/Contracts/Search → AnyContractView
 GET api/Correspondence/Attachment/{id} → AnyCorrespondenceView
 GET api/Correspondence/Get/{id} → AnyCorrespondenceView
 GET api/Correspondence/History/{id} → AnyCorrespondenceView
@@ -89,6 +96,7 @@ GET api/DeviceTypes/GetAll → ViewMaintenanceLookups
 GET api/Devices/Get/{id} → AnyDeviceView
 GET api/Devices/GetAll → AnyDeviceView
 GET api/Devices/History/{id} → AnyDeviceView
+GET api/EvaluationCriteria/GetAll → AnyEvaluationCriterionView
 GET api/MaintenanceDevices/BySerial → ViewMaintenanceDevices
 GET api/MaintenanceDevices/Get/{id} → ViewMaintenanceDevices
 GET api/MaintenanceDevices/GetAll → ViewMaintenanceDevices
@@ -194,6 +202,19 @@ POST api/AssignedTasks/Recurrences → ViewTaskBoard
 POST api/AssignedTasks/Recurrences/{id}/RunNow → ViewTaskBoard
 POST api/AssignedTasks/Templates → ViewTaskBoard
 POST api/Branches/Create → CreateBranch
+POST api/Contractors/Create → CreateContractor
+POST api/Contracts/Amendments/{contractId} → AddContractAmendment
+POST api/Contracts/Award/{offerId} → EditContract
+POST api/Contracts/Committees/{contractId} → ManageContractCommittees
+POST api/Contracts/Create → CreateContract
+POST api/Contracts/Evaluation/{id}/Return → ReviewContractorEvaluation
+POST api/Contracts/Evaluation/{id}/Review → ReviewContractorEvaluation
+POST api/Contracts/Evaluation/{id}/Submit → EvaluateContractor
+POST api/Contracts/Evaluations/{contractId} → EvaluateContractor
+POST api/Contracts/Offers/{contractId} → EditContract
+POST api/Contracts/Retention/{contractId} → RecordContractRetention
+POST api/Contracts/RetentionDecision/{entryId} → RecordContractRetention
+POST api/Contracts/Status/{id} → EditContract
 POST api/Correspondence/Acknowledge/{id} → HandleCorrespondence
 POST api/Correspondence/Attachments/{id} → AnyCorrespondenceWrite
 POST api/Correspondence/CreateDraft → RegisterCorrespondence
@@ -212,6 +233,7 @@ POST api/DeviceSites/Create → CreateDevice
 POST api/DeviceSites/Import → CreateDevice
 POST api/DeviceTypes/Create → CreateMaintenanceLookup
 POST api/Devices/Create → CreateDevice
+POST api/EvaluationCriteria/Create → CreateEvaluationCriterion
 POST api/MaintenanceDevices/Create → CreateMaintenanceDevice
 POST api/MaintenanceRequestStatuses/Create → CreateMaintenanceLookup
 POST api/MaintenanceRequests/Create → CreateMaintenanceRequest
@@ -274,6 +296,10 @@ PUT api/AssignedTasks/Status/{id} → ViewTaskBoard
 PUT api/AssignedTasks/Templates/{id} → ViewTaskBoard
 PUT api/AssignedTasks/Update/{id} → ViewTaskBoard
 PUT api/Branches/Update/{id} → EditBranch
+PUT api/Contractors/Update/{id} → EditContractor
+PUT api/Contracts/Committee/{committeeId} → ManageContractCommittees
+PUT api/Contracts/Evaluation/{id} → EvaluateContractor
+PUT api/Contracts/Update/{id} → EditContract
 PUT api/Correspondence/Status/{id} → HandleCorrespondence
 PUT api/Correspondence/Update/{id} → AnyCorrespondenceWrite
 PUT api/CorrespondenceStatuses/Update/{id} → EditCorrespondenceLookup
@@ -286,6 +312,7 @@ PUT api/DeviceSites/Update/{id} → EditDevice
 PUT api/DeviceSites/Verify/{id} → EditDevice
 PUT api/DeviceTypes/Update/{id} → EditMaintenanceLookup
 PUT api/Devices/Update/{id} → EditDevice
+PUT api/EvaluationCriteria/Update/{id} → EditEvaluationCriterion
 PUT api/MaintenanceDevices/Update/{id} → EditMaintenanceDevice
 PUT api/MaintenanceRequestStatuses/Update/{id} → EditMaintenanceLookup
 PUT api/MaintenanceRequests/Assign/{id} → AssignMaintenanceRequest

@@ -44,6 +44,9 @@
         StudyDeliverableDecided = 62,         // اعتُمد مخرج أعددتَه أو أُعيد إليك
         StudyDeliverableOverdue = 63,         // مخرج دراسة تجاوز موعده (مرشّح للمتابعة)
         StudySentToCenter = 64,               // أُرسلت دراسة إلى المركزية
-        StudyCenterDecided = 65               // سُجّل قرار المركزية على دراسة
+        StudyCenterDecided = 65,              // سُجّل قرار المركزية على دراسة
+        ContractEvaluationSubmitted = 70,     // تقييم مقاول بانتظار مراجعتك
+        ContractEvaluationReviewed = 71,      // حُفظ تقييم أعددتَه في ملف المقاول
+        ContractEvaluationReturned = 72       // أُعيد إليك تقييم مقاول لاستكماله
     }
 }
