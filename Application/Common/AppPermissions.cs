@@ -346,6 +346,8 @@ namespace Application.Common
             // التسعير: من يسجّل أو يكلّف أو يعدّ العروض أو يعتمد أو يرسل يدخل القائمة، والحدّ الدقيق في PricingRules داخل المعالج
             ["AnyPricingRequestView"] = ["ViewPricingRequests", "RegisterPricingRequest", "AssignPricingRequest", "PreparePricingOffers", "ApprovePricingRequest", "SendPricingResult"],
             ["AnyPricingAgreementView"] = ["ViewPricingAgreements", "PreparePricingAgreement", "ApprovePricingAgreement"],
+            // تعديل طلب التسعير وإلغاؤه: لمقدّمه (قبل التكليف) أو لصاحب التكليف؛ والحدّ الدقيق في PricingRules داخل المعالج
+            ["AnyPricingRequestEdit"] = ["RegisterPricingRequest", "AssignPricingRequest"],
         };
 
         // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة

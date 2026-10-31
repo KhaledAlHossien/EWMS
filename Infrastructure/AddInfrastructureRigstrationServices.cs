@@ -100,6 +100,7 @@ namespace Infrastructure
             services.AddScoped<IStudyService, StudyService>();
             services.AddScoped<IContractService, ContractService>();
             services.AddScoped<IHandoverService, HandoverService>();
+            services.AddScoped<IPricingService, PricingService>();
             services.AddScoped<IAuditLogService, AuditLogService>();
             services.AddScoped<IScheduleService, ScheduleService>();
             services.AddScoped<IScheduleChangeService, ScheduleChangeService>();

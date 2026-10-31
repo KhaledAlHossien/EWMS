@@ -53,6 +53,13 @@
         HandoverConcluded = 75,               // سُجّلت نتيجة طلب استلام قدّمته
         HandoverNoteAssigned = 76,            // أُسندت إليك ملاحظة استلام (أو أُعيدت إليك معالجتها)
         HandoverNoteFixed = 77,               // عولجت ملاحظة استلام وتنتظر التحقق
-        HandoverNoteOverdue = 78              // ملاحظة استلام تجاوزت موعد معالجتها
+        HandoverNoteOverdue = 78,             // ملاحظة استلام تجاوزت موعد معالجتها
+        PricingRequestAssigned = 80,          // كُلِّفت بطلب تسعير
+        PricingRecommendationAwaiting = 81,   // توصية في طلب تسعير بانتظار اعتمادك
+        PricingRequestDecided = 82,           // اعتُمد أو رُفض أو أُعيد طلب تسعير أوصيتَ فيه
+        PricingResultSent = 83,               // أُرسلت إليك نتيجة طلب تسعير قدّمته
+        PricingAgreementAwaiting = 84,        // محضر اتفاق بانتظار اعتمادك
+        PricingAgreementDecided = 85,         // اعتُمد أو أُعيد محضر اتفاق أعددتَه
+        PricingRequestOverdue = 86            // طلب تسعير تجاوز موعده (مرشّح متابعة)
     }
 }
