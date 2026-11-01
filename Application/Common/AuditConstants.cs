@@ -58,5 +58,6 @@ namespace Application.Common
         public const string Handover = "HandoverRecord";
         public const string PricingRequest = "PricingRequest";
         public const string PricingAgreement = "PricingAgreement";
+        public const string ReferencePrice = "ReferencePrice";
     }
 }

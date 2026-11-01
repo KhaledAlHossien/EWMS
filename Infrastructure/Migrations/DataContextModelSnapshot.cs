@@ -3733,6 +3733,138 @@ namespace Infrastructure.Migrations
                     b.ToTable("PublicHolidays");
                 });
 
+            modelBuilder.Entity("Domain.Entities.ReferencePrice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApprovalNote")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ApprovedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CorrectionReason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<int?>("DocumentVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ItemCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("PriceDate")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SourceDocument")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Specifications")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SupersedesPriceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DocumentVersionId");
+
+                    b.HasIndex("PriceDate");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("SupersedesPriceId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ReferencePrices_OneCorrection")
+                        .HasFilter("[SupersedesPriceId] IS NOT NULL");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasIndex("BranchId", "ItemCode");
+
+                    b.HasIndex("BranchId", "ItemName");
+
+                    b.HasIndex("BranchId", "Status");
+
+                    b.ToTable("ReferencePrices", t =>
+                        {
+                            t.HasCheckConstraint("CK_ReferencePrices_Price", "[UnitPrice] >= 0");
+                        });
+                });
+
             modelBuilder.Entity("Domain.Entities.ReportExportLog", b =>
                 {
                     b.Property<int>("Id")
@@ -6731,6 +6863,61 @@ namespace Infrastructure.Migrations
                     b.Navigation("Project");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ReferencePrice", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.ProjectDocumentVersion", "DocumentVersion")
+                        .WithMany()
+                        .HasForeignKey("DocumentVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.ReferencePrice", "SupersedesPrice")
+                        .WithMany()
+                        .HasForeignKey("SupersedesPriceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Contractor", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ApprovedByUser");
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("DocumentVersion");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("SupersedesPrice");
+
+                    b.Navigation("Supplier");
                 });
 
             modelBuilder.Entity("Domain.Entities.ReportExportLog", b =>

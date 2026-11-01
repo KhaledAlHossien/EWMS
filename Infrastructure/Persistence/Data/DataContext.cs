@@ -69,6 +69,7 @@ namespace Infrastructure.Persistence.Data
         public DbSet<PricingOfferLine> PricingOfferLines { get; set; }
         public DbSet<PricingAgreement> PricingAgreements { get; set; }
         public DbSet<PricingAgreementLine> PricingAgreementLines { get; set; }
+        public DbSet<ReferencePrice> ReferencePrices { get; set; }
         public DbSet<ProjectMember> ProjectMembers { get; set; }
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectDocumentVersion> ProjectDocumentVersions { get; set; }
@@ -1727,6 +1728,43 @@ namespace Infrastructure.Persistence.Data
                 });
                 entity.HasOne(l => l.PricingAgreement).WithMany(a => a.Lines).HasForeignKey(l => l.PricingAgreementId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasIndex(l => new { l.PricingAgreementId, l.SortOrder });
+            });
+
+            // الأسعار المرجعية: سجل تاريخي لا يُعدَّل سعره ولا يُحذف؛ التصحيح بسجل جديد يشير إلى المُصحَّح (مفتاح أجنبي ذاتي)، ولا يُصحَّح السجل إلا مرة واحدة
+            builder.Entity<ReferencePrice>(entity =>
+            {
+                entity.Property(p => p.ItemCode).HasMaxLength(50);
+                entity.Property(p => p.ItemName).HasMaxLength(200).IsRequired();
+                entity.Property(p => p.Specifications).HasMaxLength(2000);
+                entity.Property(p => p.Unit).HasMaxLength(30).IsRequired();
+                entity.Property(p => p.UnitPrice).HasPrecision(18, 4);
+                entity.Property(p => p.Currency).HasMaxLength(3).IsRequired();
+                entity.Property(p => p.PriceDate).HasColumnType("date");
+                entity.Property(p => p.Source).HasConversion<int>();
+                entity.Property(p => p.SourceDocument).HasMaxLength(200);
+                entity.Property(p => p.Notes).HasMaxLength(2000);
+                entity.Property(p => p.Status).HasConversion<int>();
+                entity.Property(p => p.ApprovalNote).HasMaxLength(1000);
+                entity.Property(p => p.CorrectionReason).HasMaxLength(1000);
+                entity.Property(p => p.RowVersion).IsRowVersion();
+                entity.ToTable(t => t.HasCheckConstraint("CK_ReferencePrices_Price", "[UnitPrice] >= 0"));
+                entity.HasOne(p => p.Branch).WithMany().HasForeignKey(p => p.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(p => p.Supplier).WithMany().HasForeignKey(p => p.SupplierId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(p => p.Project).WithMany().HasForeignKey(p => p.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(p => p.DocumentVersion).WithMany().HasForeignKey(p => p.DocumentVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(p => p.CreatedByUser).WithMany().HasForeignKey(p => p.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(p => p.ApprovedByUser).WithMany().HasForeignKey(p => p.ApprovedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(p => p.SupersedesPrice).WithMany().HasForeignKey(p => p.SupersedesPriceId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(p => p.SupersedesPriceId).IsUnique().HasFilter("[SupersedesPriceId] IS NOT NULL").HasDatabaseName("IX_ReferencePrices_OneCorrection");
+                entity.HasIndex(p => new { p.BranchId, p.Status });
+                entity.HasIndex(p => new { p.BranchId, p.ItemCode });
+                entity.HasIndex(p => new { p.BranchId, p.ItemName });
+                entity.HasIndex(p => p.PriceDate);
+                entity.HasIndex(p => p.SupplierId);
+                entity.HasIndex(p => p.ProjectId);
+                entity.HasIndex(p => p.DocumentVersionId);
+                entity.HasIndex(p => p.CreatedByUserId);
+                entity.HasIndex(p => p.ApprovedByUserId);
             });
         }
     }

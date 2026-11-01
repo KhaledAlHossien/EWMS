@@ -83,6 +83,7 @@ namespace Infrastructure
             services.AddScoped<IReport, Infrastructure.Reports.ContractorEvaluationsReport>();
             services.AddScoped<IReport, Infrastructure.Reports.PricingRequestsReport>();
             services.AddScoped<IReport, Infrastructure.Reports.PricingAgreementsReport>();
+            services.AddScoped<IReport, Infrastructure.Reports.ReferencePricesReport>();
             services.AddScoped<IReport, Infrastructure.Reports.CorrespondenceRegisterReport>();
             services.AddScoped<IReport, Infrastructure.Reports.OverdueCorrespondenceReport>();
 
@@ -103,6 +104,7 @@ namespace Infrastructure
             services.AddScoped<IContractService, ContractService>();
             services.AddScoped<IHandoverService, HandoverService>();
             services.AddScoped<IPricingService, PricingService>();
+            services.AddScoped<IReferencePriceService, ReferencePriceService>();
             services.AddScoped<IAuditLogService, AuditLogService>();
             services.AddScoped<IScheduleService, ScheduleService>();
             services.AddScoped<IScheduleChangeService, ScheduleChangeService>();

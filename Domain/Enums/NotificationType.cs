@@ -60,6 +60,8 @@
         PricingResultSent = 83,               // أُرسلت إليك نتيجة طلب تسعير قدّمته
         PricingAgreementAwaiting = 84,        // محضر اتفاق بانتظار اعتمادك
         PricingAgreementDecided = 85,         // اعتُمد أو أُعيد محضر اتفاق أعددتَه
-        PricingRequestOverdue = 86            // طلب تسعير تجاوز موعده (مرشّح متابعة)
+        PricingRequestOverdue = 86,           // طلب تسعير تجاوز موعده (مرشّح متابعة)
+        ReferencePriceAwaiting = 87,          // سعر مرجعي (جديد أو بديل مصحِّح) بانتظار اعتمادك
+        ReferencePriceApproved = 88           // اعتُمد سعر مرجعي أضفتَه للاستخدام الحالي
     }
 }

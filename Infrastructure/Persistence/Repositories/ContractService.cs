@@ -55,7 +55,8 @@ namespace Infrastructure.Persistence.Repositories
             || await _context.ContractOffers.AnyAsync(o => o.ContractorId == id)
             || await _context.ContractorEvaluations.AnyAsync(e => e.ContractorId == id)
             || await _context.PricingOffers.AnyAsync(o => o.SupplierId == id)
-            || await _context.PricingAgreements.AnyAsync(a => a.SupplierId == id);
+            || await _context.PricingAgreements.AnyAsync(a => a.SupplierId == id)
+            || await _context.ReferencePrices.AnyAsync(p => p.SupplierId == id);
 
         public Task<List<ContractorEvaluation>> GetContractorEvaluationsAsync(int contractorId, Expression<Func<Project, bool>> visibleProjects)
         {

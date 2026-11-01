@@ -275,7 +275,10 @@ namespace Application.Common
             new("ViewPricingAgreements",        "عرض محاضر الاتفاق مع المتعهدين الجدد في فرعه"),
             new("PreparePricingAgreement",      "إعداد محضر اتفاق مع متعهد جديد وتعديله وإرساله للاعتماد (لمدير مكتب التسعير وحده)"),
             new("ApprovePricingAgreement",      "اعتماد محضر اتفاق مرسل أو إعادته للتصحيح (غير من أعدّه)"),
-            new("ExportPricingReport",          "سحب تقارير التسعير (الطلبات والمحاضر في فرعه)"),
+            new("ExportPricingReport",          "سحب تقارير التسعير (الطلبات والمحاضر والأسعار المرجعية في فرعه)"),
+            new("ViewReferencePrices",          "عرض الأسعار المرجعية وتاريخها في فرعه"),
+            new("AddReferencePrice",            "إضافة سعر مرجعي بمصدره وتاريخه، أو تصحيحه بسجل بديل (لا تعديل ولا حذف)"),
+            new("ApproveReferencePrice",        "اعتماد سعر مرجعي للاستخدام الحالي (غير من أضافه)"),
         ];
 
         /// <summary>
@@ -338,7 +341,7 @@ namespace Application.Common
             // قائمة المقاولين: لكل من يتعاقد أو يقيّم أو يفلتر
             ["AnyContractorView"] = ["ViewContractors", "CreateContractor", "EditContractor", "DeleteContractor",
                 "ViewContracts", "CreateContract", "EditContract", "EvaluateContractor", "ViewContractorEvaluations",
-                "PreparePricingOffers", "PreparePricingAgreement"],
+                "PreparePricingOffers", "PreparePricingAgreement", "AddReferencePrice"],
             // معايير التقييم: لكل من يقيّم أو يراجع أو يديرها
             ["AnyEvaluationCriterionView"] = ["ViewEvaluationCriteria", "CreateEvaluationCriterion", "EditEvaluationCriterion", "DeleteEvaluationCriterion",
                 "EvaluateContractor", "ReviewContractorEvaluation"],
@@ -349,6 +352,8 @@ namespace Application.Common
             ["AnyPricingAgreementView"] = ["ViewPricingAgreements", "PreparePricingAgreement", "ApprovePricingAgreement"],
             // تعديل طلب التسعير وإلغاؤه: لمقدّمه (قبل التكليف) أو لصاحب التكليف؛ والحدّ الدقيق في PricingRules داخل المعالج
             ["AnyPricingRequestEdit"] = ["RegisterPricingRequest", "AssignPricingRequest"],
+            // الأسعار المرجعية: من يعرض أو يضيف أو يعتمد يدخل القائمة، والحدّ فرع السعر داخل المعالج
+            ["AnyReferencePriceView"] = ["ViewReferencePrices", "AddReferencePrice", "ApproveReferencePrice"],
         };
 
         // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة
@@ -462,5 +467,8 @@ namespace Application.Common
         public const string PreparePricingAgreement = "PreparePricingAgreement";
         public const string ApprovePricingAgreement = "ApprovePricingAgreement";
         public const string ExportPricingReport = "ExportPricingReport";
+        public const string ViewReferencePrices = "ViewReferencePrices";
+        public const string AddReferencePrice = "AddReferencePrice";
+        public const string ApproveReferencePrice = "ApproveReferencePrice";
     }
 }
