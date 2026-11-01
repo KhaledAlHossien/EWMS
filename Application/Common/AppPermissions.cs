@@ -279,6 +279,7 @@ namespace Application.Common
             new("ViewReferencePrices",          "عرض الأسعار المرجعية وتاريخها في فرعه"),
             new("AddReferencePrice",            "إضافة سعر مرجعي بمصدره وتاريخه، أو تصحيحه بسجل بديل (لا تعديل ولا حذف)"),
             new("ApproveReferencePrice",        "اعتماد سعر مرجعي للاستخدام الحالي (غير من أضافه)"),
+            new("ImportReferencePrices",        "استيراد أسعار مرجعية من ملف Excel بعد فحص كامل (الكل أو لا شيء؛ تدخل تاريخية بانتظار الاعتماد)"),
         ];
 
         /// <summary>
@@ -353,7 +354,7 @@ namespace Application.Common
             // تعديل طلب التسعير وإلغاؤه: لمقدّمه (قبل التكليف) أو لصاحب التكليف؛ والحدّ الدقيق في PricingRules داخل المعالج
             ["AnyPricingRequestEdit"] = ["RegisterPricingRequest", "AssignPricingRequest"],
             // الأسعار المرجعية: من يعرض أو يضيف أو يعتمد يدخل القائمة، والحدّ فرع السعر داخل المعالج
-            ["AnyReferencePriceView"] = ["ViewReferencePrices", "AddReferencePrice", "ApproveReferencePrice"],
+            ["AnyReferencePriceView"] = ["ViewReferencePrices", "AddReferencePrice", "ApproveReferencePrice", "ImportReferencePrices"],
         };
 
         // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة
@@ -470,5 +471,6 @@ namespace Application.Common
         public const string ViewReferencePrices = "ViewReferencePrices";
         public const string AddReferencePrice = "AddReferencePrice";
         public const string ApproveReferencePrice = "ApproveReferencePrice";
+        public const string ImportReferencePrices = "ImportReferencePrices";
     }
 }

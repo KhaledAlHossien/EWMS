@@ -144,7 +144,8 @@ namespace Infrastructure.Persistence.Repositories
             || await _context.EvaluationCriteria.AnyAsync(c => c.BranchId == branchId)
             || await _context.PricingRequests.AnyAsync(r => r.BranchId == branchId)
             || await _context.PricingAgreements.AnyAsync(a => a.BranchId == branchId)
-            || await _context.ReferencePrices.AnyAsync(p => p.BranchId == branchId);
+            || await _context.ReferencePrices.AnyAsync(p => p.BranchId == branchId)
+            || await _context.ReferencePriceImports.AnyAsync(i => i.BranchId == branchId);
 
         // مشاركة موظفي القسم لا تمنع حذفه (المنع بحارس «له مستخدمون» أصلاً)؛ المانع هنا مشروع يعالجه القسم
         public Task<bool> ExistsForDepartmentAsync(int departmentId) =>
@@ -186,6 +187,7 @@ namespace Infrastructure.Persistence.Repositories
             || await _context.PricingOffers.AnyAsync(o => o.RecordedByUserId == userId)
             || await _context.PricingAgreements.AnyAsync(a => a.PreparedByUserId == userId || a.ApprovedByUserId == userId)
             || await _context.ReferencePrices.AnyAsync(p => p.CreatedByUserId == userId || p.ApprovedByUserId == userId)
+            || await _context.ReferencePriceImports.AnyAsync(i => i.ImportedByUserId == userId)
             || await _context.AuditLogs.AnyAsync(a => a.UserId == userId);
     }
 

@@ -12,7 +12,7 @@ namespace Application.Features.ReferencePrices
     /// تبعيات المعالجات المشتركة وما تشترك فيه من تحميل وحراسة (تركيب لا وراثة): كل حالة استخدام معالج مستقل يأخذ هذا السياق.
     /// </summary>
     public sealed class ReferencePriceContext(IReferencePriceService prices, IProjectService projects, IContractService contracts,
-        IUserService users, IUserPermissionService permissions, INotificationService notifications)
+        IUserService users, IUserPermissionService permissions, INotificationService notifications, IReferencePriceSpreadsheet spreadsheet)
     {
         public IReferencePriceService Prices { get; } = prices;
         public IProjectService Projects { get; } = projects;
@@ -20,6 +20,7 @@ namespace Application.Features.ReferencePrices
         public IUserService Users { get; } = users;
         public IUserPermissionService Permissions { get; } = permissions;
         public INotificationService Notifications { get; } = notifications;
+        public IReferencePriceSpreadsheet Spreadsheet { get; } = spreadsheet;
 
         public Task<Viewer> ViewerAsync() => Viewer.CurrentAsync(Users, Permissions);
 

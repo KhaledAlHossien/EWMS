@@ -65,6 +65,9 @@ namespace Application.DTOs.Response
         public string ApprovalNote { get; set; } = string.Empty;
         public int? SupersedesId { get; set; }
         public string? SupersedesNumber { get; set; }
+        /// <summary>دفعة الاستيراد التي أنشأت السعر (إن استُورد) واسم ملفها</summary>
+        public int? ImportId { get; set; }
+        public string? ImportFileName { get; set; }
         public string CorrectionReason { get; set; } = string.Empty;
         /// <summary>السجل الذي حلّ محل هذا السعر (إن صُحِّح)</summary>
         public int? SupersededById { get; set; }

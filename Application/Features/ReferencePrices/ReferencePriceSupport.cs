@@ -28,7 +28,7 @@ namespace Application.Features.ReferencePrices
                 IsLatest = latest.Contains(p.Id), IsLatestForSupplier = latestForSupplier.Contains(p.Id),
                 CreatedByName = p.CreatedByUser.FullName, CreatedAt = p.CreatedAt, ApprovedByName = p.ApprovedByUser?.FullName, ApprovedAt = p.ApprovedAt, ApprovalNote = p.ApprovalNote,
                 SupersedesId = p.SupersedesPriceId, SupersedesNumber = p.SupersedesPrice is null ? null : ReferencePriceRules.Number(p.SupersedesPrice.Id, p.SupersedesPrice.CreatedAt),
-                CorrectionReason = p.CorrectionReason,
+                CorrectionReason = p.CorrectionReason, ImportId = p.ImportId, ImportFileName = p.Import?.FileName,
                 SupersededById = successor?.Id, SupersededByNumber = successor is null ? null : ReferencePriceRules.Number(successor.Id, successor.CreatedAt),
                 History = group.OrderByDescending(x => x.PriceDate).ThenByDescending(x => x.Id).Select(x => ToListItem(x, latest, latestForSupplier)).ToList(),
                 CanCorrect = CanCorrect(viewer, p, successor), CanApprove = CanApprove(viewer, p), RowVersion = p.RowVersion

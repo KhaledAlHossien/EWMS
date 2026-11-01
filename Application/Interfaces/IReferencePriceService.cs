@@ -36,6 +36,12 @@ namespace Application.Interfaces
         /// <summary>اعتماد السعر وجعل أسلافه المعتمدين «مُستبدَلين» في معاملة واحدة</summary>
         Task ApproveAsync(ReferencePrice price, IReadOnlyCollection<ReferencePrice> supersededAncestors, byte[]? rowVersion, AuditEntry audit);
 
+        /// <summary>أسعار الفرع غير المُستبدَلة عند الموردين وفي التواريخ المعطاة: مرشَّحو التكرار عند الاستيراد (المطابقة الدقيقة في القواعد)</summary>
+        Task<List<ReferencePrice>> GetPossibleDuplicatesAsync(int branchId, IReadOnlyCollection<int> supplierIds, IReadOnlyCollection<DateTime> dates);
+
+        /// <summary>يحفظ دفعة الاستيراد وكل أسعارها وأثرها في معاملة واحدة (الكل أو لا شيء)</summary>
+        Task<ReferencePriceImport> ImportAsync(ReferencePriceImport batch, IReadOnlyCollection<ReferencePrice> prices, AuditEntry audit);
+
         /// <summary>إصدار وثيقة مثبَّت (مع وثيقته) للتحقق من مشروعه</summary>
         Task<ProjectDocumentVersion?> GetVersionAsync(int versionId);
     }

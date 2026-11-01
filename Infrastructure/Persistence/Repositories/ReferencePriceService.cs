@@ -15,7 +15,7 @@ namespace Infrastructure.Persistence.Repositories
         public ReferencePriceService(DataContext context) => _context = context;
 
         private IQueryable<ReferencePrice> Graph() => _context.ReferencePrices
-            .Include(p => p.Supplier).Include(p => p.Project).Include(p => p.CreatedByUser).Include(p => p.ApprovedByUser).Include(p => p.SupersedesPrice);
+            .Include(p => p.Supplier).Include(p => p.Project).Include(p => p.CreatedByUser).Include(p => p.ApprovedByUser).Include(p => p.SupersedesPrice).Include(p => p.Import);
 
         public Task<ReferencePrice?> GetByIdAsync(int id) => Graph().FirstOrDefaultAsync(p => p.Id == id);
 
@@ -115,6 +115,31 @@ namespace Infrastructure.Persistence.Repositories
             foreach (var ancestor in supersededAncestors) { ancestor.Status = ReferencePriceStatus.Superseded; ancestor.UpdatedAt = now; }
             _context.AuditLogs.Add(Log(audit, price));
             await SaveAsync();
+        }
+
+        public Task<List<ReferencePrice>> GetPossibleDuplicatesAsync(int branchId, IReadOnlyCollection<int> supplierIds, IReadOnlyCollection<DateTime> dates) =>
+            _context.ReferencePrices.AsNoTracking()
+                .Where(p => p.BranchId == branchId && p.Status != ReferencePriceStatus.Superseded && supplierIds.Contains(p.SupplierId) && dates.Contains(p.PriceDate))
+                .ToListAsync();
+
+        public async Task<ReferencePriceImport> ImportAsync(ReferencePriceImport batch, IReadOnlyCollection<ReferencePrice> prices, AuditEntry audit)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var now = DateTime.UtcNow;
+            batch.ImportedAt = now;
+            batch.RowCount = prices.Count;
+            _context.ReferencePriceImports.Add(batch);
+            await SaveAsync();
+            foreach (var price in prices) { price.ImportId = batch.Id; price.CreatedAt = now; price.UpdatedAt = now; }
+            _context.ReferencePrices.AddRange(prices);
+            await SaveAsync();
+            _context.AuditLogs.Add(new AuditLog
+            {
+                CreatedAt = now, UserId = audit.UserId, Action = audit.Action, EntityType = audit.EntityType, EntityId = batch.Id, BranchId = batch.BranchId, Title = audit.Title, Details = audit.Details
+            });
+            await SaveAsync();
+            await transaction.CommitAsync();
+            return batch;
         }
 
         public Task<ProjectDocumentVersion?> GetVersionAsync(int versionId) =>

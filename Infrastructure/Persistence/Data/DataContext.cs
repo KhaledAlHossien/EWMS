@@ -70,6 +70,7 @@ namespace Infrastructure.Persistence.Data
         public DbSet<PricingAgreement> PricingAgreements { get; set; }
         public DbSet<PricingAgreementLine> PricingAgreementLines { get; set; }
         public DbSet<ReferencePrice> ReferencePrices { get; set; }
+        public DbSet<ReferencePriceImport> ReferencePriceImports { get; set; }
         public DbSet<ProjectMember> ProjectMembers { get; set; }
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectDocumentVersion> ProjectDocumentVersions { get; set; }
@@ -1755,6 +1756,8 @@ namespace Infrastructure.Persistence.Data
                 entity.HasOne(p => p.CreatedByUser).WithMany().HasForeignKey(p => p.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(p => p.ApprovedByUser).WithMany().HasForeignKey(p => p.ApprovedByUserId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(p => p.SupersedesPrice).WithMany().HasForeignKey(p => p.SupersedesPriceId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(p => p.Import).WithMany().HasForeignKey(p => p.ImportId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(p => p.ImportId);
                 entity.HasIndex(p => p.SupersedesPriceId).IsUnique().HasFilter("[SupersedesPriceId] IS NOT NULL").HasDatabaseName("IX_ReferencePrices_OneCorrection");
                 entity.HasIndex(p => new { p.BranchId, p.Status });
                 entity.HasIndex(p => new { p.BranchId, p.ItemCode });
@@ -1765,6 +1768,15 @@ namespace Infrastructure.Persistence.Data
                 entity.HasIndex(p => p.DocumentVersionId);
                 entity.HasIndex(p => p.CreatedByUserId);
                 entity.HasIndex(p => p.ApprovedByUserId);
+            });
+
+            builder.Entity<ReferencePriceImport>(entity =>
+            {
+                entity.Property(i => i.FileName).HasMaxLength(200).IsRequired();
+                entity.HasOne(i => i.Branch).WithMany().HasForeignKey(i => i.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(i => i.ImportedByUser).WithMany().HasForeignKey(i => i.ImportedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(i => new { i.BranchId, i.ImportedAt });
+                entity.HasIndex(i => i.ImportedByUserId);
             });
         }
     }

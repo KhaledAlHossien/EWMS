@@ -105,6 +105,7 @@ namespace Infrastructure
             services.AddScoped<IHandoverService, HandoverService>();
             services.AddScoped<IPricingService, PricingService>();
             services.AddScoped<IReferencePriceService, ReferencePriceService>();
+            services.AddSingleton<IReferencePriceSpreadsheet, Infrastructure.Files.ReferencePriceSpreadsheet>();
             services.AddScoped<IAuditLogService, AuditLogService>();
             services.AddScoped<IScheduleService, ScheduleService>();
             services.AddScoped<IScheduleChangeService, ScheduleChangeService>();

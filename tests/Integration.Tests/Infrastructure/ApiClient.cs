@@ -61,6 +61,14 @@ public sealed class ApiClient
         return Send<T>(new HttpRequestMessage(HttpMethod.Post, path) { Content = form });
     }
 
+    /// <summary>رفع ملف واحد (حقل file) بنموذج multipart، كاستيراد Excel</summary>
+    public Task<ApiResult<T>> PostFile<T>(string path, string fileName, byte[] data)
+    {
+        var form = new MultipartFormDataContent();
+        form.Add(new ByteArrayContent(data), "file", fileName);
+        return Send<T>(new HttpRequestMessage(HttpMethod.Post, path) { Content = form });
+    }
+
     /// <summary>نداء خام لمصفوفة الصلاحيات: الحالة والنص فقط، بجسم JSON فارغ للتغييرات</summary>
     public async Task<(HttpStatusCode Status, string Body)> Probe(HttpMethod method, string path, bool form = false)
     {

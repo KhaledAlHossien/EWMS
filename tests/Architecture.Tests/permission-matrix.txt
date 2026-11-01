@@ -157,6 +157,7 @@ GET api/Projects/MemberCandidates/{id} → EditProject
 GET api/Projects/Search → AnyProjectView
 GET api/PublicHolidays/GetAll → ViewHolidays
 GET api/ReferencePrices/Get/{id} → AnyReferencePriceView
+GET api/ReferencePrices/ImportTemplate → ImportReferencePrices
 GET api/ReferencePrices/Search → AnyReferencePriceView
 GET api/Reports/Catalog → AnyReportExport
 GET api/Reports/Definition/{key} → AnyReportExport
@@ -292,6 +293,7 @@ POST api/PublicHolidays/Create → CreateHoliday
 POST api/ReferencePrices/Approve/{id} → ApproveReferencePrice
 POST api/ReferencePrices/Correct/{id} → AddReferencePrice
 POST api/ReferencePrices/Create → AddReferencePrice
+POST api/ReferencePrices/Import → ImportReferencePrices
 POST api/Reports/Export/{key} → AnyReportExport
 POST api/Reports/Preview/{key} → AnyReportExport
 POST api/Reports/Print/{key} → AnyReportExport

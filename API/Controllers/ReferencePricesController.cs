@@ -17,6 +17,8 @@ namespace API.Controllers
     [Authorize]
     public class ReferencePricesController : ControllerBase
     {
+        private const string Xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
         private readonly IMediator _mediator;
 
         public ReferencePricesController(IMediator mediator) => _mediator = mediator;
@@ -42,6 +44,32 @@ namespace API.Controllers
         [HttpPost("Correct/{id}")]
         [Authorize(Policy = "AddReferencePrice")]
         public async Task<ActionResult<ReferencePriceDetailDto>> Correct(int id, [FromBody] CorrectReferencePriceRequestDto dto) => Ok(await _mediator.Send(new CorrectReferencePriceCommand(id, dto)));
+
+        /// <summary>قالب استيراد الأسعار المرجعية (Excel): الأعمدة بالترتيب مع سطر مثال وورقة تعليمات</summary>
+        [HttpGet("ImportTemplate")]
+        [Authorize(Policy = "ImportReferencePrices")]
+        public async Task<IActionResult> ImportTemplate()
+            => File(await _mediator.Send(new GetReferencePriceImportTemplateQuery()), Xlsx, "reference-prices-template.xlsx");
+
+        /// <summary>
+        /// استيراد ملف Excel: dryRun=true معاينة بلا حفظ (الافتراضي)، false يحفظ كل الأسعار بعد فحص كامل — الكل أو لا شيء: سطر خاطئ واحد يمنع الحفظ كله.
+        /// branchId اختياري لنظرة المؤسسة (فرع الأسعار)، وإلا فرع المستورِد. الأسعار المستوردة تاريخية بانتظار اعتماد غير المستورِد.
+        /// </summary>
+        [HttpPost("Import")]
+        [Authorize(Policy = "ImportReferencePrices")]
+        [RequestSizeLimit(6 * 1024 * 1024)]
+        public async Task<ActionResult<ReferencePriceImportReportDto>> Import(IFormFile? file, [FromQuery] bool dryRun = true, [FromQuery] int? branchId = null)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(new { message = "اختر ملف Excel" });
+            if (file.Length > 5 * 1024 * 1024)
+                return BadRequest(new { message = "حجم الملف يتجاوز 5MB" });
+
+            await using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+            return Ok(await _mediator.Send(new ImportReferencePricesCommand(stream, file.FileName, dryRun, branchId)));
+        }
 
         /// <summary>اعتماد السعر للاستخدام الحالي (غير من أضافه)</summary>
         [HttpPost("Approve/{id}")]

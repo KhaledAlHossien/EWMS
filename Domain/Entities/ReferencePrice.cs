@@ -54,6 +54,10 @@ namespace Domain.Entities
         public ProjectDocumentVersion? DocumentVersion { get; set; }
         public string Notes { get; set; } = string.Empty;
 
+        /// <summary>دفعة الاستيراد التي أنشأت السعر (null لما أُدخل يدوياً)</summary>
+        public int? ImportId { get; set; }
+        public ReferencePriceImport? Import { get; set; }
+
         public ReferencePriceStatus Status { get; set; } = ReferencePriceStatus.Historical;
         public int CreatedByUserId { get; set; }
         public User CreatedByUser { get; set; } = null!;
@@ -71,5 +75,21 @@ namespace Domain.Entities
 
         public DateTime UpdatedAt { get; set; }
         public byte[] RowVersion { get; set; } = [];
+    }
+
+    /// <summary>
+    /// دفعة استيراد أسعار مرجعية من ملف Excel (5ب.2): تُحفظ كلها أو لا شيء، وكل سعر منها يشير إليها فيُعرف مصدره (ملف، ومن استورده، ومتى).
+    /// سجل تاريخي لا يُعدَّل ولا يُحذف.
+    /// </summary>
+    public class ReferencePriceImport
+    {
+        public int Id { get; set; }
+        public int BranchId { get; set; }
+        public Branch Branch { get; set; } = null!;
+        public string FileName { get; set; } = string.Empty;
+        public int RowCount { get; set; }
+        public int ImportedByUserId { get; set; }
+        public User ImportedByUser { get; set; } = null!;
+        public DateTime ImportedAt { get; set; }
     }
 }

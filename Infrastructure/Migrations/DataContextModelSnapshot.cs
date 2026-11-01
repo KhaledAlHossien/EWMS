@@ -3774,6 +3774,9 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("DocumentVersionId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ImportId")
+                        .HasColumnType("int");
+
                     b.Property<string>("ItemCode")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -3842,6 +3845,8 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("DocumentVersionId");
 
+                    b.HasIndex("ImportId");
+
                     b.HasIndex("PriceDate");
 
                     b.HasIndex("ProjectId");
@@ -3863,6 +3868,40 @@ namespace Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("CK_ReferencePrices_Price", "[UnitPrice] >= 0");
                         });
+                });
+
+            modelBuilder.Entity("Domain.Entities.ReferencePriceImport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("ImportedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ImportedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RowCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImportedByUserId");
+
+                    b.HasIndex("BranchId", "ImportedAt");
+
+                    b.ToTable("ReferencePriceImports");
                 });
 
             modelBuilder.Entity("Domain.Entities.ReportExportLog", b =>
@@ -6889,6 +6928,11 @@ namespace Infrastructure.Migrations
                         .HasForeignKey("DocumentVersionId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Domain.Entities.ReferencePriceImport", "Import")
+                        .WithMany()
+                        .HasForeignKey("ImportId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Domain.Entities.Project", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectId")
@@ -6913,11 +6957,32 @@ namespace Infrastructure.Migrations
 
                     b.Navigation("DocumentVersion");
 
+                    b.Navigation("Import");
+
                     b.Navigation("Project");
 
                     b.Navigation("SupersedesPrice");
 
                     b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("Domain.Entities.ReferencePriceImport", b =>
+                {
+                    b.HasOne("Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "ImportedByUser")
+                        .WithMany()
+                        .HasForeignKey("ImportedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("ImportedByUser");
                 });
 
             modelBuilder.Entity("Domain.Entities.ReportExportLog", b =>
