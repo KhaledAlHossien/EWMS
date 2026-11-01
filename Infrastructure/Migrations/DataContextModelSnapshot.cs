@@ -2822,6 +2822,213 @@ namespace Infrastructure.Migrations
                     b.ToTable("Permissions");
                 });
 
+            modelBuilder.Entity("Domain.Entities.PriceReconciliation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AuditNote")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int?>("AuditResult")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("AuditedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ContractId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DecidedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DecisionNote")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("DocumentDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("DocumentKind")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DocumentNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("DocumentVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("PreparedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReferralNote")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReferredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReferredByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReferredTo")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContractId");
+
+                    b.HasIndex("DecidedByUserId");
+
+                    b.HasIndex("DocumentVersionId");
+
+                    b.HasIndex("PreparedByUserId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ReferredByUserId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasIndex("BranchId", "Status");
+
+                    b.HasIndex("BranchId", "SupplierId", "DocumentKind", "DocumentNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PriceReconciliations_Document");
+
+                    b.ToTable("PriceReconciliations");
+                });
+
+            modelBuilder.Entity("Domain.Entities.PriceReconciliationLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("InvoiceQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("InvoiceUnitPrice")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("PriceReconciliationId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReferenceCurrency")
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<int>("ReferenceKind")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReferenceLabel")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int?>("ReferenceOfferLineId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ReferencePriceId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("ReferenceQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("ReferenceUnit")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal?>("ReferenceUnitPrice")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReferenceOfferLineId");
+
+                    b.HasIndex("ReferencePriceId");
+
+                    b.HasIndex("PriceReconciliationId", "SortOrder");
+
+                    b.ToTable("PriceReconciliationLines", t =>
+                        {
+                            t.HasCheckConstraint("CK_PriceReconciliationLines_Price", "[InvoiceUnitPrice] >= 0");
+
+                            t.HasCheckConstraint("CK_PriceReconciliationLines_Quantity", "[InvoiceQuantity] > 0");
+                        });
+                });
+
             modelBuilder.Entity("Domain.Entities.PricingAgreement", b =>
                 {
                     b.Property<int>("Id")
@@ -6499,6 +6706,93 @@ namespace Infrastructure.Migrations
                     b.Navigation("Department");
                 });
 
+            modelBuilder.Entity("Domain.Entities.PriceReconciliation", b =>
+                {
+                    b.HasOne("Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Contract", "Contract")
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "DecidedByUser")
+                        .WithMany()
+                        .HasForeignKey("DecidedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.ProjectDocumentVersion", "DocumentVersion")
+                        .WithMany()
+                        .HasForeignKey("DocumentVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "PreparedByUser")
+                        .WithMany()
+                        .HasForeignKey("PreparedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "ReferredByUser")
+                        .WithMany()
+                        .HasForeignKey("ReferredByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Contractor", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("Contract");
+
+                    b.Navigation("DecidedByUser");
+
+                    b.Navigation("DocumentVersion");
+
+                    b.Navigation("PreparedByUser");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("ReferredByUser");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("Domain.Entities.PriceReconciliationLine", b =>
+                {
+                    b.HasOne("Domain.Entities.PriceReconciliation", "PriceReconciliation")
+                        .WithMany("Lines")
+                        .HasForeignKey("PriceReconciliationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.PricingOfferLine", "ReferenceOfferLine")
+                        .WithMany()
+                        .HasForeignKey("ReferenceOfferLineId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.ReferencePrice", "ReferencePrice")
+                        .WithMany()
+                        .HasForeignKey("ReferencePriceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("PriceReconciliation");
+
+                    b.Navigation("ReferenceOfferLine");
+
+                    b.Navigation("ReferencePrice");
+                });
+
             modelBuilder.Entity("Domain.Entities.PricingAgreement", b =>
                 {
                     b.HasOne("Domain.Entities.User", "ApprovedByUser")
@@ -7703,6 +7997,11 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Entities.MapLayer", b =>
                 {
                     b.Navigation("Fields");
+                });
+
+            modelBuilder.Entity("Domain.Entities.PriceReconciliation", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("Domain.Entities.PricingAgreement", b =>

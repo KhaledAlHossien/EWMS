@@ -44,6 +44,7 @@ namespace Application
             services.AddScoped<Application.Features.Handover.HandoverContext>();
             services.AddScoped<Application.Features.Pricing.PricingContext>();
             services.AddScoped<Application.Features.ReferencePrices.ReferencePriceContext>();
+            services.AddScoped<Application.Features.Reconciliation.ReconciliationContext>();
 
             return services;
         }

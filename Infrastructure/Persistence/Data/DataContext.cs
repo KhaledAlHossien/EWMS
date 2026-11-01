@@ -71,6 +71,8 @@ namespace Infrastructure.Persistence.Data
         public DbSet<PricingAgreementLine> PricingAgreementLines { get; set; }
         public DbSet<ReferencePrice> ReferencePrices { get; set; }
         public DbSet<ReferencePriceImport> ReferencePriceImports { get; set; }
+        public DbSet<PriceReconciliation> PriceReconciliations { get; set; }
+        public DbSet<PriceReconciliationLine> PriceReconciliationLines { get; set; }
         public DbSet<ProjectMember> ProjectMembers { get; set; }
         public DbSet<ProjectDocument> ProjectDocuments { get; set; }
         public DbSet<ProjectDocumentVersion> ProjectDocumentVersions { get; set; }
@@ -1777,6 +1779,65 @@ namespace Infrastructure.Persistence.Data
                 entity.HasOne(i => i.ImportedByUser).WithMany().HasForeignKey(i => i.ImportedByUserId).OnDelete(DeleteBehavior.Restrict);
                 entity.HasIndex(i => new { i.BranchId, i.ImportedAt });
                 entity.HasIndex(i => i.ImportedByUserId);
+            });
+
+            // مطابقة الفواتير والكشوف: المستند فريد لكل مورد ونوع داخل الفرع، والمرجع مجمَّد في البند (لا يتغير بتغير السعر المرجعي لاحقاً)
+            builder.Entity<PriceReconciliation>(entity =>
+            {
+                entity.Property(r => r.DocumentKind).HasConversion<int>();
+                entity.Property(r => r.DocumentNumber).HasMaxLength(100).IsRequired();
+                entity.Property(r => r.DocumentDate).HasColumnType("date");
+                entity.Property(r => r.Currency).HasMaxLength(3).IsRequired();
+                entity.Property(r => r.Notes).HasMaxLength(2000);
+                entity.Property(r => r.Status).HasConversion<int>();
+                entity.Property(r => r.AuditResult).HasConversion<int?>();
+                entity.Property(r => r.AuditNote).HasMaxLength(2000);
+                entity.Property(r => r.DecisionNote).HasMaxLength(1000);
+                entity.Property(r => r.ReferredTo).HasMaxLength(200);
+                entity.Property(r => r.ReferralNote).HasMaxLength(1000);
+                entity.Property(r => r.RowVersion).IsRowVersion();
+                entity.HasOne(r => r.Branch).WithMany().HasForeignKey(r => r.BranchId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.Supplier).WithMany().HasForeignKey(r => r.SupplierId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.Project).WithMany().HasForeignKey(r => r.ProjectId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.Contract).WithMany().HasForeignKey(r => r.ContractId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.DocumentVersion).WithMany().HasForeignKey(r => r.DocumentVersionId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.PreparedByUser).WithMany().HasForeignKey(r => r.PreparedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.DecidedByUser).WithMany().HasForeignKey(r => r.DecidedByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(r => r.ReferredByUser).WithMany().HasForeignKey(r => r.ReferredByUserId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(r => new { r.BranchId, r.SupplierId, r.DocumentKind, r.DocumentNumber }).IsUnique().HasDatabaseName("IX_PriceReconciliations_Document");
+                entity.HasIndex(r => new { r.BranchId, r.Status });
+                entity.HasIndex(r => r.ProjectId);
+                entity.HasIndex(r => r.ContractId);
+                entity.HasIndex(r => r.DocumentVersionId);
+                entity.HasIndex(r => r.PreparedByUserId);
+                entity.HasIndex(r => r.DecidedByUserId);
+                entity.HasIndex(r => r.ReferredByUserId);
+            });
+
+            builder.Entity<PriceReconciliationLine>(entity =>
+            {
+                entity.Property(l => l.Description).HasMaxLength(500).IsRequired();
+                entity.Property(l => l.Unit).HasMaxLength(30).IsRequired();
+                entity.Property(l => l.InvoiceQuantity).HasPrecision(18, 3);
+                entity.Property(l => l.InvoiceUnitPrice).HasPrecision(18, 4);
+                entity.Property(l => l.ReferenceKind).HasConversion<int>();
+                entity.Property(l => l.ReferenceLabel).HasMaxLength(300);
+                entity.Property(l => l.ReferenceQuantity).HasPrecision(18, 3);
+                entity.Property(l => l.ReferenceUnitPrice).HasPrecision(18, 4);
+                entity.Property(l => l.ReferenceUnit).HasMaxLength(30);
+                entity.Property(l => l.ReferenceCurrency).HasMaxLength(3);
+                entity.Property(l => l.Note).HasMaxLength(1000);
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_PriceReconciliationLines_Quantity", "[InvoiceQuantity] > 0");
+                    t.HasCheckConstraint("CK_PriceReconciliationLines_Price", "[InvoiceUnitPrice] >= 0");
+                });
+                entity.HasOne(l => l.PriceReconciliation).WithMany(r => r.Lines).HasForeignKey(l => l.PriceReconciliationId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(l => l.ReferenceOfferLine).WithMany().HasForeignKey(l => l.ReferenceOfferLineId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(l => l.ReferencePrice).WithMany().HasForeignKey(l => l.ReferencePriceId).OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(l => new { l.PriceReconciliationId, l.SortOrder });
+                entity.HasIndex(l => l.ReferenceOfferLineId);
+                entity.HasIndex(l => l.ReferencePriceId);
             });
         }
     }

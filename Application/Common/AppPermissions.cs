@@ -279,6 +279,9 @@ namespace Application.Common
             new("ViewReferencePrices",          "عرض الأسعار المرجعية وتاريخها في فرعه"),
             new("AddReferencePrice",            "إضافة سعر مرجعي بمصدره وتاريخه، أو تصحيحه بسجل بديل (لا تعديل ولا حذف)"),
             new("ApproveReferencePrice",        "اعتماد سعر مرجعي للاستخدام الحالي (غير من أضافه)"),
+            new("ViewPriceReconciliations",     "عرض مطابقات الفواتير والكشوف مع الأسعار في فرعه"),
+            new("PreparePriceReconciliation",   "تسجيل فاتورة أو كشف وارد ومطابقته مع الأسعار وتسجيل نتيجة التدقيق وملاحظاته (لا يعتمد ما دقّقه)"),
+            new("ApprovePriceReconciliation",   "اعتماد نتيجة مطابقة أو إعادتها للتصحيح وإحالتها إلى الجهة المختصة (غير من دقّقها)"),
             new("ImportReferencePrices",        "استيراد أسعار مرجعية من ملف Excel بعد فحص كامل (الكل أو لا شيء؛ تدخل تاريخية بانتظار الاعتماد)"),
         ];
 
@@ -342,7 +345,7 @@ namespace Application.Common
             // قائمة المقاولين: لكل من يتعاقد أو يقيّم أو يفلتر
             ["AnyContractorView"] = ["ViewContractors", "CreateContractor", "EditContractor", "DeleteContractor",
                 "ViewContracts", "CreateContract", "EditContract", "EvaluateContractor", "ViewContractorEvaluations",
-                "PreparePricingOffers", "PreparePricingAgreement", "AddReferencePrice"],
+                "PreparePricingOffers", "PreparePricingAgreement", "AddReferencePrice", "PreparePriceReconciliation"],
             // معايير التقييم: لكل من يقيّم أو يراجع أو يديرها
             ["AnyEvaluationCriterionView"] = ["ViewEvaluationCriteria", "CreateEvaluationCriterion", "EditEvaluationCriterion", "DeleteEvaluationCriterion",
                 "EvaluateContractor", "ReviewContractorEvaluation"],
@@ -354,6 +357,8 @@ namespace Application.Common
             // تعديل طلب التسعير وإلغاؤه: لمقدّمه (قبل التكليف) أو لصاحب التكليف؛ والحدّ الدقيق في PricingRules داخل المعالج
             ["AnyPricingRequestEdit"] = ["RegisterPricingRequest", "AssignPricingRequest"],
             // الأسعار المرجعية: من يعرض أو يضيف أو يعتمد يدخل القائمة، والحدّ فرع السعر داخل المعالج
+            // مطابقة الفواتير: من يعرض أو يدقّق أو يعتمد يدخل القائمة، والحدّ فرع المستند داخل المعالج
+            ["AnyPriceReconciliationView"] = ["ViewPriceReconciliations", "PreparePriceReconciliation", "ApprovePriceReconciliation"],
             ["AnyReferencePriceView"] = ["ViewReferencePrices", "AddReferencePrice", "ApproveReferencePrice", "ImportReferencePrices"],
         };
 
@@ -472,5 +477,8 @@ namespace Application.Common
         public const string AddReferencePrice = "AddReferencePrice";
         public const string ApproveReferencePrice = "ApproveReferencePrice";
         public const string ImportReferencePrices = "ImportReferencePrices";
+        public const string ViewPriceReconciliations = "ViewPriceReconciliations";
+        public const string PreparePriceReconciliation = "PreparePriceReconciliation";
+        public const string ApprovePriceReconciliation = "ApprovePriceReconciliation";
     }
 }

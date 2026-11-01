@@ -134,6 +134,9 @@ GET api/Notifications/Page → ViewNotifications
 GET api/Notifications/UnreadCount → ViewNotifications
 GET api/Offices/Get/{id} → ViewOffices
 GET api/Offices/GetAll → ViewOffices
+GET api/PriceReconciliations/Candidates → PreparePriceReconciliation
+GET api/PriceReconciliations/Get/{id} → AnyPriceReconciliationView
+GET api/PriceReconciliations/Search → AnyPriceReconciliationView
 GET api/PricingAgreements/Get/{id} → AnyPricingAgreementView
 GET api/PricingAgreements/Search → AnyPricingAgreementView
 GET api/PricingRequests/Assignees → AssignPricingRequest
@@ -263,6 +266,11 @@ POST api/MapEntries/Create → CreateMapEntry
 POST api/MapEntries/Files → AnyMapEntryWrite
 POST api/MapLayers/Create → CreateMapLayer
 POST api/Offices/Create → CreateOffice
+POST api/PriceReconciliations/Cancel/{id} → PreparePriceReconciliation
+POST api/PriceReconciliations/Create → PreparePriceReconciliation
+POST api/PriceReconciliations/Decide/{id} → ApprovePriceReconciliation
+POST api/PriceReconciliations/Record/{id} → PreparePriceReconciliation
+POST api/PriceReconciliations/Refer/{id} → ApprovePriceReconciliation
 POST api/PricingAgreements/Cancel/{id} → PreparePricingAgreement
 POST api/PricingAgreements/Create → PreparePricingAgreement
 POST api/PricingAgreements/Review/{id} → ApprovePricingAgreement
@@ -366,6 +374,7 @@ PUT api/MapLayers/Update/{id} → EditMapLayer
 PUT api/Notifications/MarkAllAsRead → ViewNotifications
 PUT api/Notifications/MarkAsRead/{id} → ViewNotifications
 PUT api/Offices/Update/{id} → EditOffice
+PUT api/PriceReconciliations/Update/{id} → PreparePriceReconciliation
 PUT api/PricingAgreements/Update/{id} → PreparePricingAgreement
 PUT api/PricingRequests/Offer/{offerId} → PreparePricingOffers
 PUT api/PricingRequests/Update/{id} → AnyPricingRequestEdit

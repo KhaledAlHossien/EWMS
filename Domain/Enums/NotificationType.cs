@@ -62,6 +62,8 @@
         PricingAgreementDecided = 85,         // اعتُمد أو أُعيد محضر اتفاق أعددتَه
         PricingRequestOverdue = 86,           // طلب تسعير تجاوز موعده (مرشّح متابعة)
         ReferencePriceAwaiting = 87,          // سعر مرجعي (جديد أو بديل مصحِّح) بانتظار اعتمادك
-        ReferencePriceApproved = 88           // اعتُمد سعر مرجعي أضفتَه للاستخدام الحالي
+        ReferencePriceApproved = 88,          // اعتُمد سعر مرجعي أضفتَه للاستخدام الحالي
+        ReconciliationAwaiting = 89,          // نتيجة مطابقة فاتورة بانتظار اعتمادك
+        ReconciliationDecided = 90            // اعتُمدت أو أُعيدت مطابقة دقّقتَها
     }
 }
