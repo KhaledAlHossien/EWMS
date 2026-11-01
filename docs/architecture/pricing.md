@@ -77,7 +77,7 @@
 - **القواعد** (`ReconciliationRules`): الحالات: 1 مسودة، 2 مطابق، 3 جزئياً، 4 فرق سعر، 5 فرق كمية، 6 بيانات غير مكتملة، 7 يحتاج مراجعة، 8 معتمد بعد التدقيق، 9 معاد للتصحيح، 10 ملغى. `Compare`: بند قابل للمقارنة بالوحدة والعملة نفسهما فقط، فرق السعر = سعر المستند − المرجع، وفرق الكمية متى عُرفت كمية المرجع. `Suggest`: اقتراح معلومة. «مطابق» لا يُسجَّل والمقارنة تخالفه، وغير المطابق يشترط ملاحظة، ومن دقّق لا يعتمد (حتى مدير النظام)، والمعتمد لا يُعدَّل.
 - **الـ API** `api/PriceReconciliations`: `GET Search` و`Get/{id}` (`AnyPriceReconciliationView`)، `GET Candidates?supplierId=` (مراجع مقترحة: أسطر عروض مختارة من طلبات معتمدة وأسعار مرجعية معتمدة)، `POST Create` و`PUT Update/{id}` و`POST Record/{id}` و`POST Cancel/{id}` (`PreparePriceReconciliation`)، `POST Decide/{id}` و`POST Refer/{id}` (`ApprovePriceReconciliation`).
 - **التقرير** `price-reconciliations` (`ExportPricingReport`) وإشعاران (`ReconciliationAwaiting` للمعتمِدين، `ReconciliationDecided` للمدقق). حراسات الحذف: مورد وفرع ومستخدم ووثيقة مثبَّتة.
-- **المتبقي منها:** واجهة المطابقة (5ب.3ب) وتجربتها الحية (5ب.3ج).
+- **الواجهة (5ب.3ب):** `/pricing/reconciliations` وصفحة المطابقة وحوارها في `features/pricing` بالواجهة. **المتبقي:** تجربتها الحية (5ب.3ج) بعد إعادة تشغيل الـ API لتطبيق `Price_Reconciliations`، ونوع ربط المهام إن طُلب.
 
 ## الاختبارات
 - وحدة: `tests/Projects.Tests/PricingRulesTests.cs` (28 اختباراً) مع فحص طفرات على اختيار غير المطابق، واعتماد من أوصى، واعتماد من أعدّ المحضر، واختيار وحدة مخالفة، وخلط العملات في «الأرخص».
