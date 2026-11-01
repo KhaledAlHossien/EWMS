@@ -189,4 +189,11 @@ namespace Application.DTOs.Response
         public bool CanCancel { get; set; }
         public byte[] RowVersion { get; set; } = [];
     }
+
+    /// <summary>موظف يصلح للتكليف بطلب تسعير (يحمل صلاحية إعداد العروض)</summary>
+    public class PricingAssigneeDto
+    {
+        public int Id { get; set; }
+        public string FullName { get; set; } = string.Empty;
+    }
 }

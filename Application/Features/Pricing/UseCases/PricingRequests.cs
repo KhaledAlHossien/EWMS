@@ -15,6 +15,7 @@ namespace Application.Features.Pricing
     public record SearchPricingRequestsQuery(int? BranchId, int? ProjectId, int? Status, string? Search, bool OverdueOnly, bool Mine, int Page, int PageSize)
         : IRequest<PagedResultDto<PricingListItemDto>>;
     public record GetPricingRequestQuery(int Id) : IRequest<PricingDetailDto>;
+    public record GetPricingAssigneesQuery(int? BranchId) : IRequest<List<PricingAssigneeDto>>;
     public record CreatePricingRequestCommand(PricingRequestRequestDto Dto) : IRequest<PricingDetailDto>;
     public record UpdatePricingRequestCommand(int Id, PricingRequestRequestDto Dto) : IRequest<PricingDetailDto>;
     public record AssignPricingRequestCommand(int Id, AssignPricingRequestDto Dto) : IRequest<PricingDetailDto>;
@@ -142,6 +143,20 @@ namespace Application.Features.Pricing
     }
 
     /// <summary>التكليف: موظف المكتب (نشط من الفرع ويملك صلاحية إعداد العروض) يتابع الطلب؛ ويتحول الطلب المسجَّل إلى «قيد جمع العروض»</summary>
+    /// <summary>من يصلح للتكليف: حاملو إعداد العروض في فرع المستخدم (أو الفرع المطلوب لمن يرى كل الفروع)</summary>
+    public class GetPricingAssigneesHandler(PricingContext ctx) : IRequestHandler<GetPricingAssigneesQuery, List<PricingAssigneeDto>>
+    {
+        public async Task<List<PricingAssigneeDto>> Handle(GetPricingAssigneesQuery request, CancellationToken ct)
+        {
+            var viewer = await ctx.ViewerAsync();
+            var branch = viewer.IsOrganizationWide ? request.BranchId : viewer.User.BranchId;
+            if (branch == null) return [];
+            var holders = await ctx.Permissions.GetUsersWithPermissionAsync(AppPermissions.PreparePricingOffers, branch);
+            return holders.GroupBy(u => u.Id).Select(g => g.First()).OrderBy(u => u.FullName)
+                .Select(u => new PricingAssigneeDto { Id = u.Id, FullName = u.FullName }).ToList();
+        }
+    }
+
     public class AssignPricingRequestHandler(PricingContext ctx) : IRequestHandler<AssignPricingRequestCommand, PricingDetailDto>
     {
         public async Task<PricingDetailDto> Handle(AssignPricingRequestCommand request, CancellationToken ct)

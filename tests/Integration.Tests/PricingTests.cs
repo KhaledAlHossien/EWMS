@@ -417,4 +417,14 @@ public class PricingTests(ApiFixture api)
         Assert.Equal(HttpStatusCode.Forbidden, (await org.Registrant.Post<JsonElement>("/api/Reports/Preview/pricing-requests", new { filters = new Dictionary<string, string>() })).Status);
         Assert.Equal(HttpStatusCode.Forbidden, (await org.Worker.Post<JsonElement>("/api/Reports/Preview/pricing-agreements", new { filters = new Dictionary<string, string>() })).Status);
     }
+
+    [Fact]
+    public async Task The_assignee_list_holds_only_those_who_can_prepare_offers_and_only_for_whoever_may_assign()
+    {
+        var org = await OrgAsync();
+        var list = (await org.Manager.Get<List<PricingAssigneeDto>>($"{Base}/Assignees")).Ok();
+        Assert.Contains(list, u => u.Id == org.WorkerId);                            // يحمل إعداد العروض
+        Assert.DoesNotContain(list, u => u.Id == org.RegistrantId);                  // يسجّل فقط
+        Assert.Equal(HttpStatusCode.Forbidden, (await org.Registrant.Get<List<PricingAssigneeDto>>($"{Base}/Assignees")).Status);
+    }
 }

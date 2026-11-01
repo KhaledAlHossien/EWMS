@@ -225,6 +225,8 @@
       "EditContract",
       "EditContractor",
       "EvaluateContractor",
+      "PreparePricingAgreement",
+      "PreparePricingOffers",
       "ViewContractorEvaluations",
       "ViewContractors",
       "ViewContracts"

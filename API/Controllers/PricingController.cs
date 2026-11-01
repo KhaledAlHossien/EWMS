@@ -33,6 +33,11 @@ namespace API.Controllers
         [Authorize(Policy = "AnyPricingRequestView")]
         public async Task<ActionResult<PricingDetailDto>> Get(int id) => Ok(await _mediator.Send(new GetPricingRequestQuery(id)));
 
+        /// <summary>موظفو الفرع الذين يصلحون للتكليف (يحملون إعداد العروض) — لمن يكلّف</summary>
+        [HttpGet("Assignees")]
+        [Authorize(Policy = "AssignPricingRequest")]
+        public async Task<ActionResult<List<PricingAssigneeDto>>> Assignees([FromQuery] int? branchId) => Ok(await _mediator.Send(new GetPricingAssigneesQuery(branchId)));
+
         [HttpPost("Create")]
         [Authorize(Policy = "RegisterPricingRequest")]
         public async Task<ActionResult<PricingDetailDto>> Create([FromBody] PricingRequestRequestDto dto) => Ok(await _mediator.Send(new CreatePricingRequestCommand(dto)));

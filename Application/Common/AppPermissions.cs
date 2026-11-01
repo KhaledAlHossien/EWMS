@@ -337,7 +337,8 @@ namespace Application.Common
                 "ViewContractorEvaluations", "EvaluateContractor", "ReviewContractorEvaluation"],
             // قائمة المقاولين: لكل من يتعاقد أو يقيّم أو يفلتر
             ["AnyContractorView"] = ["ViewContractors", "CreateContractor", "EditContractor", "DeleteContractor",
-                "ViewContracts", "CreateContract", "EditContract", "EvaluateContractor", "ViewContractorEvaluations"],
+                "ViewContracts", "CreateContract", "EditContract", "EvaluateContractor", "ViewContractorEvaluations",
+                "PreparePricingOffers", "PreparePricingAgreement"],
             // معايير التقييم: لكل من يقيّم أو يراجع أو يديرها
             ["AnyEvaluationCriterionView"] = ["ViewEvaluationCriteria", "CreateEvaluationCriterion", "EditEvaluationCriterion", "DeleteEvaluationCriterion",
                 "EvaluateContractor", "ReviewContractorEvaluation"],

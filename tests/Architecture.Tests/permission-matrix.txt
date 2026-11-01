@@ -136,6 +136,7 @@ GET api/Offices/Get/{id} → ViewOffices
 GET api/Offices/GetAll → ViewOffices
 GET api/PricingAgreements/Get/{id} → AnyPricingAgreementView
 GET api/PricingAgreements/Search → AnyPricingAgreementView
+GET api/PricingRequests/Assignees → AssignPricingRequest
 GET api/PricingRequests/Get/{id} → AnyPricingRequestView
 GET api/PricingRequests/Search → AnyPricingRequestView
 GET api/ProjectDocuments/Get/{id} → ViewProjectDocuments

@@ -6176,6 +6176,19 @@
         },
         "type": "object"
       },
+      "PricingAssigneeDto": {
+        "additionalProperties": false,
+        "properties": {
+          "fullName": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "PricingComparisonRowDto": {
         "additionalProperties": false,
         "properties": {
@@ -22794,6 +22807,54 @@
               "text/plain": {
                 "schema": {
                   "$ref": "#/components/schemas/PricingDetailDto"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "PricingRequests"
+        ]
+      }
+    },
+    "/api/PricingRequests/Assignees": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "branchId",
+            "schema": {
+              "format": "int32",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PricingAssigneeDto"
+                  },
+                  "type": "array"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PricingAssigneeDto"
+                  },
+                  "type": "array"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PricingAssigneeDto"
+                  },
+                  "type": "array"
                 }
               }
             },
