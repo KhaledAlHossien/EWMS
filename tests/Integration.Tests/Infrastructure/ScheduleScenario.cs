@@ -29,7 +29,7 @@ public sealed class ScheduleScenario
         {
             Name = $"مشروع اختبار {Interlocked.Increment(ref _sequence)}-{Guid.NewGuid():N}"[..40],
             Beneficiary = "جهة اختبار",
-            DepartmentId = api.DepartmentId
+            DepartmentId = api.DepartmentId, SiteId = api.SiteId
         })).Ok();
         return new ScheduleScenario(api) { ProjectId = project.Id };
     }

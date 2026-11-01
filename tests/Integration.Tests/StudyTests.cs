@@ -70,7 +70,7 @@ public class StudyTests(ApiFixture api)
     {
         var project = (await api.Preparer.Post<ProjectResponseDto>("/api/Projects/Create", new ProjectRequestDto
         {
-            Name = $"مشروع دراسة {Guid.NewGuid():N}"[..30], Beneficiary = "جهة اختبار", DepartmentId = api.DepartmentId
+            Name = $"مشروع دراسة {Guid.NewGuid():N}"[..30], Beneficiary = "جهة اختبار", DepartmentId = api.DepartmentId, SiteId = api.SiteId
         })).Ok();
         foreach (var userId in new[] { org.EngineerId, org.SelfReviewerId })
             (await api.Preparer.Post<JsonElement>($"/api/Projects/Members/{project.Id}", new { userId, title = "مهندس دراسة" })).Ok();

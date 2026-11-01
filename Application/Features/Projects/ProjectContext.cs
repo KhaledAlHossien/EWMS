@@ -45,9 +45,10 @@ namespace Application.Features.Projects
             return department.Name;
         }
 
+        /// <summary>موقع المشروع مطلوب: يُعرض المشروع على الخريطة تلقائياً بحسب موقعه (كتركيب الأجهزة)، فلا يُضاف يدوياً</summary>
         public async Task<string?> ResolveSiteAsync(int? siteId)
         {
-            if (siteId is not int id) return null;
+            if (siteId is not int id) throw new InvalidOperationException("اختر موقع المشروع: يُعرض على الخريطة بحسب موقعه");
             var site = await Sites.GetByIdAsync(id) ?? throw new KeyNotFoundException("الموقع غير موجود");
             return site.Name;
         }

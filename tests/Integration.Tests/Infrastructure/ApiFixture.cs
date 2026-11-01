@@ -45,6 +45,8 @@ public sealed class ApiFixture : IAsyncLifetime
     public ApiClient Outsider { get; private set; } = null!;
     public int BranchId { get; private set; }
     public int DepartmentId { get; private set; }
+    /// <summary>موقع بإحداثيات: موقع المشروع مطلوب (يظهر على الخريطة تلقائياً)</summary>
+    public int SiteId { get; private set; }
 
     public async Task InitializeAsync()
     {
@@ -76,6 +78,7 @@ public sealed class ApiFixture : IAsyncLifetime
         // المؤسسة: فرع الاختبار وقسمه، وفرع آخر وقسمه (للغريب)
         BranchId = await CreateBranchAsync("فرع الاختبار");
         DepartmentId = await CreateDepartmentAsync("قسم الاختبار", BranchId);
+        SiteId = (await Admin.Post<SiteResponseDto>("/api/Sites/Create", new { name = "موقع الاختبار", latitude = 33.51, longitude = 36.29 })).Ok().Id;
         var otherBranch = await CreateBranchAsync("فرع آخر");
         var otherDepartment = await CreateDepartmentAsync("قسم آخر", otherBranch);
 

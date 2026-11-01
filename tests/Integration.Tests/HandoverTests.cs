@@ -56,12 +56,12 @@ public class HandoverTests(ApiFixture api)
     {
         var project = (await api.Preparer.Post<ProjectResponseDto>("/api/Projects/Create", new ProjectRequestDto
         {
-            Name = $"مشروع استلام {Guid.NewGuid():N}"[..28], Beneficiary = "جهة اختبار", DepartmentId = api.DepartmentId
+            Name = $"مشروع استلام {Guid.NewGuid():N}"[..28], Beneficiary = "جهة اختبار", DepartmentId = api.DepartmentId, SiteId = api.SiteId
         })).Ok();
         if (stage != 1)
             (await api.Preparer.Put<ProjectResponseDto>($"/api/Projects/Update/{project.Id}", new ProjectRequestDto
             {
-                Name = project.Name, Beneficiary = "جهة اختبار", DepartmentId = api.DepartmentId, Stage = stage, RowVersion = project.RowVersion
+                Name = project.Name, Beneficiary = "جهة اختبار", DepartmentId = api.DepartmentId, SiteId = api.SiteId, Stage = stage, RowVersion = project.RowVersion
             })).Ok();
         (await api.Preparer.Post<JsonElement>($"/api/Projects/Members/{project.Id}", new { userId = org.EngineerId, title = "مهندس موقع" })).Ok();
         return project.Id;

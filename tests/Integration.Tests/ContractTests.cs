@@ -59,7 +59,7 @@ public class ContractTests(ApiFixture api)
     {
         var project = (await api.Preparer.Post<ProjectResponseDto>("/api/Projects/Create", new ProjectRequestDto
         {
-            Name = $"مشروع عقد {Guid.NewGuid():N}"[..28], Beneficiary = "جهة اختبار", DepartmentId = api.DepartmentId
+            Name = $"مشروع عقد {Guid.NewGuid():N}"[..28], Beneficiary = "جهة اختبار", DepartmentId = api.DepartmentId, SiteId = api.SiteId
         })).Ok();
         foreach (var userId in new[] { org.EngineerId, org.SelfReviewerId })
             (await api.Preparer.Post<JsonElement>($"/api/Projects/Members/{project.Id}", new { userId, title = "مهندس موقع" })).Ok();
