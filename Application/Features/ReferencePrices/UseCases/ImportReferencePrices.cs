@@ -64,12 +64,12 @@ namespace Application.Features.ReferencePrices
 
             if (report.Invalid > 0)
             {
-                report.Message = $"لم يُحفظ شيء: {report.Invalid} سطر فيه أخطاء من {report.Total}. صحّح الملف وارفعه من جديد (الكل أو لا شيء).";
+                report.Message = $"لم يُحفظ شيء: عدد الأسطر الخاطئة {report.Invalid} من {report.Total}. صحّح الملف وارفعه من جديد (الكل أو لا شيء).";
                 return report;
             }
             if (request.DryRun)
             {
-                report.Message = $"الملف سليم: {report.Valid} سعراً جاهزاً للحفظ. أكّد الاستيراد ليُحفظ كله.";
+                report.Message = $"الملف سليم: عدد الأسعار الجاهزة للحفظ {report.Valid}. أكّد الاستيراد ليُحفظ كله.";
                 return report;
             }
 
@@ -82,16 +82,16 @@ namespace Application.Features.ReferencePrices
             }).ToList();
 
             var saved = await ctx.Prices.ImportAsync(batch, prices,
-                new AuditEntry(viewer.Id, AuditActions.Created, AuditEntities.ReferencePrice, null, $"استيراد {prices.Count} سعراً مرجعياً من الملف «{batch.FileName}»",
+                new AuditEntry(viewer.Id, AuditActions.Created, AuditEntities.ReferencePrice, null, $"استيراد أسعار مرجعية (عددها {prices.Count}) من الملف «{batch.FileName}»",
                     Lines($"الموردون: {parsed.Select(p => p.SupplierName).Distinct().Count()}", $"المواد: {parsed.Select(p => Key(p)).Distinct().Count()}")));
 
             report.Saved = true;
             report.Imported = prices.Count;
             report.ImportId = saved.Id;
-            report.Message = $"استُورد {prices.Count} سعراً تاريخياً وهي بانتظار الاعتماد من غير من استوردها.";
+            report.Message = $"استُوردت الأسعار (عددها {prices.Count}) تاريخية وهي بانتظار الاعتماد من غير من استوردها.";
 
             await ctx.NotifyAsync(await ctx.HoldersAsync(branch, AppPermissions.ApproveReferencePrice), viewer.Id, prices[0], NotificationType.ReferencePriceAwaiting,
-                "أسعار مرجعية مستوردة بانتظار اعتمادك", $"استورد {viewer.User.FullName} {prices.Count} سعراً من الملف «{batch.FileName}»");
+                "أسعار مرجعية مستوردة بانتظار اعتمادك", $"استورد {viewer.User.FullName} أسعاراً عددها {prices.Count} من الملف «{batch.FileName}»");
             return report;
         }
 
