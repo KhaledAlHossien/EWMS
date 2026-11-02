@@ -19,7 +19,7 @@ namespace Infrastructure.Persistence.Data
         {
             // ==================== 1. الأدوار ====================
             // الدور العام الوحيد هو SuperAdmin. كل منصب آخر ينشأ من صفحة الأدوار
-            // ويرتبط صراحة بفرع أو قسم أو مكتب.
+            // والدور قالب صلاحيات فقط بلا وحدة؛ موقع الموظف (فرع/قسم/مكتب) يُضبط في نموذج المستخدم.
             var roleNames = new[] { "SuperAdmin" };
             foreach (var roleName in roleNames)
             {
@@ -31,48 +31,9 @@ namespace Infrastructure.Persistence.Data
 
             await context.SaveChangesAsync();
 
-            // ==================== 2. الفروع ====================
-            if (!await context.Branches.AnyAsync())
-            {
-                await context.Branches.AddRangeAsync(
-                    new Branch { Name = "الفرع التقني", Description = "الفرع التقني الخاص بالادارة" },
-                    new Branch { Name = "فرع التصميم", Description = "الفرع التصميمي الخاص بالادارة" },
-                    new Branch { Name = "فرع التقييم", Description = "الفرع التقييمي الخاص بالادارة" },
-                    new Branch { Name = "فرع الدراسات", Description = "الفرع الدراسي الخاص بالادارة" }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            // ==================== 3. الأقسام ====================
-            if (!await context.Departments.AnyAsync())
-            {
-                var mainBranch = await context.Branches.FirstAsync(b => b.Name == "الفرع التقني");
-
-                await context.Departments.AddRangeAsync(
-                    new Department { Name = "العمليات", Description = "القسم الخاص بالعمليات", BranchId = mainBranch.Id },
-                    new Department { Name = "التنفيذ", Description = "القسم الخاص بالتنفيذ", BranchId = mainBranch.Id }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            // ==================== 3.1 المكاتب ====================
-            {
-                var operationsDept = await context.Departments.FirstAsync(d => d.Name == "العمليات");
-
-                var officeNames = new[]
-                {
-                    new Office { Name = "مكتب البرمجة", Description = "مكتب البرمجة التابع لقسم العمليات", DepartmentId = operationsDept.Id },
-                    new Office { Name = "مكتب السيرفر", Description = "مكتب السيرفر التابع لقسم العمليات", DepartmentId = operationsDept.Id }
-                };
-
-                foreach (var office in officeNames)
-                {
-                    if (!await context.Offices.AnyAsync(o => o.Name == office.Name))
-                        await context.Offices.AddAsync(office);
-                }
-
-                await context.SaveChangesAsync();
-            }
+            // ==================== 2. الهيكل التنظيمي ====================
+            // لا يُبذر أي فرع أو قسم أو مكتب: الهيكل يبنيه مدير النظام من الواجهة، ولا شيء في النظام
+            // يفترض وجود وحدة بعينها — ما يتحكم بالوصول هو الصلاحية وحدودها (قسمي/فرعي/المؤسسة).
 
             // ==================== 4. أنواع الإجازات ====================
             if (!await context.VacationType.AnyAsync())
