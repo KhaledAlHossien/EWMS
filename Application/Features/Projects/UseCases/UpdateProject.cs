@@ -61,10 +61,9 @@ namespace Application.Features.Projects
             project.ReferenceNumber = reference;
             project.Beneficiary = beneficiary;
             project.Description = description;
+            // المفتاحان فقط: تصفير الخاصية الملاحية (Department/Site) على كيان متتبَّع يجعل EF يصفّر المفتاح نفسه فيُمحى القسم والموقع
             project.DepartmentId = dto.DepartmentId;
-            project.Department = null;
             project.SiteId = dto.SiteId;
-            project.Site = null;
             project.Stage = newStage;
 
             var action = oldStage != newStage ? AuditActions.Stage : AuditActions.Updated;

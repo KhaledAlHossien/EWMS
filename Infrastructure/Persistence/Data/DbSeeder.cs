@@ -56,8 +56,9 @@ namespace Infrastructure.Persistence.Data
             }
 
             // ==================== 3.1 المكاتب ====================
+            // قسم «العمليات» من البذر الأولي: قد لا يوجد في مؤسسة بنت هيكلها بنفسها، فلا يُفترض وجوده
+            if (await context.Departments.FirstOrDefaultAsync(d => d.Name == "العمليات") is { } operationsDept)
             {
-                var operationsDept = await context.Departments.FirstAsync(d => d.Name == "العمليات");
 
                 var officeNames = new[]
                 {
