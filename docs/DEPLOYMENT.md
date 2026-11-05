@@ -193,8 +193,20 @@ sudo -u ewms touch /mnt/ewms-files/.t && sudo -u ewms rm /mnt/ewms-files/.t && e
 في ملف الخدمة `RequiresMountsFor=/mnt/ewms-files` (لا تبدأ الخدمة قبل تركيب المشاركة)، ثم `sudo systemctl daemon-reload` وأعد التشغيل.
 - إن لم يكن المجلد موجوداً أو لا يقبل الكتابة **يتوقف الإقلاع** برسالة عربية في `journalctl`، و`/health` يصبح Unhealthy إن انقطعت المشاركة لاحقاً.
 
+**مرفقات فرع الدراسات (المخططات وغيرها) — بلا سقف للحجم، في المجلد دائماً:**
+- تُحفظ في `FileStorage__Root` **حتى مع `FileStorage__Mode=Database`** (ملفات المخططات قد تبلغ 1GB وأكثر، فلا تُحفظ في القاعدة).
+  إن لم يُضبط المجلد يُرفض رفعها برسالة عربية، و`/health` يعطي `Degraded` بدل `Healthy`.
+- الرفع والتنزيل تدفقاً (لا يمرّ الملف بذاكرة الخادم)، والتنزيل يدعم الاستئناف (Range).
+- **Nginx:** كتلة `location ^~ /api/StudyAttachments/` في ملفي `deploy/linux` (`client_max_body_size 0`، `proxy_request_buffering off`،
+  `proxy_buffering off`، ومهل 3600s). على الخادم الحالي أضفها داخل `server { … }` في `/etc/nginx/sites-enabled/ewms` **قبل** `location /api/`:
+  ```bash
+  sudo nano /etc/nginx/sites-enabled/ewms      # الصق كتلة StudyAttachments من deploy/linux/split/nginx-ewms.conf
+  sudo nginx -t && sudo systemctl reload nginx
+  ```
+- الحد الفعلي هو **مساحة المجلد**: راقبها (`df -h /mnt/ewms-files`)، وراعِ حجم نسخته الاحتياطية.
+
 **كيف يعمل:**
-- اسم الملف على القرص عشوائي: `vacations|tasks|map-files/<سنة>/<شهر>/<معرّف>`؛ الاسم الأصلي في القاعدة فقط. لا يقدّم Nginx المجلد أبداً:
+- اسم الملف على القرص عشوائي: `vacations|tasks|map-files|studies/<سنة>/<شهر>/<معرّف>`؛ الاسم الأصلي في القاعدة فقط. لا يقدّم Nginx المجلد أبداً:
   كل تنزيل يمرّ عبر الـ API بالصلاحيات نفسها.
 - **الملفات السابقة للتحويل تبقى في القاعدة** وتُقرأ منها كما هي (لا أداة لنقلها — قرار 2026-10-14). لا ترجع إلى `Database` بعد وجود ملفات
   في المجلد إلا مع إبقاء `FileStorage__Root` مضبوطاً (الملفات ذات المفتاح تُقرأ منه دائماً).

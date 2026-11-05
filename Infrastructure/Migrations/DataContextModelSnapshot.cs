@@ -459,6 +459,1330 @@ namespace Infrastructure.Migrations
                     b.ToTable("Branches");
                 });
 
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ArchitecturalVersion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DrawingId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("VersionDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("VersionNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DrawingId", "VersionNumber")
+                        .IsUnique();
+
+                    b.ToTable("ArchitecturalVersions");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.DesignApproval", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CdaDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("CdaNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Content")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Decision")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("TechnicalNotes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("VersionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CdaNumber")
+                        .IsUnique();
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("VersionId")
+                        .IsUnique();
+
+                    b.ToTable("DesignApprovals");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.EngineeringDiscipline", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("EngineeringDisciplines");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ProjectDepartment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AddedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("AddedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AddedByUserId");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("ProjectId", "DepartmentId")
+                        .IsUnique();
+
+                    b.ToTable("ProjectDepartments");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ProjectDrawing", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BasedOnVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("DrawingDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("DrawingNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int")
+                        .HasColumnName("DrawingKind");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("OfficeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PreparedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BasedOnVersionId");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("OfficeId");
+
+                    b.HasIndex("PreparedByUserId");
+
+                    b.HasIndex("ProjectId", "DrawingNumber")
+                        .IsUnique();
+
+                    b.HasIndex("ProjectId", "Kind");
+
+                    b.ToTable("ProjectDrawings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ProjectDrawings_BasedOn", "[DrawingKind] <> 1 OR [BasedOnVersionId] IS NULL");
+                        });
+
+                    b.HasDiscriminator<int>("Kind");
+
+                    b.UseTphMappingStrategy();
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ProjectMember", b =>
+                {
+                    b.Property<int>("ProjectDepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("AssignedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RoleTitle")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("ProjectDepartmentId", "UserId");
+
+                    b.HasIndex("AssignedByUserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ProjectMembers");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ProjectStage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ActualEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("ActualStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ClosedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PlannedEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("PlannedStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ResponsibleDepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StageTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Weight")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClosedByUserId");
+
+                    b.HasIndex("ResponsibleDepartmentId");
+
+                    b.HasIndex("StageTypeId");
+
+                    b.HasIndex("ProjectId", "SortOrder");
+
+                    b.HasIndex("ProjectId", "StageTypeId")
+                        .IsUnique();
+
+                    b.ToTable("ProjectStages", t =>
+                        {
+                            t.HasCheckConstraint("CK_ProjectStages_Weight", "[Weight] >= 0 AND [Weight] <= 100");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ResponseBuilding", b =>
+                {
+                    b.Property<int>("ResponseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BuildingType")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BuildingCount")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("BuildingsArea")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<decimal?>("InitialCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("SiteArea")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.HasKey("ResponseId", "BuildingType");
+
+                    b.ToTable("ResponseBuildings", t =>
+                        {
+                            t.HasCheckConstraint("CK_ResponseBuildings_Count", "[BuildingCount] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ResponseCostItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("ResponseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResponseId", "SortOrder");
+
+                    b.ToTable("ResponseCostItems", t =>
+                        {
+                            t.HasCheckConstraint("CK_ResponseCostItems_Values", "[Quantity] >= 0 AND [UnitPrice] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ResponseLogisticItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Item")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<int>("ResponseId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResponseId");
+
+                    b.ToTable("ResponseLogisticItems");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ResponseStaffEstimate", b =>
+                {
+                    b.Property<int>("ResponseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DisciplineId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StaffCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("ResponseId", "DisciplineId");
+
+                    b.HasIndex("DisciplineId");
+
+                    b.ToTable("ResponseStaffEstimates", t =>
+                        {
+                            t.HasCheckConstraint("CK_ResponseStaffEstimates_Count", "[StaffCount] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StageTask", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ActualEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("ActualStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("AssignedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AssigneeUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int?>("OfficeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PlannedEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("PlannedStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("Progress")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("StageId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TargetType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Weight")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignedByUserId");
+
+                    b.HasIndex("AssigneeUserId");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("OfficeId");
+
+                    b.HasIndex("StageId");
+
+                    b.ToTable("StageTasks", t =>
+                        {
+                            t.HasCheckConstraint("CK_StageTasks_Progress", "[Progress] >= 0 AND [Progress] <= 100 AND [Weight] >= 0 AND [Weight] <= 100");
+
+                            t.HasCheckConstraint("CK_StageTasks_Target", "([TargetType] = 1 AND [DepartmentId] IS NOT NULL AND [OfficeId] IS NULL AND [AssigneeUserId] IS NULL) OR ([TargetType] = 2 AND [OfficeId] IS NOT NULL AND [DepartmentId] IS NULL AND [AssigneeUserId] IS NULL) OR ([TargetType] = 3 AND [AssigneeUserId] IS NOT NULL AND [DepartmentId] IS NULL AND [OfficeId] IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StartOrderEngineer", b =>
+                {
+                    b.Property<int>("StartOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EngineerUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DisciplineId")
+                        .HasColumnType("int");
+
+                    b.HasKey("StartOrderId", "EngineerUserId");
+
+                    b.HasIndex("DisciplineId");
+
+                    b.HasIndex("EngineerUserId");
+
+                    b.ToTable("StartOrderEngineers");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StartOrderResource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Item")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<int>("StartOrderId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StartOrderId");
+
+                    b.ToTable("StartOrderResources");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyActivityLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Action")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("EntityId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EntityType")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RequestId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("RequestId", "CreatedAt");
+
+                    b.ToTable("StudyActivityLogs");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyApproval", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AssignmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Decision")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DesignApprovalId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("JobTitle")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ResponseId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int?>("SignatureId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SignerRole")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SignerUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("StartOrderId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SignatureId");
+
+                    b.HasIndex("SignerUserId");
+
+                    b.HasIndex("AssignmentId", "SignerRole")
+                        .IsUnique()
+                        .HasFilter("[AssignmentId] IS NOT NULL");
+
+                    b.HasIndex("DesignApprovalId", "SignerRole")
+                        .IsUnique()
+                        .HasFilter("[DesignApprovalId] IS NOT NULL");
+
+                    b.HasIndex("ProjectId", "SignerRole")
+                        .IsUnique()
+                        .HasFilter("[ProjectId] IS NOT NULL");
+
+                    b.HasIndex("ResponseId", "SignerRole")
+                        .IsUnique()
+                        .HasFilter("[ResponseId] IS NOT NULL");
+
+                    b.HasIndex("SignerRole", "Decision");
+
+                    b.HasIndex("StartOrderId", "SignerRole")
+                        .IsUnique()
+                        .HasFilter("[StartOrderId] IS NOT NULL");
+
+                    b.ToTable("StudyApprovals", t =>
+                        {
+                            t.HasCheckConstraint("CK_StudyApprovals_OneOwner", "(CASE WHEN [AssignmentId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [ResponseId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [StartOrderId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [DesignApprovalId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [ProjectId] IS NULL THEN 0 ELSE 1 END) = 1");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyAssignment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal?>("AllocatedBudget")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("AssignmentDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("AssignmentNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FollowingDepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("NeedsFinalRecommendation")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("NeedsPreliminaryBudget")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("NeedsResourceEstimate")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("NeedsTechnicalEvaluation")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProjectCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ReferralDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("RequestId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ResponseDeadline")
+                        .HasColumnType("date");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("ScopeSummary")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignmentNumber")
+                        .IsUnique();
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("FollowingDepartmentId");
+
+                    b.HasIndex("ProjectCode")
+                        .IsUnique()
+                        .HasFilter("[ProjectCode] IS NOT NULL");
+
+                    b.HasIndex("RequestId")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("StudyAssignments");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyAssignmentResponse", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AssignmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ProposedManagerUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Recommendation")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RequiredDays")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ResponseDate")
+                        .HasColumnType("date");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignmentId")
+                        .IsUnique();
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("ProposedManagerUserId");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("StudyAssignmentResponses");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyAttachment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AssignmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AttachmentTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int?>("DrawingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RequestId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ResponseId")
+                        .HasColumnType("int");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("StartOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UploadedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("VersionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.HasIndex("AttachmentTypeId");
+
+                    b.HasIndex("DrawingId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RequestId");
+
+                    b.HasIndex("ResponseId");
+
+                    b.HasIndex("StartOrderId");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique();
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.HasIndex("VersionId");
+
+                    b.ToTable("StudyAttachments", t =>
+                        {
+                            t.HasCheckConstraint("CK_StudyAttachments_OneOwner", "(CASE WHEN [RequestId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [AssignmentId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [ResponseId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [StartOrderId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [ProjectId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [DrawingId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [VersionId] IS NULL THEN 0 ELSE 1 END) = 1");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyAttachmentType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("StudyAttachmentTypes");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyNumberSequence", b =>
+                {
+                    b.Property<int>("DocumentType")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LastNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("DocumentType", "Year");
+
+                    b.ToTable("StudyNumberSequences");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyProject", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ActualEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("ActualStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ManagerUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("PlannedEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("PlannedStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("StartOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("ManagerUserId");
+
+                    b.HasIndex("StartOrderId")
+                        .IsUnique();
+
+                    b.HasIndex("BranchId", "Status", "CreatedAt");
+
+                    b.ToTable("StudyProjects");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("AddedDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("AdminArchiveDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("AdminArchiveNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Area")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("BeneficiaryArchiveNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CityOrVillage")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EntityCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("FollowerName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("FollowerPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("GovernorateCode")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)");
+
+                    b.Property<string>("MainBeneficiary")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("MinistryArchiveDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("MinistryArchiveNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("PropertyNature")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("RequestDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("RequestNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int?>("SiteId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SubBeneficiary")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Urgency")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WorkType")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("MainBeneficiary");
+
+                    b.HasIndex("RequestNumber")
+                        .IsUnique();
+
+                    b.HasIndex("SiteId");
+
+                    b.HasIndex("BranchId", "Status", "CreatedAt");
+
+                    b.ToTable("StudyRequests");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyStageType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DefaultOrder")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("DefaultWeight")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("LinkedDocument")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("StudyStageTypes", t =>
+                        {
+                            t.HasCheckConstraint("CK_StudyStageTypes_Weight", "[DefaultWeight] >= 0 AND [DefaultWeight] <= 100");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyStartOrder", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompetentDepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("ProjectManagerUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ResponseId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StudyDeadline")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("StudyStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompetentDepartmentId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("OrderNumber")
+                        .IsUnique();
+
+                    b.HasIndex("ProjectManagerUserId");
+
+                    b.HasIndex("ResponseId")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("StudyStartOrders");
+                });
+
             modelBuilder.Entity("Domain.Entities.Department", b =>
                 {
                     b.Property<int>("Id")
@@ -2355,6 +3679,66 @@ namespace Infrastructure.Migrations
                     b.ToTable("WorkTasks");
                 });
 
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ArchitecturalDrawing", b =>
+                {
+                    b.HasBaseType("Domain.Entities.CentralStudiesBranch.ProjectDrawing");
+
+                    b.ToTable(t =>
+                        {
+                            t.HasCheckConstraint("CK_ProjectDrawings_BasedOn", "[DrawingKind] <> 1 OR [BasedOnVersionId] IS NULL");
+                        });
+
+                    b.HasDiscriminator().HasValue(1);
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.InteriorDrawing", b =>
+                {
+                    b.HasBaseType("Domain.Entities.CentralStudiesBranch.ProjectDrawing");
+
+                    b.ToTable(t =>
+                        {
+                            t.HasCheckConstraint("CK_ProjectDrawings_BasedOn", "[DrawingKind] <> 1 OR [BasedOnVersionId] IS NULL");
+                        });
+
+                    b.HasDiscriminator().HasValue(4);
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.MepDrawing", b =>
+                {
+                    b.HasBaseType("Domain.Entities.CentralStudiesBranch.ProjectDrawing");
+
+                    b.ToTable(t =>
+                        {
+                            t.HasCheckConstraint("CK_ProjectDrawings_BasedOn", "[DrawingKind] <> 1 OR [BasedOnVersionId] IS NULL");
+                        });
+
+                    b.HasDiscriminator().HasValue(3);
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StructuralDrawing", b =>
+                {
+                    b.HasBaseType("Domain.Entities.CentralStudiesBranch.ProjectDrawing");
+
+                    b.ToTable(t =>
+                        {
+                            t.HasCheckConstraint("CK_ProjectDrawings_BasedOn", "[DrawingKind] <> 1 OR [BasedOnVersionId] IS NULL");
+                        });
+
+                    b.HasDiscriminator().HasValue(2);
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.TechnicalDrawing", b =>
+                {
+                    b.HasBaseType("Domain.Entities.CentralStudiesBranch.ProjectDrawing");
+
+                    b.ToTable(t =>
+                        {
+                            t.HasCheckConstraint("CK_ProjectDrawings_BasedOn", "[DrawingKind] <> 1 OR [BasedOnVersionId] IS NULL");
+                        });
+
+                    b.HasDiscriminator().HasValue(5);
+                });
+
             modelBuilder.Entity("Domain.Entities.AssignedTask", b =>
                 {
                     b.HasOne("Domain.Entities.User", "AssigneeUser")
@@ -2525,6 +3909,578 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Template");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ArchitecturalVersion", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.ArchitecturalDrawing", "Drawing")
+                        .WithMany("Versions")
+                        .HasForeignKey("DrawingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Drawing");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.DesignApproval", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.ArchitecturalVersion", "Version")
+                        .WithOne("DesignApproval")
+                        .HasForeignKey("Domain.Entities.CentralStudiesBranch.DesignApproval", "VersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Version");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ProjectDepartment", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "AddedBy")
+                        .WithMany()
+                        .HasForeignKey("AddedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyProject", "Project")
+                        .WithMany("Departments")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AddedBy");
+
+                    b.Navigation("Department");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ProjectDrawing", b =>
+                {
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.ArchitecturalVersion", "BasedOnVersion")
+                        .WithMany()
+                        .HasForeignKey("BasedOnVersionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Office", "Office")
+                        .WithMany()
+                        .HasForeignKey("OfficeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "PreparedBy")
+                        .WithMany()
+                        .HasForeignKey("PreparedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyProject", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BasedOnVersion");
+
+                    b.Navigation("Department");
+
+                    b.Navigation("Office");
+
+                    b.Navigation("PreparedBy");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ProjectMember", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "AssignedBy")
+                        .WithMany()
+                        .HasForeignKey("AssignedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.ProjectDepartment", "ProjectDepartment")
+                        .WithMany("Members")
+                        .HasForeignKey("ProjectDepartmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AssignedBy");
+
+                    b.Navigation("ProjectDepartment");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ProjectStage", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "ClosedBy")
+                        .WithMany()
+                        .HasForeignKey("ClosedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyProject", "Project")
+                        .WithMany("Stages")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Department", "ResponsibleDepartment")
+                        .WithMany()
+                        .HasForeignKey("ResponsibleDepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyStageType", "StageType")
+                        .WithMany()
+                        .HasForeignKey("StageTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ClosedBy");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("ResponsibleDepartment");
+
+                    b.Navigation("StageType");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ResponseBuilding", b =>
+                {
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyAssignmentResponse", null)
+                        .WithMany("Buildings")
+                        .HasForeignKey("ResponseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ResponseCostItem", b =>
+                {
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyAssignmentResponse", null)
+                        .WithMany("CostItems")
+                        .HasForeignKey("ResponseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ResponseLogisticItem", b =>
+                {
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyAssignmentResponse", null)
+                        .WithMany("LogisticItems")
+                        .HasForeignKey("ResponseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ResponseStaffEstimate", b =>
+                {
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.EngineeringDiscipline", "Discipline")
+                        .WithMany()
+                        .HasForeignKey("DisciplineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyAssignmentResponse", null)
+                        .WithMany("StaffEstimates")
+                        .HasForeignKey("ResponseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Discipline");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StageTask", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "AssignedBy")
+                        .WithMany()
+                        .HasForeignKey("AssignedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "Assignee")
+                        .WithMany()
+                        .HasForeignKey("AssigneeUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.Office", "Office")
+                        .WithMany()
+                        .HasForeignKey("OfficeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.ProjectStage", "Stage")
+                        .WithMany("Tasks")
+                        .HasForeignKey("StageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AssignedBy");
+
+                    b.Navigation("Assignee");
+
+                    b.Navigation("Department");
+
+                    b.Navigation("Office");
+
+                    b.Navigation("Stage");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StartOrderEngineer", b =>
+                {
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.EngineeringDiscipline", "Discipline")
+                        .WithMany()
+                        .HasForeignKey("DisciplineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "Engineer")
+                        .WithMany()
+                        .HasForeignKey("EngineerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyStartOrder", null)
+                        .WithMany("Engineers")
+                        .HasForeignKey("StartOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Discipline");
+
+                    b.Navigation("Engineer");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StartOrderResource", b =>
+                {
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyStartOrder", null)
+                        .WithMany("Resources")
+                        .HasForeignKey("StartOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyActivityLog", b =>
+                {
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyRequest", "Request")
+                        .WithMany()
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Request");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyApproval", b =>
+                {
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyAssignment", "Assignment")
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.DesignApproval", "DesignApproval")
+                        .WithMany()
+                        .HasForeignKey("DesignApprovalId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyProject", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyAssignmentResponse", "Response")
+                        .WithMany()
+                        .HasForeignKey("ResponseId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Domain.Entities.UserSignature", "Signature")
+                        .WithMany()
+                        .HasForeignKey("SignatureId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.User", "Signer")
+                        .WithMany()
+                        .HasForeignKey("SignerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyStartOrder", "StartOrder")
+                        .WithMany()
+                        .HasForeignKey("StartOrderId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Assignment");
+
+                    b.Navigation("DesignApproval");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("Response");
+
+                    b.Navigation("Signature");
+
+                    b.Navigation("Signer");
+
+                    b.Navigation("StartOrder");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyAssignment", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Department", "FollowingDepartment")
+                        .WithMany()
+                        .HasForeignKey("FollowingDepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyRequest", "Request")
+                        .WithOne("Assignment")
+                        .HasForeignKey("Domain.Entities.CentralStudiesBranch.StudyAssignment", "RequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("FollowingDepartment");
+
+                    b.Navigation("Request");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyAssignmentResponse", b =>
+                {
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyAssignment", "Assignment")
+                        .WithOne("Response")
+                        .HasForeignKey("Domain.Entities.CentralStudiesBranch.StudyAssignmentResponse", "AssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "ProposedManager")
+                        .WithMany()
+                        .HasForeignKey("ProposedManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Assignment");
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("ProposedManager");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyAttachment", b =>
+                {
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyAssignment", "Assignment")
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyAttachmentType", "AttachmentType")
+                        .WithMany()
+                        .HasForeignKey("AttachmentTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.ProjectDrawing", "Drawing")
+                        .WithMany()
+                        .HasForeignKey("DrawingId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyProject", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyRequest", "Request")
+                        .WithMany()
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyAssignmentResponse", "Response")
+                        .WithMany()
+                        .HasForeignKey("ResponseId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyStartOrder", "StartOrder")
+                        .WithMany()
+                        .HasForeignKey("StartOrderId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Domain.Entities.User", "UploadedBy")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.ArchitecturalVersion", "Version")
+                        .WithMany()
+                        .HasForeignKey("VersionId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Assignment");
+
+                    b.Navigation("AttachmentType");
+
+                    b.Navigation("Drawing");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("Request");
+
+                    b.Navigation("Response");
+
+                    b.Navigation("StartOrder");
+
+                    b.Navigation("UploadedBy");
+
+                    b.Navigation("Version");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyProject", b =>
+                {
+                    b.HasOne("Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "Manager")
+                        .WithMany()
+                        .HasForeignKey("ManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyStartOrder", "StartOrder")
+                        .WithOne("Project")
+                        .HasForeignKey("Domain.Entities.CentralStudiesBranch.StudyProject", "StartOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Manager");
+
+                    b.Navigation("StartOrder");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyRequest", b =>
+                {
+                    b.HasOne("Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Site", "Site")
+                        .WithMany()
+                        .HasForeignKey("SiteId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Site");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyStartOrder", b =>
+                {
+                    b.HasOne("Domain.Entities.Department", "CompetentDepartment")
+                        .WithMany()
+                        .HasForeignKey("CompetentDepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "ProjectManager")
+                        .WithMany()
+                        .HasForeignKey("ProjectManagerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyAssignmentResponse", "Response")
+                        .WithOne("StartOrder")
+                        .HasForeignKey("Domain.Entities.CentralStudiesBranch.StudyStartOrder", "ResponseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CompetentDepartment");
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("ProjectManager");
+
+                    b.Navigation("Response");
                 });
 
             modelBuilder.Entity("Domain.Entities.Department", b =>
@@ -3255,6 +5211,60 @@ namespace Infrastructure.Migrations
                     b.Navigation("Items");
                 });
 
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ArchitecturalVersion", b =>
+                {
+                    b.Navigation("DesignApproval");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ProjectDepartment", b =>
+                {
+                    b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ProjectStage", b =>
+                {
+                    b.Navigation("Tasks");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyAssignment", b =>
+                {
+                    b.Navigation("Response");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyAssignmentResponse", b =>
+                {
+                    b.Navigation("Buildings");
+
+                    b.Navigation("CostItems");
+
+                    b.Navigation("LogisticItems");
+
+                    b.Navigation("StaffEstimates");
+
+                    b.Navigation("StartOrder");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyProject", b =>
+                {
+                    b.Navigation("Departments");
+
+                    b.Navigation("Stages");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyRequest", b =>
+                {
+                    b.Navigation("Assignment");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyStartOrder", b =>
+                {
+                    b.Navigation("Engineers");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("Resources");
+                });
+
             modelBuilder.Entity("Domain.Entities.Maintenance.SparePart", b =>
                 {
                     b.Navigation("DeviceCompanies");
@@ -3297,6 +5307,11 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Entities.WorkTask", b =>
                 {
                     b.Navigation("Assignments");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ArchitecturalDrawing", b =>
+                {
+                    b.Navigation("Versions");
                 });
 #pragma warning restore 612, 618
         }

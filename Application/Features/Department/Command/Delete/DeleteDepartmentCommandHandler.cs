@@ -14,6 +14,7 @@ namespace Application.Features.Department.Command.Delete
         private readonly ISparePartService _sparePartService;
         private readonly IDeviceSiteService _installations;
         private readonly IMapEntryService _mapEntries;
+        private readonly IStudyReferenceService _studies;
 
         public DeleteDepartmentCommandHandler(
             IDepartmentService departmentService,
@@ -23,8 +24,10 @@ namespace Application.Features.Department.Command.Delete
             IMaintenanceTaskService maintenanceTaskService,
             ISparePartService sparePartService,
             IDeviceSiteService installations,
-            IMapEntryService mapEntries)
+            IMapEntryService mapEntries,
+            IStudyReferenceService studies)
         {
+            _studies = studies;
             _departmentService = departmentService;
             _currentUserService = currentUserService;
             _assignedTaskService = assignedTaskService;
@@ -68,6 +71,9 @@ namespace Application.Features.Department.Command.Delete
 
             if (await _mapEntries.ExistsForDepartmentAsync(request.Id))
                 throw new InvalidOperationException("لا يمكن حذف قسم له سجلات على خريطة الفرع — انقلها إلى قسم آخر أو احذفها أولاً");
+
+            if (await _studies.ExistsForDepartmentAsync(request.Id))
+                throw new InvalidOperationException("لا يمكن حذف قسم مرتبط بسجلات فرع الدراسات (تكليفات أو أوامر بدء أو مشاريع أو مخططات)");
 
             return await _departmentService.DeleteAsync(department);
         }

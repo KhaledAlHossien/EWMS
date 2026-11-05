@@ -44,10 +44,12 @@ namespace Application.Features.DeviceInventory
         private readonly IUserService _users;
         private readonly IUserPermissionService _permissions;
         private readonly IMapEntryService _entries;
+        private readonly IStudyReferenceService _studies;
 
         public SiteHandler(ISiteService sites, IDeviceInventoryLogService log, ICurrentUserService currentUser,
-            IUserService users, IUserPermissionService permissions, IMapEntryService entries)
+            IUserService users, IUserPermissionService permissions, IMapEntryService entries, IStudyReferenceService studies)
         {
+            _studies = studies;
             _sites = sites;
             _log = log;
             _currentUser = currentUser;
@@ -135,6 +137,8 @@ namespace Application.Features.DeviceInventory
                 throw new InvalidOperationException("لا يمكن حذف موقع فيه تركيبات — احذفها أو انقلها أولاً");
             if (await _entries.ExistsForSiteAsync(request.Id))
                 throw new InvalidOperationException("لا يمكن حذف موقع عليه معلومات لأحد الفروع (سجلات طبقات) — تُحذف سجلاته أولاً");
+            if (await _studies.ExistsForSiteAsync(request.Id))
+                throw new InvalidOperationException("لا يمكن حذف موقع مرتبط بطلبات دراسة");
 
             await _sites.DeleteAsync(site);
             await _log.AddAsync(Log(DeviceInventoryEntity.Site, site.Id, DeviceInventoryAction.Deleted, _currentUser.UserId, Title(site)));

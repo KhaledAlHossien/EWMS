@@ -1,4 +1,4 @@
-namespace Application.Common
+﻿namespace Application.Common
 {
     /// <summary>
     /// المصدر الوحيد لكل صلاحيات النظام (قرار المستخدم 2026-09-30: صلاحية منفصلة لكل عملية).
@@ -185,6 +185,79 @@ namespace Application.Common
             new("ExportMapEntriesReport",     "سحب تقرير سجلات طبقة خريطة (السجلات التي يراها من طبقات فرعه)"),
             new("ExportTasksReport",          "تصدير مهام لوحة المهام إلى Excel (المهام التي يراها في اللوحة)"),
             new("ViewReportLog",              "عرض سجل سحب التقارير (سحوبات موظفي فرعه، والمؤسسة كلها لنظرة المؤسسة)"),
+
+            // ════════ فرع الدراسات المركزية (حدّ كل صلاحية = دراسات فرعه، والمؤسسة كلها لنظرة المؤسسة، ما لم يُذكر غيره) ════════
+            new("ViewStudyLookups",  "عرض قوائم الدراسات: أنواع المراحل وأنواع المرفقات والاختصاصات الهندسية"),
+            new("CreateStudyLookup", "إضافة عنصر إلى قوائم الدراسات"),
+            new("EditStudyLookup",   "تعديل عنصر في قوائم الدراسات"),
+            new("DeleteStudyLookup", "حذف عنصر غير مستخدم من قوائم الدراسات"),
+
+            new("ViewStudyRequests",  "عرض طلبات تجهيز الدراسة (طلبات فرعه)"),
+            new("CreateStudyRequest", "تسجيل طلب تجهيز دراسة في فرعه"),
+            new("EditStudyRequest",   "تعديل طلب تجهيز دراسة وتسجيله نهائياً (المسودة أو المرفوض، في فرعه)"),
+            new("DeleteStudyRequest", "حذف طلب تجهيز دراسة ما زال مسودة (في فرعه)"),
+
+            new("ViewStudyAssignments",  "عرض التكليفات الداخلية IPA (تكليفات طلبات فرعه)"),
+            new("CreateStudyAssignment", "إصدار تكليف داخلي IPA لطلب معتمد في فرعه"),
+            new("EditStudyAssignment",   "تعديل تكليف داخلي وإرساله للاعتماد (المسودة أو المرفوض، في فرعه)"),
+            new("DeleteStudyAssignment", "حذف تكليف داخلي ما زال مسودة (في فرعه)"),
+
+            new("ViewStudyResponses",  "عرض إشعارات الرد على التكليف (ردود فرعه)"),
+            new("CreateStudyResponse", "كتابة إشعار الرد على تكليف معتمد في فرعه"),
+            new("EditStudyResponse",   "تعديل إشعار الرد وإرساله للاعتماد (المسودة أو المرفوض، في فرعه)"),
+            new("DeleteStudyResponse", "حذف إشعار رد ما زال مسودة (في فرعه)"),
+
+            new("ViewStudyStartOrders",  "عرض أوامر بدء الدراسة PIO (أوامر فرعه)"),
+            new("CreateStudyStartOrder", "إصدار أمر بدء دراسة PIO لرد معتمد في فرعه"),
+            new("EditStudyStartOrder",   "تعديل أمر بدء الدراسة وإرساله للاعتماد (المسودة أو المرفوض، في فرعه)"),
+            new("DeleteStudyStartOrder", "حذف أمر بدء ما زال مسودة (في فرعه)"),
+
+            new("CancelStudyDocuments", "إلغاء مستندات الدراسات في فرعه مع ذكر السبب (طلب، تكليف، رد، أمر بدء، مشروع) — تبقى للأرشيف"),
+
+            // التواقيع: صلاحية لكل صفة موقّع
+            new("SignStudyAsFollowingDepartment", "التوقيع بصفة القسم المتابع (التكليفات والردود التي قسمه هو المتابع فيها)"),
+            new("SignStudyAsPlanning",            "التوقيع بصفة التخطيط وإدارة المشاريع (ردود فرعه)"),
+            new("SignStudyAsCompetentDepartment", "التوقيع بصفة رئيس القسم المختص (أوامر البدء التي قسمه هو المختص فيها)"),
+            new("SignStudyAsBranchHead",          "التوقيع بصفة رئيس الفرع (تكليفات فرعه وأوامر البدء والإنجاز النهائي للمشاريع)"),
+            new("SignStudyAsSendingDepartment",   "التوقيع بصفة القسم المرسل في اعتماد المخططات الأولي (مخططات قسمه المعمارية)"),
+            new("SignStudyAsDesignManagement",    "التوقيع بصفة إدارة التصميم في اعتماد المخططات الأولي (مشاريع فرعه)"),
+            new("SignStudyAsQualityControl",      "التوقيع بصفة ضبط الجودة في اعتماد المخططات الأولي (مشاريع فرعه)"),
+            new("SignStudyAsProjectManagement",   "التوقيع بصفة إدارة المشاريع على إنجاز المشروع (مشاريع فرعه)"),
+
+            new("ViewStudyProjects",  "عرض مشاريع الدراسات بأقسامها وفريقها ومراحلها ومهامها (مشاريع فرعه)"),
+            new("CreateStudyProject", "إنشاء مشروع من أمر بدء معتمد في فرعه"),
+            new("EditStudyProject",   "تعديل بيانات مشروع وطلب اعتماد إنجازه (مشاريع فرعه)"),
+            new("DeleteStudyProject", "حذف مشروع لا مهام ولا مخططات ولا مرفقات له (مشاريع فرعه)"),
+            new("AddStudyProjectDepartment",    "إضافة قسم مشارك إلى مشروع (مشاريع فرعه)"),
+            new("RemoveStudyProjectDepartment", "إزالة قسم مشارك لا أعضاء ولا مهام له من مشروع (مشاريع فرعه)"),
+            new("AddStudyProjectMember",    "تعيين موظفي قسمه في فريق مشروع يشارك فيه قسمه"),
+            new("RemoveStudyProjectMember", "إزالة موظفي قسمه من فريق مشروع يشارك فيه قسمه"),
+
+            new("CreateStudyStage", "إضافة مرحلة إلى مشروع (مشاريع فرعه)"),
+            new("EditStudyStage",   "تعديل مراحل المشروع وترتيبها وأوزانها (مشاريع فرعه)"),
+            new("DeleteStudyStage", "حذف مرحلة لا مهام لها (مشاريع فرعه)"),
+            new("CloseStudyStage",  "إغلاق مرحلة مشروع أو إعادة فتحها (مشاريع فرعه، بالترتيب)"),
+
+            new("CreateStudyTask",         "إضافة مهمة في مرحلة مشروع من فرعه لقسم مشارك أو مكتب منه أو عضو في الفريق"),
+            new("EditStudyTask",           "تعديل مهام مراحل المشاريع (مشاريع فرعه)"),
+            new("DeleteStudyTask",         "حذف مهمة من مرحلة مشروع (مشاريع فرعه)"),
+            new("UpdateStudyTaskProgress", "تحديث إنجاز مهام المشاريع المسندة إليه أو إلى مكتبه أو قسمه"),
+
+            new("ViewStudyDrawings",  "عرض مخططات المشاريع ونسخها واعتماداتها (مشاريع فرعه)"),
+            new("CreateStudyDrawing", "إضافة مخطط لمشروع من فرعه باسم قسمه"),
+            new("EditStudyDrawing",   "تعديل مخططات قسمه"),
+            new("DeleteStudyDrawing", "حذف مخطط من مخططات قسمه لا نسخ له"),
+            new("ReviewStudyDrawing", "مراجعة المخططات غير المعمارية واعتمادها أو رفضها (مشاريع فرعه)"),
+
+            new("CreateArchitecturalVersion", "إضافة نسخة (Draft-N) لمخطط معماري من مخططات قسمه"),
+            new("EditArchitecturalVersion",   "تعديل نسخة مخطط معماري من مخططات قسمه قبل اعتمادها"),
+            new("DeleteArchitecturalVersion", "حذف نسخة مخطط معماري لا اعتماد لها (مخططات قسمه)"),
+
+            new("CreateDesignApproval", "إصدار اعتماد المخططات الأولي CDA لنسخة معمارية (مشاريع فرعه)"),
+            new("EditDesignApproval",   "تعديل اعتماد المخططات الأولي قبل أول توقيع (مشاريع فرعه)"),
+            new("DeleteDesignApproval", "حذف اعتماد المخططات الأولي قبل أول توقيع (مشاريع فرعه)"),
+
+            new("ViewStudyActivityLog", "عرض سجل الدراسة: من فعل ماذا ومتى من الطلب حتى إغلاق المشروع (دراسات فرعه)"),
         ];
 
         /// <summary>
@@ -221,6 +294,15 @@ namespace Application.Common
             ["AnyReportExport"] = ["ExportVacationsReport", "ExportVacationUsageReport", "ExportUsersReport", "ExportStructureReport",
                 "ExportMaintenanceRequestsReport", "ExportTechniciansReport", "ExportSparePartMovementsReport", "ExportSparePartStockReport",
                 "ExportInstallationsReport", "ExportSitesReport", "ExportMapEntriesReport"],
+            // فرع الدراسات: التوقيع بأي صفة، والقراءة المشتركة (المرفقات والتواقيع والسجل) لمن يرى أي مستند
+            ["AnyStudySign"] = ["SignStudyAsFollowingDepartment", "SignStudyAsPlanning", "SignStudyAsCompetentDepartment", "SignStudyAsBranchHead",
+                "SignStudyAsSendingDepartment", "SignStudyAsDesignManagement", "SignStudyAsQualityControl", "SignStudyAsProjectManagement"],
+            ["AnyStudyView"] = ["ViewStudyRequests", "ViewStudyAssignments", "ViewStudyResponses", "ViewStudyStartOrders",
+                "ViewStudyProjects", "ViewStudyDrawings", "ViewStudyActivityLog"],
+            ["AnyStudyTaskView"] = ["ViewStudyProjects", "UpdateStudyTaskProgress"],
+            // رفع مرفق أو حذفه: بصلاحية تعديل صاحبه (يفحصها الـ handler)
+            ["AnyStudyAttachmentWrite"] = ["EditStudyRequest", "EditStudyAssignment", "EditStudyResponse", "EditStudyStartOrder",
+                "EditStudyProject", "EditStudyDrawing", "EditArchitecturalVersion"],
             ["AnySiteView"] = ["ViewSites", "CreateSite", "EditSite", "DeleteSite", "ViewDevices", "ViewBranchDevices", "CreateDevice", "EditDevice", "DeleteDevice",
                 "ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry"],
         };

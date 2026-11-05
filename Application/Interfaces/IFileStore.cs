@@ -15,6 +15,32 @@ namespace Application.Interfaces
 
         /// <summary>يفتح ملفاً محفوظاً بمفتاحه للقراءة المتدفقة (KeyNotFoundException إن لم يوجد)</summary>
         Stream OpenRead(string key);
+
+        /// <summary>
+        /// كتابة متدفقة إلى المجلد **دائماً** أيّاً كان FileStorage:Mode (لملفات كبيرة بلا سقف، مثل مخططات فرع الدراسات):
+        /// write يكتب المحتوى في ملف مؤقت داخل المجلد دون تحميله في الذاكرة، ثم يُفحص (OpenRead) ويُعتمد (CommitAsync)،
+        /// وإن لم يُعتمد يُحذف عند التخلص منه. يتطلب FileStorage:Root.
+        /// </summary>
+        Task<IStagedFile> StageAsync(string area, Func<Stream, CancellationToken, Task> write, CancellationToken ct = default);
+    }
+
+    /// <summary>ملف مكتوب في المجلد ولم يُعتمد بعد: يُقرأ للفحص ثم يُعتمد باسمه النهائي، أو يُحذف بالتخلص منه</summary>
+    public interface IStagedFile : IAsyncDisposable
+    {
+        /// <summary>مفتاحه بعد الاعتماد (يُحفظ في السجل)</summary>
+        string Key { get; }
+        long Size { get; }
+        /// <summary>قراءة قابلة للتنقّل من الملف المؤقت (لكشف نوعه من محتواه)</summary>
+        Stream OpenRead();
+        /// <summary>يجعله الملف النهائي — بعدها لا يُحذف بالتخلص منه</summary>
+        Task CommitAsync();
+    }
+
+    /// <summary>مصدر ملف مرفوع يُقرأ تدفقاً (يوفّره الـ controller من جسم الطلب) — لا يُحمَّل الملف في الذاكرة</summary>
+    public interface IUploadReader
+    {
+        /// <summary>يكتب أول ملف في الطلب إلى الوجهة ويعيد اسمه الأصلي، أو null إن لم يُرسل ملف</summary>
+        Task<string?> CopyFileToAsync(Stream destination, CancellationToken ct);
     }
 
     /// <summary>مجلدات المرفقات داخل المخزن (الجزء الأول من المفتاح)</summary>
@@ -23,8 +49,9 @@ namespace Application.Interfaces
         public const string Vacations = "vacations";
         public const string Tasks = "tasks";
         public const string MapFiles = "map-files";
+        public const string Studies = "studies";
 
-        public static readonly string[] All = [Vacations, Tasks, MapFiles];
+        public static readonly string[] All = [Vacations, Tasks, MapFiles, Studies];
     }
 
     /// <summary>صيانة المخزن من خدمة الخلفية</summary>

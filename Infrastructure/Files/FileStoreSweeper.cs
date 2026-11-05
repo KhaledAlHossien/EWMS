@@ -26,7 +26,8 @@ namespace Infrastructure.Files
 
         public async Task<int> SweepAsync(CancellationToken ct = default)
         {
-            if (!_settings.UseFileSystem || _settings.Root is not string root) return 0;
+            // يعمل متى ضُبط المجلد: مرفقات فرع الدراسات تُكتب فيه دائماً، حتى في وضع Database
+            if (_settings.Root is not string root) return 0;
             var now = DateTime.UtcNow;
             if (now - _lastRunUtc < Every) return 0;
             _lastRunUtc = now;
@@ -63,6 +64,7 @@ namespace Infrastructure.Files
             used.UnionWith(await _context.VacationAttachments.Where(a => a.StorageKey != null && keys.Contains(a.StorageKey)).Select(a => a.StorageKey!).ToListAsync(ct));
             used.UnionWith(await _context.AssignedTaskAttachments.Where(a => a.StorageKey != null && keys.Contains(a.StorageKey)).Select(a => a.StorageKey!).ToListAsync(ct));
             used.UnionWith(await _context.MapEntryFiles.Where(f => f.StorageKey != null && keys.Contains(f.StorageKey)).Select(f => f.StorageKey!).ToListAsync(ct));
+            used.UnionWith(await _context.StudyAttachments.Where(a => a.StorageKey != null && keys.Contains(a.StorageKey)).Select(a => a.StorageKey!).ToListAsync(ct));
 
             var removed = 0;
             foreach (var (key, path) in candidates)

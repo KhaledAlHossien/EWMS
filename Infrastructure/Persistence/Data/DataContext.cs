@@ -1,4 +1,5 @@
 ﻿using Domain.Entities;
+using Domain.Entities.CentralStudiesBranch;
 using Domain.Entities.Maintenance;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -67,6 +68,33 @@ namespace Infrastructure.Persistence.Data
         public DbSet<UserSignature> UserSignatures { get; set; }
         public DbSet<ToDoList> ToDoLists { get; set; }
         public DbSet<ToDoItem> ToDoItems { get; set; }
+
+        // ==================== فرع الدراسات المركزية (التكوين في CentralStudiesModel) ====================
+        public DbSet<StudyStageType> StudyStageTypes { get; set; }
+        public DbSet<StudyAttachmentType> StudyAttachmentTypes { get; set; }
+        public DbSet<EngineeringDiscipline> EngineeringDisciplines { get; set; }
+        public DbSet<StudyRequest> StudyRequests { get; set; }
+        public DbSet<StudyAssignment> StudyAssignments { get; set; }
+        public DbSet<StudyAssignmentResponse> StudyAssignmentResponses { get; set; }
+        public DbSet<ResponseBuilding> ResponseBuildings { get; set; }
+        public DbSet<ResponseCostItem> ResponseCostItems { get; set; }
+        public DbSet<ResponseStaffEstimate> ResponseStaffEstimates { get; set; }
+        public DbSet<ResponseLogisticItem> ResponseLogisticItems { get; set; }
+        public DbSet<StudyStartOrder> StudyStartOrders { get; set; }
+        public DbSet<StartOrderEngineer> StartOrderEngineers { get; set; }
+        public DbSet<StartOrderResource> StartOrderResources { get; set; }
+        public DbSet<StudyProject> StudyProjects { get; set; }
+        public DbSet<ProjectDepartment> ProjectDepartments { get; set; }
+        public DbSet<ProjectMember> ProjectMembers { get; set; }
+        public DbSet<ProjectStage> ProjectStages { get; set; }
+        public DbSet<StageTask> StageTasks { get; set; }
+        public DbSet<ProjectDrawing> ProjectDrawings { get; set; }
+        public DbSet<ArchitecturalVersion> ArchitecturalVersions { get; set; }
+        public DbSet<DesignApproval> DesignApprovals { get; set; }
+        public DbSet<StudyApproval> StudyApprovals { get; set; }
+        public DbSet<StudyAttachment> StudyAttachments { get; set; }
+        public DbSet<StudyActivityLog> StudyActivityLogs { get; set; }
+        public DbSet<StudyNumberSequence> StudyNumberSequences { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -887,6 +915,9 @@ namespace Infrastructure.Persistence.Data
                     .HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
                 entity.HasIndex(s => s.UserId).IsUnique().HasFilter("[IsCurrent] = 1");
             });
+
+            // ==================== فرع الدراسات المركزية ====================
+            CentralStudiesModel.Configure(builder);
         }
     }
 }

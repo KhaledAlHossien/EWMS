@@ -25,8 +25,12 @@ namespace API.SystemBuild
         public FileStoreHealthCheck(FileStorageSettings settings) => _settings = settings;
 
         public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default) =>
-            Task.FromResult(!_settings.UseFileSystem || (_settings.Root != null && FileStore.CanWrite(_settings.Root))
-                ? HealthCheckResult.Healthy()
-                : HealthCheckResult.Unhealthy("تعذّرت الكتابة في مجلد المرفقات"));
+            Task.FromResult(
+                _settings.Root is string root
+                    ? (FileStore.CanWrite(root) ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy("تعذّرت الكتابة في مجلد المرفقات"))
+                    : _settings.UseFileSystem
+                        ? HealthCheckResult.Unhealthy("مجلد المرفقات غير مضبوط")
+                        // وضع Database بلا مجلد: النظام يعمل، لكن مرفقات فرع الدراسات (تُحفظ في المجلد دائماً) لا تُرفع
+                        : HealthCheckResult.Degraded("مرفقات فرع الدراسات تحتاج FileStorage:Root"));
     }
 }

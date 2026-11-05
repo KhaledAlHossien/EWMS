@@ -16,6 +16,7 @@ namespace Application.Features.Users.Commands.Delete
         private readonly IMapLayerService _mapLayers;
         private readonly IMapEntryService _mapEntries;
         private readonly IReportLogService _reportLog;
+        private readonly IStudyReferenceService _studies;
 
         public DeleteUserCommandHandler(
             IUserService userService,
@@ -28,8 +29,10 @@ namespace Application.Features.Users.Commands.Delete
             IDeviceInventoryLogService deviceLog,
             IMapLayerService mapLayers,
             IMapEntryService mapEntries,
-            IReportLogService reportLog)
+            IReportLogService reportLog,
+            IStudyReferenceService studies)
         {
+            _studies = studies;
             _reportLog = reportLog;
             _mapLayers = mapLayers;
             _mapEntries = mapEntries;
@@ -75,6 +78,9 @@ namespace Application.Features.Users.Commands.Delete
 
             if (await _reportLog.ExistsForUserAsync(user.Id))
                 throw new InvalidOperationException("لا يمكن حذف موظف له سحوبات في سجل التقارير — عطّل حسابه بدلاً من ذلك");
+
+            if (await _studies.ExistsForUserAsync(user.Id))
+                throw new InvalidOperationException("لا يمكن حذف موظف له سجلات في فرع الدراسات (مستندات أو تواقيع أو فرق ومهام مشاريع) — عطّل حسابه بدلاً من ذلك");
 
 
             return await _userService.DeleteAsync(user);
