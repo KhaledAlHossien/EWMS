@@ -83,9 +83,23 @@ namespace Application.Features.MapLayers
 
         public static Detected? Detect(byte[] data, string? fileName)
         {
+            using var stream = new MemoryStream(data, writable: false);
+            return Detect(stream, fileName);
+        }
+
+        /// <summary>
+        /// الكشف من تدفق قابل للتنقّل (ملف على القرص مثلاً) بلا تحميله في الذاكرة: تُقرأ بدايته فقط للبصمات والنص،
+        /// وفهرس ZIP فقط لملفات ZIP — صالح لملفات بحجم جيجابايت. يبقى التدفق مفتوحاً.
+        /// </summary>
+        public static Detected? Detect(Stream content, string? fileName)
+        {
+            if (!content.CanSeek) throw new ArgumentException("الكشف يحتاج تدفقاً قابلاً للتنقّل", nameof(content));
             var ext = Path.GetExtension(fileName ?? string.Empty).ToLowerInvariant();
-            if (data.Length == 0 || Blocked.Contains(ext)) return null;
-            var d = data.AsSpan();
+            if (content.Length == 0 || Blocked.Contains(ext)) return null;
+            content.Position = 0;
+            var head = new byte[(int)Math.Min(content.Length, TextProbeBytes)];
+            content.ReadExactly(head);
+            var d = head.AsSpan();
 
             if (d.StartsWith("%PDF-"u8)) return new("application/pdf", ["pdf"]);
             if (Sig(d, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)) return new("image/png", ["images"]);
@@ -124,7 +138,7 @@ namespace Application.Features.MapLayers
                     _ => null
                 };
 
-            if (Sig(d, 0x50, 0x4B, 0x03, 0x04) || Sig(d, 0x50, 0x4B, 0x05, 0x06)) return DetectZip(data, ext);
+            if (Sig(d, 0x50, 0x4B, 0x03, 0x04) || Sig(d, 0x50, 0x4B, 0x05, 0x06)) return DetectZip(content, ext);
 
             return DetectText(d, ext);
         }
@@ -133,13 +147,14 @@ namespace Application.Features.MapLayers
         /// ملفات ZIP: Office الحديثة (بلا vbaProject)، OpenDocument، KMZ، SHP مضغوط، أو أرشيف ZIP عادي —
         /// ويُرفض أي ZIP فيه ملف ممنوع (برنامج أو سكربت). RAR و7Z لا تُفحص محتوياتها.
         /// </summary>
-        private static Detected? DetectZip(byte[] data, string ext)
+        private static Detected? DetectZip(Stream content, string ext)
         {
             List<string> names;
             string? odfType = null;
             try
             {
-                using var zip = new ZipArchive(new MemoryStream(data, writable: false), ZipArchiveMode.Read);
+                content.Position = 0;
+                using var zip = new ZipArchive(content, ZipArchiveMode.Read, leaveOpen: true);
                 names = zip.Entries.Select(e => e.FullName.Replace('\\', '/')).ToList();
                 var mimetype = zip.GetEntry("mimetype");
                 if (mimetype is { Length: < 200 })

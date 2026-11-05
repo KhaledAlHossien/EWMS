@@ -8,9 +8,12 @@ namespace Application.Features.Branches.Commands.Delete
         private readonly IBranchService _branchService;
         private readonly IDeviceSiteService _installations;
         private readonly IMapLayerService _mapLayers;
+        private readonly IStudyReferenceService _studies;
 
-        public DeleteBranchCommandHandler(IBranchService branchService, IDeviceSiteService installations, IMapLayerService mapLayers)
+        public DeleteBranchCommandHandler(IBranchService branchService, IDeviceSiteService installations, IMapLayerService mapLayers,
+            IStudyReferenceService studies)
         {
+            _studies = studies;
             _branchService = branchService;
             _installations = installations;
             _mapLayers = mapLayers;
@@ -35,6 +38,9 @@ namespace Application.Features.Branches.Commands.Delete
 
             if (await _mapLayers.ExistsForBranchAsync(request.Id))
                 throw new InvalidOperationException("لا يمكن حذف فرع له طبقات على خريطته — احذف طبقاته (وسجلاتها) أولاً");
+
+            if (await _studies.ExistsForBranchAsync(request.Id))
+                throw new InvalidOperationException("لا يمكن حذف فرع له طلبات دراسة أو مشاريع دراسات");
 
             return await _branchService.DeleteAsync(branch);
         }

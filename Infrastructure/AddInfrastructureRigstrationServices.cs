@@ -85,6 +85,21 @@ namespace Infrastructure
             services.AddScoped<IToDoListService, ToDoListService>();
             services.AddScoped<ISparePartService, SparePartService>();
 
+            // فرع الدراسات المركزية
+            services.AddScoped<IStudyLookupService, StudyLookupService>();
+            services.AddScoped<IStudyNumberService, StudyNumberService>();
+            services.AddScoped<IStudyRequestService, StudyRequestService>();
+            services.AddScoped<IStudyAssignmentService, StudyAssignmentService>();
+            services.AddScoped<IStudyResponseService, StudyResponseService>();
+            services.AddScoped<IStudyStartOrderService, StudyStartOrderService>();
+            services.AddScoped<IStudyProjectService, StudyProjectService>();
+            services.AddScoped<IStudyStageService, StudyStageService>();
+            services.AddScoped<IStudyDrawingService, StudyDrawingService>();
+            services.AddScoped<IStudyApprovalService, StudyApprovalService>();
+            services.AddScoped<IStudyAttachmentService, StudyAttachmentService>();
+            services.AddScoped<IStudyActivityLogService, StudyActivityLogService>();
+            services.AddScoped<IStudyReferenceService, StudyReferenceService>();
+
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IPasswordHasher, PasswordHasher>();
 

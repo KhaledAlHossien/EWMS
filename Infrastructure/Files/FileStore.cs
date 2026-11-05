@@ -45,7 +45,7 @@ namespace Infrastructure.Files
 
         public FileStore(FileStorageSettings settings) => _settings = settings;
 
-        [GeneratedRegex("^(vacations|tasks|map-files)/[0-9]{4}/[0-9]{2}/[0-9a-f]{32}\\z")]
+        [GeneratedRegex("^(vacations|tasks|map-files|studies)/[0-9]{4}/[0-9]{2}/[0-9a-f]{32}\\z")]
         private static partial Regex KeyPattern();
 
         public static bool IsValidKey(string key) => KeyPattern().IsMatch(key);
@@ -77,6 +77,72 @@ namespace Infrastructure.Files
                 throw new InvalidOperationException("تعذّر حفظ الملف في مخزن المرفقات — أعد المحاولة، وإن تكرر فأبلغ مدير النظام", ex);
             }
             return key;
+        }
+
+        public async Task<IStagedFile> StageAsync(string area, Func<Stream, CancellationToken, Task> write, CancellationToken ct = default)
+        {
+            if (!FileAreas.All.Contains(area)) throw new ArgumentException("مجلد مرفقات غير معروف", nameof(area));
+            if (_settings.Root == null)
+                throw new InvalidOperationException("الملفات الكبيرة تُحفظ في مجلد على الخادم ولم يُضبط بعد (FileStorage:Root) — أبلغ مدير النظام");
+
+            var now = DateTime.UtcNow;
+            var key = $"{area}/{now:yyyy}/{now:MM}/{Guid.NewGuid():N}";
+            var path = PathOf(key);
+            var temp = path + TempSuffix;
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                await using (var stream = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 20, FileOptions.Asynchronous))
+                {
+                    await write(stream, ct);
+                    await stream.FlushAsync(ct);
+                    stream.Flush(flushToDisk: true);
+                }
+                return new StagedFile(key, path, temp, new FileInfo(temp).Length);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                TryDelete(temp);
+                throw new InvalidOperationException("تعذّر حفظ الملف في مجلد المرفقات على الخادم — أعد المحاولة، وإن تكرر فأبلغ مدير النظام", ex);
+            }
+            catch
+            {
+                TryDelete(temp);   // انقطع الرفع أو رُفض أثناء الكتابة
+                throw;
+            }
+        }
+
+        private sealed class StagedFile : IStagedFile
+        {
+            private readonly string _path, _temp;
+            private bool _committed;
+
+            public StagedFile(string key, string path, string temp, long size)
+            {
+                Key = key;
+                _path = path;
+                _temp = temp;
+                Size = size;
+            }
+
+            public string Key { get; }
+            public long Size { get; }
+
+            public Stream OpenRead() =>
+                new FileStream(_temp, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous);
+
+            public Task CommitAsync()
+            {
+                File.Move(_temp, _path);
+                _committed = true;
+                return Task.CompletedTask;
+            }
+
+            public ValueTask DisposeAsync()
+            {
+                if (!_committed) TryDelete(_temp);
+                return ValueTask.CompletedTask;
+            }
         }
 
         public Stream OpenRead(string key)
