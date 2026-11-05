@@ -9,13 +9,16 @@ namespace Application.Features.Offices.Commands.Delete
         private readonly IDepartmentService _departmentService;
         private readonly ICurrentUserService _currentUserService;
         private readonly IAssignedTaskService _assignedTaskService;
+        private readonly IStudyReferenceService _studies;
 
         public DeleteOfficeCommandHandler(
             IOfficeService officeService,
             IDepartmentService departmentService,
             ICurrentUserService currentUserService,
-            IAssignedTaskService assignedTaskService)
+            IAssignedTaskService assignedTaskService,
+            IStudyReferenceService studies)
         {
+            _studies = studies;
             _officeService = officeService;
             _departmentService = departmentService;
             _currentUserService = currentUserService;
@@ -37,6 +40,9 @@ namespace Application.Features.Offices.Commands.Delete
 
             if (await _assignedTaskService.ExistsForOfficeAsync(request.Id))
                 throw new InvalidOperationException("لا يمكن حذف مكتب له مهام على لوحة المهام");
+
+            if (await _studies.ExistsForOfficeAsync(request.Id))
+                throw new InvalidOperationException("لا يمكن حذف مكتب له مهام أو مخططات في مشاريع الدراسات");
 
             return await _officeService.DeleteAsync(office);
         }

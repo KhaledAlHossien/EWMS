@@ -32,6 +32,9 @@ namespace Application
             services.AddScoped<Application.Features.AssignedTasks.AssignedTaskCreator>();
             services.AddScoped<Application.Features.AssignedTasks.TaskLinkResolver>();
 
+            // فرع الدراسات المركزية: أدوات المعالجات المشتركة (المستخدم الحالي، السجل، التواقيع، الإشعارات)
+            services.AddScoped<Application.Features.CentralStudies.StudyKit>();
+
             return services;
         }
     }
