@@ -1,3 +1,4 @@
+using Application.DTOs.Response;
 using Application.Interfaces;
 using Domain.Entities.CentralStudiesBranch;
 using Infrastructure.Persistence.Data;
@@ -57,6 +58,22 @@ namespace Infrastructure.Persistence.Repositories
             var list = ids.Distinct().ToList();
             return await _context.EngineeringDisciplines.CountAsync(d => list.Contains(d.Id) && d.IsActive);
         }
+
+        // ----- موظفو الفرع لقوائم الاختيار (إسقاط مباشر: لا تُقرأ الحقول الحساسة أصلاً) -----
+        public async Task<List<StudyEmployeeDto>> GetEmployeesAsync(int branchId, int? departmentId) =>
+            await _context.Users.AsNoTracking()
+                .Where(u => u.IsActive && u.BranchId == branchId && (departmentId == null || u.DepartmentId == departmentId))
+                .OrderBy(u => u.Department == null ? null : u.Department.Name).ThenBy(u => u.FullName).ThenBy(u => u.Id)
+                .Select(u => new StudyEmployeeDto
+                {
+                    Id = u.Id,
+                    FullName = u.FullName,
+                    DepartmentId = u.DepartmentId,
+                    DepartmentName = u.Department == null ? null : u.Department.Name,
+                    OfficeId = u.OfficeId,
+                    OfficeName = u.Office == null ? null : u.Office.Name
+                })
+                .ToListAsync();
 
         // ----- مشترك -----
         public async Task AddAsync<T>(T entity) where T : class

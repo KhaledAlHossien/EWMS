@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Interfaces;
@@ -23,6 +24,12 @@ namespace Application.Features.CentralStudies.Lookups
 
     /// <summary>قيم كل تعدادات فرع الدراسات وأسماؤها (لقوائم الواجهة)</summary>
     public record GetStudyEnumsQuery : IRequest<Dictionary<string, List<StudyEnumValueDto>>>;
+
+    /// <summary>
+    /// موظفو فرع الدراسة النشطون لقوائم الاختيار (بلا ViewUsers وبلا بيانات حساسة). الحد فرع المستخدم (StructureScope)؛
+    /// من يتصفح المؤسسة يمرّر branchId أو departmentId. قسم أو فرع خارج الحد يُرفض.
+    /// </summary>
+    public record GetStudyEmployeesQuery(int? BranchId, int? DepartmentId) : IRequest<List<StudyEmployeeDto>>;
 
     // ════════════════════ التحقق ════════════════════
 
@@ -74,14 +81,19 @@ namespace Application.Features.CentralStudies.Lookups
         IRequestHandler<CreateStudyLookupCommand, StudyLookupDto>,
         IRequestHandler<UpdateStudyLookupCommand, StudyLookupDto>,
         IRequestHandler<DeleteStudyLookupCommand, Unit>,
-        IRequestHandler<GetStudyEnumsQuery, Dictionary<string, List<StudyEnumValueDto>>>
+        IRequestHandler<GetStudyEnumsQuery, Dictionary<string, List<StudyEnumValueDto>>>,
+        IRequestHandler<GetStudyEmployeesQuery, List<StudyEmployeeDto>>
     {
         private readonly IStudyLookupService _service;
+        private readonly IDepartmentService _departments;
+        private readonly StudyKit _kit;
         private readonly IMapper _mapper;
 
-        public StudyLookupHandler(IStudyLookupService service, IMapper mapper)
+        public StudyLookupHandler(IStudyLookupService service, IDepartmentService departments, StudyKit kit, IMapper mapper)
         {
             _service = service;
+            _departments = departments;
+            _kit = kit;
             _mapper = mapper;
         }
 
@@ -192,6 +204,29 @@ namespace Application.Features.CentralStudies.Lookups
                 await _service.RemoveAsync(entity);
             }
             return Unit.Value;
+        }
+
+        // ----- موظفو فرع الدراسة -----
+        public async Task<List<StudyEmployeeDto>> Handle(GetStudyEmployeesQuery request, CancellationToken ct)
+        {
+            var viewer = await _kit.ViewerAsync();
+            int? departmentBranch = null;
+            if (request.DepartmentId is int departmentId)
+            {
+                var department = await _departments.GetByIdAsync(departmentId) ?? throw new KeyNotFoundException("القسم غير موجود");
+                StudyRules.EnsureInScope(viewer, department.BranchId);
+                departmentBranch = department.BranchId;
+            }
+
+            // بلا فرع ولا قسم: فرع المستخدم؛ ومن يتصفح المؤسسة يحدد الفرع
+            var branchId = request.BranchId ?? departmentBranch ?? StudyRules.BranchLimit(viewer)
+                ?? throw new InvalidOperationException("حدد الفرع أو القسم");
+            if (branchId == 0) return [];   // مستخدم بلا فرع وبلا نظرة مؤسسة لا يرى أحداً
+            StudyRules.EnsureInScope(viewer, branchId);
+            if (departmentBranch != null && departmentBranch != branchId)
+                throw new InvalidOperationException("القسم ليس من أقسام الفرع المحدد");
+
+            return await _service.GetEmployeesAsync(branchId, request.DepartmentId);
         }
 
         // ----- التعدادات -----

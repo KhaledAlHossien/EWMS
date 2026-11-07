@@ -20,6 +20,8 @@ namespace Application.Features.CentralStudies.Stages
     public record ReopenStudyStageCommand(int Id) : IRequest<ProjectStageDto>;
 
     public record GetStudyTasksQuery(int StageId) : IRequest<List<StageTaskDto>>;
+    /// <summary>كل مهام المشروع (لمخطط Gantt): بترتيب المرحلة ثم البدء المخطط</summary>
+    public record GetStudyProjectTasksQuery(int ProjectId) : IRequest<List<StageTaskDto>>;
     public record GetStudyTaskQuery(int Id) : IRequest<StageTaskDto>;
     public record GetMyStudyTasksQuery(bool OpenOnly, int Page, int PageSize) : IRequest<PagedResultDto<StageTaskDto>>;
     public record CreateStudyTaskCommand(StudyTaskFormDto Dto) : IRequest<StageTaskDto>;
@@ -106,6 +108,7 @@ namespace Application.Features.CentralStudies.Stages
         IRequestHandler<CloseStudyStageCommand, ProjectStageDto>,
         IRequestHandler<ReopenStudyStageCommand, ProjectStageDto>,
         IRequestHandler<GetStudyTasksQuery, List<StageTaskDto>>,
+        IRequestHandler<GetStudyProjectTasksQuery, List<StageTaskDto>>,
         IRequestHandler<GetStudyTaskQuery, StageTaskDto>,
         IRequestHandler<GetMyStudyTasksQuery, PagedResultDto<StageTaskDto>>,
         IRequestHandler<CreateStudyTaskCommand, StageTaskDto>,
@@ -371,6 +374,14 @@ namespace Application.Features.CentralStudies.Stages
             var viewer = await _kit.ViewerAsync();
             await LoadStageAsync(request.StageId, viewer);
             return (await _service.GetTasksAsync(request.StageId)).Select(t => TaskDto(t, viewer)).ToList();
+        }
+
+        /// <summary>حدّ المشروع نفسه في StudyStages/ByProject، والأعلام نفسها في ByStage</summary>
+        public async Task<List<StageTaskDto>> Handle(GetStudyProjectTasksQuery request, CancellationToken ct)
+        {
+            var viewer = await _kit.ViewerAsync();
+            await LoadProjectAsync(request.ProjectId, viewer);
+            return (await _service.GetProjectTasksAsync(request.ProjectId)).Select(t => TaskDto(t, viewer)).ToList();
         }
 
         /// <summary>يراها من يرى مشاريع فرعه، أو المكلَّف بها</summary>

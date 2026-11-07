@@ -111,6 +111,14 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<bool> HasTasksForUserAsync(int projectId, int userId) =>
             await _context.StageTasks.AnyAsync(t => t.Stage.ProjectId == projectId && t.AssigneeUserId == userId);
 
+        public async Task<List<Domain.Entities.Office>> GetOfficesOfDepartmentsAsync(IEnumerable<int> departmentIds)
+        {
+            var ids = departmentIds.Distinct().ToList();
+            if (ids.Count == 0) return [];
+            return await _context.Offices.Where(o => ids.Contains(o.DepartmentId))
+                .OrderBy(o => o.Name).ThenBy(o => o.Id).AsNoTracking().ToListAsync();
+        }
+
         public async Task AddProjectDepartmentAsync(ProjectDepartment projectDepartment)
         {
             _context.ProjectDepartments.Add(projectDepartment);
@@ -194,6 +202,13 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<List<StageTask>> GetTasksAsync(int stageId) =>
             await TasksWithDetails().Where(t => t.StageId == stageId)
                 .OrderBy(t => t.Status).ThenBy(t => t.PlannedEndDate).ThenBy(t => t.Id)
+                .AsNoTracking().ToListAsync();
+
+        // المهام بلا بدء مخطط في آخر مرحلتها
+        public async Task<List<StageTask>> GetProjectTasksAsync(int projectId) =>
+            await TasksWithDetails().Where(t => t.Stage.ProjectId == projectId)
+                .OrderBy(t => t.Stage.SortOrder).ThenBy(t => t.StageId)
+                .ThenBy(t => t.PlannedStartDate == null).ThenBy(t => t.PlannedStartDate).ThenBy(t => t.Id)
                 .AsNoTracking().ToListAsync();
 
         public async Task<(List<StageTask> Items, int Total)> GetAssignedAsync(

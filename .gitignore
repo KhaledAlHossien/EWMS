@@ -363,3 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 # حزم الإصدار (deploy/build-release.ps1)
 /release/
+
+# ملفات رفعتها ميزة «المشاريع» المحذوفة — لا تُرفع إلى git
+API/wwwroot/uploads/

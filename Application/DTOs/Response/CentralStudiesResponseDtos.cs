@@ -24,6 +24,23 @@ namespace Application.DTOs.Response
     /// <summary>قيمة تعداد واسمها (لقوائم الواجهة)</summary>
     public record StudyEnumValueDto(int Value, string Name);
 
+    /// <summary>
+    /// موظف في قوائم اختيار فرع الدراسات (مدير المشروع، المهندسون، أعضاء الفريق) — موظف نشط من فرع الدراسة،
+    /// بلا بريد ولا هاتف ولا رقم ذاتي ولا دور.
+    /// </summary>
+    public class StudyEmployeeDto
+    {
+        public int Id { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public int? DepartmentId { get; set; }
+        public string? DepartmentName { get; set; }
+        public int? OfficeId { get; set; }
+        public string? OfficeName { get; set; }
+    }
+
+    /// <summary>مكتب من مكاتب قسم مشارك (هدف «مكتب» في مهمة المرحلة)</summary>
+    public record StudyOfficeOptionDto(int Id, string Name);
+
     /// <summary>سلسلة الدراسة من الطلب إلى المشروع — للتنقل بين المستندات</summary>
     public class StudyChainDto
     {
@@ -270,6 +287,8 @@ namespace Application.DTOs.Response
         public string AddedByName { get; set; } = string.Empty;
         public DateTime AddedAt { get; set; }
         public List<ProjectMemberDto> Members { get; set; } = [];
+        /// <summary>مكاتب القسم (لاختيار هدف «مكتب» في المهمة)</summary>
+        public List<StudyOfficeOptionDto> Offices { get; set; } = [];
         /// <summary>المستخدم الحالي يعيّن أعضاء هذا القسم (رئيسه)</summary>
         public bool CanManageMembers { get; set; }
     }
