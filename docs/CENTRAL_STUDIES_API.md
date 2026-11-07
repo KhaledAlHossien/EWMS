@@ -51,6 +51,19 @@
 | GET/POST/PUT/DELETE | `StageTypes/GetAll?activeOnly`، `StageTypes/Create`، `StageTypes/Update/{id}`، `StageTypes/Delete/{id}` | View/Create/Edit/DeleteStudyLookup | `linkedDocument`: 0 لا شيء، 1 طلب، 2 تكليف، 3 رد، 4 أمر بدء |
 | GET/POST/PUT/DELETE | `AttachmentTypes/…` بالنمط نفسه | العرض: أي صلاحية عرض للدراسات | |
 | GET/POST/PUT/DELETE | `Disciplines/…` بالنمط نفسه | ViewStudyLookups… | |
+| GET | `Employees?branchId&departmentId` | `AnyStudyEmployeePick` (أيٌّ من: Create/EditStudyResponse، Create/EditStudyStartOrder، EditStudyProject، AddStudyProjectMember) | موظفو فرع الدراسة لقوائم الاختيار — انظر تحت الجدول |
+
+**`Employees`: قائمة اختيار الموظفين بلا `ViewUsers`:**
+
+- **الاستعمال:** مدير المشروع المقترح في الرد، ومدير المشروع والمهندسون في أمر البدء، وتغيير مدير المشروع، وإضافة أعضاء القسم المشارك (مع `departmentId` القسم المشارك).
+- **الحقول:** يعيد الموظفين **النشطين** فقط، بالحقول `id`، `fullName`، `departmentId`، `departmentName`، `officeId`، `officeName`. لا بريد ولا هاتف ولا رقم ذاتي ولا دور.
+- **الترتيب:** بالقسم ثم الاسم.
+- **الحد:** فرع المستخدم دائماً.
+  - من يتصفح المؤسسة يمرّر `branchId` (فرع الدراسة) أو `departmentId`، ودونهما يعود 400.
+  - فرع أو قسم خارج حدك = 403.
+  - قسم ليس من الفرع المحدد = 400.
+  - مستخدم بلا فرع = قائمة فارغة.
+- **مطابقة الخادم:** ما في القائمة هو ما يقبله الخادم. مدير المشروع المقترح ومدير المشروع والمهندسون يجب أن يكونوا موظفين نشطين من فرع الدراسة، وإلا يعود 400 «… ليس من موظفي فرع الدراسة»، أو 404 للموظف غير النشط. والعضو يجب أن يكون من القسم المشارك نفسه.
 
 ### المستندات
 
@@ -89,6 +102,10 @@
 | POST / DELETE | `Members/{projectDepartmentId}` بالجسم `{ userId, roleTitle }` / `Members/{projectDepartmentId}/{userId}` | Add/RemoveStudyProjectMember (رئيس القسم لموظفي قسمه؛ انظر `departments[].canManageMembers`) |
 | GET | `ActivityLog/{id}` | ViewStudyActivityLog |
 
+- **مكاتب الأقسام المشاركة:** كل `departments[]` في التفاصيل يحمل `offices: [{ id, name }]` (مرتبة بالاسم، وقائمة فارغة لقسم بلا مكاتب). منها يُختار هدف «مكتب» في المهمة، بلا `ViewOffices`.
+- **تفاصيل المشروع:** تأتي من `Get/{id}` ومن ردود كل التعديلات (الأقسام والأعضاء…)، أما `GetAll` فلا يحمل الأقسام.
+- **`managerUserId`:** موظف نشط من فرع المشروع (من `StudyLookups/Employees`).
+
 ### المراحل — `api/StudyStages`
 
 | الطريقة | المسار | الصلاحية |
@@ -108,11 +125,16 @@
 | الطريقة | المسار | الصلاحية |
 |---|---|---|
 | GET | `ByStage/{stageId}` | ViewStudyProjects |
+| GET | `ByProject/{projectId}`: كل مهام المشروع في طلب واحد (لمخطط Gantt) | ViewStudyProjects |
 | GET | `Get/{id}` | من يرى المشاريع، أو المكلَّف |
 | GET | `My?openOnly=true&page&pageSize` | UpdateStudyTaskProgress |
 | POST | `Create` بالجسم `{ stageId, targetType, departmentId \| officeId \| assigneeUserId, title, weight, … }` | CreateStudyTask |
 | PUT | `Update/{id}`، DELETE `Delete/{id}` | Edit/DeleteStudyTask |
 | PUT | `Progress/{id}` بالجسم `{ progress, status }` | UpdateStudyTaskProgress (المكلَّف فقط؛ انظر `canUpdateProgress`) |
+
+- **`ByProject`:** له حدّ `StudyStages/ByProject` نفسه، وأعلام `canEdit` و`canUpdateProgress` نفسها في `ByStage`.
+  - الترتيب بترتيب المرحلة (`sortOrder`)، ثم البدء المخطط (المهام بلا بدء مخطط في آخر مرحلتها)، ثم الرقم.
+  - كل مهمة تحمل `stageId` و`stageName` و`projectId` و`projectCode`، والتواريخ المخططة والفعلية.
 
 قيم `targetType`:
 
@@ -157,7 +179,7 @@
 - **ملفات المخططات بلا سقف للحجم** (جُرّب ملف 1GB). المعرّفات في عنوان الطلب لا في النموذج، كي تُفحص الصلاحية قبل استقبال الملف.
   ملف واحد لكل طلب رفع، و100 ملف لكل سجل. `size` بالبايت (رقم 64-بت).
 - **في الواجهة:** ارفع بـ `FormData` فيه `file` فقط، وأظهر شريط التقدم (`reportProgress: true` في `HttpClient`) — رفع 1GB يأخذ وقتاً على الشبكة.
-  التنزيل يدعم `Range` فيُستأنف إن انقطع؛ للملفات الكبيرة نزّلها برابط مباشر بدل تحميلها في الذاكرة كـ Blob.
+  التنزيل يحتاج ترويسة الدخول ويدعم `Range` (يُستأنف إن انقطع). للملفات الكبيرة اطلبه بـ `fetch` واكتبه مباشرة على القرص بدل تحميله في الذاكرة كـ Blob.
 - **الصيغ المسموحة:** صور، PDF، Office، DWG/DXF، نصوص، أرشيف مضغوط. النوع يُكشف من محتوى الملف.
 - **التخزين:** في مجلد المرفقات على الخادم دائماً. إن لم يُضبط المجلد يعود 400 برسالة تطلب إبلاغ مدير النظام.
 
@@ -177,4 +199,4 @@
 
 - **الأسماء:** في `Application/Common/AppPermissions.cs`، قسم «فرع الدراسات المركزية» (57 صلاحية). انسخها إلى `core/constants/access.ts`.
 - **صفحة الأدوار:** أضف لها قسماً جديداً «الدراسات» بمجموعات: القوائم، الطلبات، التكليفات، الردود، أوامر البدء، التواقيع، المشاريع والفريق، المراحل والمهام، المخططات وCDA، السجل.
-- **صلاحيات «أيٌّ من»:** `AnyStudySign`، `AnyStudyView`، `AnyStudyTaskView`، `AnyStudyAttachmentWrite`.
+- **صلاحيات «أيٌّ من»:** `AnyStudySign`، `AnyStudyView`، `AnyStudyTaskView`، `AnyStudyAttachmentWrite`، `AnyStudyEmployeePick`.

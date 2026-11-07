@@ -155,6 +155,12 @@ namespace API.Controllers
         public async Task<ActionResult<List<StageTaskDto>>> ByStage(int stageId)
             => Ok(await _mediator.Send(new GetStudyTasksQuery(stageId)));
 
+        /// <summary>كل مهام المشروع في طلب واحد (لمخطط Gantt): بترتيب المرحلة ثم البدء المخطط، والأعلام كما في ByStage</summary>
+        [HttpGet("ByProject/{projectId}")]
+        [Authorize(Policy = "ViewStudyProjects")]
+        public async Task<ActionResult<List<StageTaskDto>>> ByProject(int projectId)
+            => Ok(await _mediator.Send(new GetStudyProjectTasksQuery(projectId)));
+
         /// <summary>لمن يرى مشاريع فرعه، أو للمكلَّف بها</summary>
         [HttpGet("Get/{id}")]
         [Authorize(Policy = "AnyStudyTaskView")]

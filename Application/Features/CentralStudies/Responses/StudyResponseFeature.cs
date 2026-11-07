@@ -153,13 +153,10 @@ namespace Application.Features.CentralStudies.Responses
             return dto;
         }
 
-        private async Task ValidateAsync(StudyResponseFormDto dto)
+        private async Task ValidateAsync(StudyResponseFormDto dto, int branchId)
         {
             if (dto.ProposedManagerUserId is int managerId)
-            {
-                var manager = await _users.GetByIdAsync(managerId);
-                if (manager is not { IsActive: true }) throw new KeyNotFoundException("مدير المشروع المقترح غير موجود أو غير نشط");
-            }
+                StudyRules.EnsureBranchEmployee(await _users.GetByIdAsync(managerId), branchId, "مدير المشروع المقترح");
             var disciplineIds = dto.StaffEstimates.Select(s => s.DisciplineId).Distinct().ToList();
             if (disciplineIds.Count > 0 && await _lookups.CountActiveDisciplinesAsync(disciplineIds) != disciplineIds.Count)
                 throw new KeyNotFoundException("أحد الاختصاصات غير موجود أو غير فعّال");
@@ -239,7 +236,7 @@ namespace Application.Features.CentralStudies.Responses
             StudyRules.EnsureApproved(assignment.Status, "التكليف");
             if (await _service.ExistsForAssignmentAsync(assignment.Id))
                 throw new InvalidOperationException("للتكليف إشعار رد مسبقاً — الرد لا يُعاد");
-            await ValidateAsync(request.Dto);
+            await ValidateAsync(request.Dto, assignment.Request.BranchId);
 
             var entity = new StudyAssignmentResponse
             {
@@ -260,7 +257,7 @@ namespace Application.Features.CentralStudies.Responses
             var viewer = await _kit.ViewerAsync();
             var entity = await LoadAsync(request.Id, viewer);
             StudyRules.EnsureEditable(entity.Status);
-            await ValidateAsync(request.Dto);
+            await ValidateAsync(request.Dto, entity.Assignment.Request.BranchId);
 
             Apply(request.Dto, entity);
             entity.Status = StudyDocumentStatus.Draft;
