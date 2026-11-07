@@ -84,9 +84,45 @@
   - الرد: `assignmentId`؛
   - أمر البدء: `responseId`.
 - **أجزاء الرد وأمر البدء** تُرسل كاملة في كل حفظ وتُستبدل:
-  - في الرد: `buildings` (سطر لكل نوع بناء، اثنان كحد أقصى)، `costItems`، `staffEstimates` (الاختصاص مرة واحدة)، `logisticItems`؛
+  - في الرد (جزء القسم المتابع): `buildings` (سطر لكل نوع بناء، اثنان كحد أقصى، بالعدد والمساحة فقط) و`costItems`؛ ومعهما `siteArea` و`initialCost` حقلان واحدان للرد كله؛
   - في أمر البدء: `engineers` و`resources`.
 - **الطلب:** تُرسل فيه `governorateCode` (SY01…SY14)، و`siteId` اختياري (من سجل المواقع)، و`branchId` لنظرة المؤسسة فقط.
+
+### إشعار الرد بجزأيه — `api/StudyResponses`
+
+الرد جزءان، لكل جزء صاحبه الذي يعدّله ويوقّع عليه:
+
+| الجزء | الحقول | صاحبه | الحفظ |
+|---|---|---|---|
+| القسم المتابع | `responseDate`، `proposedManagerUserId`، `recommendation`، `siteArea`، `initialCost`، `buildings`، `costItems` | موظفو القسم المتابع للتكليف (`CreateStudyResponse`/`EditStudyResponse`) | `Create`، `Update/{id}` ثم `Submit/{id}` |
+| التخطيط وإدارة المشاريع | `requiredDays`، `staffEstimates`، `logisticItems` | من يملك `EditStudyResponsePlanning` في الفرع | `PUT UpdatePlanning/{id}` بالجسم `{ requiredDays, staffEstimates, logisticItems, rowVersion }` (الأجزاء تُرسل كاملة) |
+
+- **التسلسل:**
+  1. القسم المتابع يملأ جزءه ويعدّله (مسودة)، ثم يرسله ويوقّع.
+  2. بعد توقيعه يُفتح جزء التخطيط للتخطيط وحده، فيملؤه ثم يوقّع، فيُعتمد الرد.
+  3. لا يعدّل أي طرف جزء الآخر. بعد الإرسال يُقفل جزء القسم المتابع حتى الرفض.
+- **الأعلام** (في `Get/{id}`؛ وفي القوائم يأتي `canEditPlanningPart` دائماً false): `canEditFollowingPart` (مسودة أو مرفوض، من قسم التكليف)، و`canEditPlanningPart` (وقّع القسم المتابع ولم يوقّع التخطيط بعد). `canEdit` = أحدهما، و`canSubmit` = `canEditFollowingPart`.
+- **الرفض:** من أي موقّع يعود الرد إلى القسم المتابع (حالة 4 مرفوض): يعدّل جزءه فيعود مسودة، وقيم جزء التخطيط تبقى محفوظة، وعند إعادة الإرسال تُصفَّر التواقيع وتبدأ السلسلة من جديد.
+- **التوصية «غير متاح»:** حقول جزء التخطيط اختيارية دائماً، والتواقيع تبقى.
+- **حدّ القسم المتابع:** إنشاء الرد وتعديله وإرساله لموظفي قسم التكليف المتابع فقط (من غيرهم 403)، وجزء التخطيط حدّه الفرع.
+- **الرقم:** `responseNumber` بصيغة `RSP-26-0001` من عدّاد الترقيم (البادئة مؤقتة، ثابت واحد `StudyRules.ResponseNumberPrefix`). مساحة الموقع والتكلفة المبدئية انتقلتا من سطور المباني إلى الرد (`siteArea`، `initialCost`)، و`totalCost` مجموع جدول البنود يُحسب منفصلاً.
+- **الطلب:** حقل `diwanRequestNumber` (رقم الديوان المركزي، نص اختياري حتى 50 حرفاً، يدوي) في `Create`/`Update` ويعود في المخرَج. الرقم الداخلي `requestNumber` (REQ-yy-nnnn) كما هو.
+
+### الطباعة — `api/StudyPrint`
+
+| الطريقة | المسار | الصلاحية |
+|---|---|---|
+| GET | `Request/{id}`، `Assignment/{id}`، `Response/{id}`، `StartOrder/{id}`، `DesignApproval/{id}` (CDA) | `PrintStudyDocuments` + صلاحية عرض المستند نفسه (ViewStudyRequests / ViewStudyAssignments / ViewStudyResponses / ViewStudyStartOrders / ViewStudyDrawings)، وحدّها فرع الدراسة |
+
+يعيد `StudyPrintDto`:
+- **الترويسة:** `title`، `number` (REQ-/IPA-/RSP-/PIO-/CDA-yy-nnnn)، `branchName` (اسم فرع الدراسة من قاعدة البيانات)، `documentDate` و`documentDateHijri` (`1448/04/12`، بقاعدة طباعة الإجازة نفسها `VacationRules.HijriDayOffset`).
+- **المستند:** كاملاً في خاصية واحدة مملوءة بحسب النوع: `request` أو `assignment` أو `response` أو `startOrder` أو `designApproval`، وهي مخرجات الـ `Get` نفسها.
+- **التواقيع (`signatures`):** سطر لكل صفة بالترتيب: `signerRoleName`، `signerName`، `jobTitle`، `decisionName`، `decidedAt` و`decidedAtHijri`، `note`، و`image`، وهي **نسخة التوقيع المحفوظة وقت القرار** (Data URL) لا التوقيع الحالي. تغيير التوقيع لاحقاً لا يغيّر المطبوع. `image = null` ترسم مربعاً فارغاً (قرار بلا توقيع، أو لم يُقرَّر بعد).
+- **المضاف:**
+  - الطلب: `request.diwanRequestNumber` و`request.urgencyName`.
+  - الرد: `response.costItems` و`totalCost` للجدول التفصيلي ملحقاً.
+  - أمر البدء: توقيع رئيس القسم المختص ضمن `signatures` (الصفة «رئيس القسم المختص») مع `startOrder.competentDepartmentName`.
+  - CDA: `startOrderNumber`.
 
 ### المشاريع — `api/StudyProjects`
 
@@ -197,6 +233,6 @@
 
 ## الصلاحيات في الواجهة
 
-- **الأسماء:** في `Application/Common/AppPermissions.cs`، قسم «فرع الدراسات المركزية» (57 صلاحية). انسخها إلى `core/constants/access.ts`.
+- **الأسماء:** في `Application/Common/AppPermissions.cs`، قسم «فرع الدراسات المركزية» (59 صلاحية، منها `EditStudyResponsePlanning` و`PrintStudyDocuments`). انسخها إلى `core/constants/access.ts`.
 - **صفحة الأدوار:** أضف لها قسماً جديداً «الدراسات» بمجموعات: القوائم، الطلبات، التكليفات، الردود، أوامر البدء، التواقيع، المشاريع والفريق، المراحل والمهام، المخططات وCDA، السجل.
 - **صلاحيات «أيٌّ من»:** `AnyStudySign`، `AnyStudyView`، `AnyStudyTaskView`، `AnyStudyAttachmentWrite`، `AnyStudyEmployeePick`.
