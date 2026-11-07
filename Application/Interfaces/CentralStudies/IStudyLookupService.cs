@@ -1,3 +1,4 @@
+using Application.DTOs.Response;
 using Domain.Entities.CentralStudiesBranch;
 
 namespace Application.Interfaces
@@ -22,6 +23,9 @@ namespace Application.Interfaces
         Task<bool> DisciplineInUseAsync(int id);
         /// <summary>عدد الاختصاصات الفعّالة الموجودة من المعرّفات المعطاة</summary>
         Task<int> CountActiveDisciplinesAsync(IEnumerable<int> ids);
+
+        /// <summary>موظفو الفرع النشطون (اختيارياً قسم واحد منه) بالاسم والقسم والمكتب فقط</summary>
+        Task<List<StudyEmployeeDto>> GetEmployeesAsync(int branchId, int? departmentId);
 
         Task AddAsync<T>(T entity) where T : class;
         Task RemoveAsync<T>(T entity) where T : class;

@@ -143,6 +143,10 @@ namespace Application.Features.CentralStudies.Projects
             var entity = await LoadAsync(id, viewer, withTeam: true);
             var dto = ToDto(entity, viewer);
             var requestId = entity.StartOrder.Response.Assignment.RequestId;
+            // مكاتب كل قسم مشارك (هدف «مكتب» في المهمة) — بلا ViewOffices
+            var offices = await _service.GetOfficesOfDepartmentsAsync(dto.Departments.Select(d => d.DepartmentId));
+            foreach (var d in dto.Departments)
+                d.Offices = offices.Where(o => o.DepartmentId == d.DepartmentId).Select(o => new StudyOfficeOptionDto(o.Id, o.Name)).ToList();
             dto.Chain = await _kit.ChainAsync(requestId);
             dto.Approvals = await _kit.ApprovalsAsync(ApprovalOwner.Of(entity, requestId));
             // طلب إنجاز معلّق (سطر لم يُقرَّر بعد ولم يُرفض الطلب)
@@ -258,8 +262,7 @@ namespace Application.Features.CentralStudies.Projects
             EnsureOpen(entity);
             if (request.Dto.ManagerUserId is int managerId && managerId != entity.ManagerUserId)
             {
-                var manager = await _users.GetByIdAsync(managerId);
-                if (manager is not { IsActive: true }) throw new KeyNotFoundException("مدير المشروع غير موجود أو غير نشط");
+                StudyRules.EnsureBranchEmployee(await _users.GetByIdAsync(managerId), entity.BranchId, "مدير المشروع");
                 entity.ManagerUserId = managerId;
             }
             entity.Name = request.Dto.Name.Trim();

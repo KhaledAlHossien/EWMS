@@ -31,6 +31,8 @@ namespace Application.Interfaces
         Task<bool> IsMemberAsync(int projectId, int userId);
         /// <summary>للعضو مهام في المشروع (لا يُزال قبل نقلها)</summary>
         Task<bool> HasTasksForUserAsync(int projectId, int userId);
+        /// <summary>مكاتب الأقسام المعطاة (لتفاصيل المشروع: هدف «مكتب» في المهمة)</summary>
+        Task<List<Domain.Entities.Office>> GetOfficesOfDepartmentsAsync(IEnumerable<int> departmentIds);
         Task AddProjectDepartmentAsync(ProjectDepartment projectDepartment);
         Task RemoveProjectDepartmentAsync(ProjectDepartment projectDepartment);
         Task AddMemberAsync(ProjectMember member);

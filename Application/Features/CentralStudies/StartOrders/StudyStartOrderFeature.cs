@@ -131,14 +131,10 @@ namespace Application.Features.CentralStudies.StartOrders
             if (department.BranchId != branchId)
                 throw new InvalidOperationException("القسم المختص يجب أن يكون من أقسام فرع الطلب");
 
-            var manager = await _users.GetByIdAsync(dto.ProjectManagerUserId);
-            if (manager is not { IsActive: true }) throw new KeyNotFoundException("مدير المشروع غير موجود أو غير نشط");
+            StudyRules.EnsureBranchEmployee(await _users.GetByIdAsync(dto.ProjectManagerUserId), branchId, "مدير المشروع");
 
             foreach (var engineerId in dto.Engineers.Select(e => e.EngineerUserId).Distinct())
-            {
-                var engineer = await _users.GetByIdAsync(engineerId);
-                if (engineer is not { IsActive: true }) throw new KeyNotFoundException("أحد المهندسين غير موجود أو غير نشط");
-            }
+                StudyRules.EnsureBranchEmployee(await _users.GetByIdAsync(engineerId), branchId, "أحد المهندسين");
             var disciplineIds = dto.Engineers.Select(e => e.DisciplineId).Distinct().ToList();
             if (disciplineIds.Count > 0 && await _lookups.CountActiveDisciplinesAsync(disciplineIds) != disciplineIds.Count)
                 throw new KeyNotFoundException("أحد الاختصاصات غير موجود أو غير فعّال");

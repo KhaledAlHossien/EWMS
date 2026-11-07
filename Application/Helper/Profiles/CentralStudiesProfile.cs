@@ -135,6 +135,7 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.DepartmentName, o => o.MapFrom(s => s.Department != null ? s.Department.Name : string.Empty))
                 .ForMember(d => d.AddedByName, o => o.MapFrom(s => s.AddedBy != null ? s.AddedBy.FullName : string.Empty))
                 .ForMember(d => d.Members, o => o.MapFrom(s => s.Members.OrderBy(m => m.AssignedAt)))
+                .ForMember(d => d.Offices, o => o.Ignore())
                 .ForMember(d => d.CanManageMembers, o => o.Ignore());
             CreateMap<ProjectStage, ProjectStageDto>()
                 .ForMember(d => d.StageTypeName, o => o.MapFrom(s => s.StageType != null ? s.StageType.Name : string.Empty))

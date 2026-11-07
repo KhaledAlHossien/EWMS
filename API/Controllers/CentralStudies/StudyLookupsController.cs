@@ -29,6 +29,15 @@ namespace API.Controllers
         public async Task<ActionResult<Dictionary<string, List<StudyEnumValueDto>>>> Enums()
             => Ok(await _mediator.Send(new GetStudyEnumsQuery()));
 
+        /// <summary>
+        /// موظفو فرع الدراسة النشطون لقوائم الاختيار: id، fullName، departmentId، departmentName، officeId، officeName فقط.
+        /// branchId لمن يتصفح المؤسسة (غيره فرعه دائماً)، departmentId لموظفي قسم واحد (إضافة أعضاء القسم المشارك).
+        /// </summary>
+        [HttpGet("Employees")]
+        [Authorize(Policy = "AnyStudyEmployeePick")]
+        public async Task<ActionResult<List<StudyEmployeeDto>>> Employees([FromQuery] int? branchId, [FromQuery] int? departmentId)
+            => Ok(await _mediator.Send(new GetStudyEmployeesQuery(branchId, departmentId)));
+
         // ════════ أنواع المراحل ════════
 
         [HttpGet("StageTypes/GetAll")]

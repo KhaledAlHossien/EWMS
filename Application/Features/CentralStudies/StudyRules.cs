@@ -1,4 +1,5 @@
 using Application.Common;
+using Domain.Entities;
 using Domain.Entities.CentralStudiesBranch;
 
 namespace Application.Features.CentralStudies
@@ -53,6 +54,16 @@ namespace Application.Features.CentralStudies
         }
 
         public static bool Can(Viewer viewer, string permission, int branchId) => viewer.Has(permission) && InScope(viewer, branchId);
+
+        /// <summary>
+        /// موظف نشط من فرع الدراسة (مدير المشروع المقترح، مدير المشروع، المهندسون) — يطابق قائمة StudyLookups/Employees.
+        /// who: «مدير المشروع» / «أحد المهندسين»…
+        /// </summary>
+        public static void EnsureBranchEmployee(User? user, int branchId, string who)
+        {
+            if (user is not { IsActive: true }) throw new KeyNotFoundException($"{who} غير موجود أو غير نشط");
+            if (user.BranchId != branchId) throw new InvalidOperationException($"{who} ليس من موظفي فرع الدراسة");
+        }
 
         /// <summary>المستخدم في القسم نفسه (مدير النظام بلا حدّ)</summary>
         public static bool InDepartment(Viewer viewer, int? departmentId) =>

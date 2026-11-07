@@ -300,6 +300,9 @@
             ["AnyStudyView"] = ["ViewStudyRequests", "ViewStudyAssignments", "ViewStudyResponses", "ViewStudyStartOrders",
                 "ViewStudyProjects", "ViewStudyDrawings", "ViewStudyActivityLog"],
             ["AnyStudyTaskView"] = ["ViewStudyProjects", "UpdateStudyTaskProgress"],
+            // قائمة موظفي فرع الدراسة (بلا بيانات حساسة): لمن يختار مدير المشروع أو المهندسين أو أعضاء الفريق
+            ["AnyStudyEmployeePick"] = ["CreateStudyResponse", "EditStudyResponse", "CreateStudyStartOrder", "EditStudyStartOrder",
+                "EditStudyProject", "AddStudyProjectMember"],
             // رفع مرفق أو حذفه: بصلاحية تعديل صاحبه (يفحصها الـ handler)
             ["AnyStudyAttachmentWrite"] = ["EditStudyRequest", "EditStudyAssignment", "EditStudyResponse", "EditStudyStartOrder",
                 "EditStudyProject", "EditStudyDrawing", "EditArchitecturalVersion"],
