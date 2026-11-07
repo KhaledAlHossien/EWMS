@@ -31,6 +31,7 @@ namespace Application.Features.CentralStudies.Requests
                 .MaximumLength(200).WithMessage("الجهة المستفيدة لا تتجاوز 200 حرف");
             RuleFor(x => x.SubBeneficiary).MaximumLength(200).WithMessage("اسم الجهة الفرعية لا يتجاوز 200 حرف");
             RuleFor(x => x.GovernorateCode).Must(Governorates.IsValidCode).WithMessage("اختر المحافظة من القائمة");
+            RuleFor(x => x.DiwanRequestNumber).MaximumLength(50).WithMessage("رقم الديوان لا يتجاوز 50 حرفاً");
             RuleFor(x => x.MinistryArchiveNumber).MaximumLength(50).WithMessage("رقم أرشيف الوزارة لا يتجاوز 50 حرفاً");
             RuleFor(x => x.AdminArchiveNumber).MaximumLength(50).WithMessage("رقم أرشيف الإدارة لا يتجاوز 50 حرفاً");
             RuleFor(x => x.BeneficiaryArchiveNumber).MaximumLength(50).WithMessage("رقم أرشيف الجهة لا يتجاوز 50 حرفاً");
@@ -129,6 +130,7 @@ namespace Application.Features.CentralStudies.Requests
         {
             e.MainBeneficiary = e.MainBeneficiary.Trim();
             e.SubBeneficiary = Clean(e.SubBeneficiary);
+            e.DiwanRequestNumber = Clean(e.DiwanRequestNumber);
             e.MinistryArchiveNumber = Clean(e.MinistryArchiveNumber);
             e.AdminArchiveNumber = Clean(e.AdminArchiveNumber);
             e.BeneficiaryArchiveNumber = Clean(e.BeneficiaryArchiveNumber);

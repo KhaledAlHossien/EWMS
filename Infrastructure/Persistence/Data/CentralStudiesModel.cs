@@ -46,6 +46,7 @@ namespace Infrastructure.Persistence.Data
                 e.Property(x => x.RequestNumber).HasMaxLength(30).IsRequired();
                 e.Property(x => x.RequestDate).HasColumnType("date");
                 e.Property(x => x.Urgency).HasConversion<int>();
+                e.Property(x => x.DiwanRequestNumber).HasMaxLength(50);
                 e.Property(x => x.MinistryArchiveNumber).HasMaxLength(50);
                 e.Property(x => x.MinistryArchiveDate).HasColumnType("date");
                 e.Property(x => x.AdminArchiveNumber).HasMaxLength(50);
@@ -102,7 +103,11 @@ namespace Infrastructure.Persistence.Data
             // ==================== إشعار الرد وأجزاؤه ====================
             builder.Entity<StudyAssignmentResponse>(e =>
             {
+                e.Property(x => x.ResponseNumber).HasMaxLength(30).IsRequired();
+                e.HasIndex(x => x.ResponseNumber).IsUnique();
                 e.Property(x => x.ResponseDate).HasColumnType("date");
+                e.Property(x => x.SiteArea).HasPrecision(12, 2);
+                e.Property(x => x.InitialCost).HasPrecision(18, 2);
                 e.Property(x => x.Recommendation).HasConversion<int>();
                 e.Property(x => x.Status).HasConversion<int>();
                 e.Property(x => x.RowVersion).IsRowVersion();
@@ -119,8 +124,6 @@ namespace Infrastructure.Persistence.Data
                 e.HasKey(x => new { x.ResponseId, x.BuildingType });
                 e.Property(x => x.BuildingType).HasConversion<int>();
                 e.Property(x => x.BuildingsArea).HasPrecision(12, 2);
-                e.Property(x => x.SiteArea).HasPrecision(12, 2);
-                e.Property(x => x.InitialCost).HasPrecision(18, 2);
                 e.HasOne<StudyAssignmentResponse>().WithMany(r => r.Buildings).HasForeignKey(x => x.ResponseId).OnDelete(DeleteBehavior.Cascade);
                 e.ToTable(t => t.HasCheckConstraint("CK_ResponseBuildings_Count", "[BuildingCount] >= 0"));
             });

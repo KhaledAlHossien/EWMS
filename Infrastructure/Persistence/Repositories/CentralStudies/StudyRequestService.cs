@@ -191,7 +191,7 @@ namespace Infrastructure.Persistence.Repositories
             if (!string.IsNullOrWhiteSpace(filter.Search))
             {
                 var text = filter.Search.Trim();
-                query = query.Where(r => r.Assignment.AssignmentNumber.Contains(text)
+                query = query.Where(r => r.ResponseNumber.Contains(text) || r.Assignment.AssignmentNumber.Contains(text)
                                          || (r.Assignment.ProjectCode != null && r.Assignment.ProjectCode.Contains(text))
                                          || r.Assignment.Request.MainBeneficiary.Contains(text));
             }

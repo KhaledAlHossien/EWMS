@@ -3,11 +3,16 @@ namespace Domain.Entities.CentralStudiesBranch
     /// <summary>
     /// إشعار الرد على أمر التكليف — رد واحد لكل تكليف ولا يُعاد (AssignmentId فريد).
     /// أجزاؤه (المباني، بنود التكلفة، الكادر، الموارد) تُحذف معه وتُستبدل كاملة عند التعديل.
-    /// يوقّعه القسم المتابع ثم التخطيط وإدارة المشاريع.
+    /// يوقّعه القسم المتابع ثم التخطيط وإدارة المشاريع. وهو جزءان (النموذج الورقي):
+    /// جزء القسم المتابع (المباني، مساحة الموقع، التكلفة المبدئية وجدولها، المدير المقترح، التوصية)
+    /// وجزء التخطيط وإدارة المشاريع (الموارد اللوجستية، الكوادر، المدة) — لكل جزء صاحبه الذي يعدّله ويوقّع عليه.
     /// </summary>
     public class StudyAssignmentResponse : IStudyDocument
     {
         public int Id { get; set; }
+
+        /// <summary>رقم إشعار الرد (RSP-26-0001) من عدّاد الترقيم</summary>
+        public string ResponseNumber { get; set; } = string.Empty;
 
         public int AssignmentId { get; set; }
         public StudyAssignment Assignment { get; set; } = null!;
@@ -20,7 +25,11 @@ namespace Domain.Entities.CentralStudiesBranch
 
         public DateTime ResponseDate { get; set; }
         public StudyRecommendation Recommendation { get; set; }
-        /// <summary>المدة اللازمة بالأيام التقويمية</summary>
+        /// <summary>مساحة الموقع العام — حقل واحد للرد كله (جزء القسم المتابع)</summary>
+        public decimal? SiteArea { get; set; }
+        /// <summary>التكلفة المبدئية — حقل واحد للرد كله (جزء القسم المتابع)، بجانب مجموع الجدول التفصيلي</summary>
+        public decimal? InitialCost { get; set; }
+        /// <summary>المدة اللازمة بالأيام التقويمية (جزء التخطيط)</summary>
         public int? RequiredDays { get; set; }
 
         public StudyDocumentStatus Status { get; set; }
@@ -43,8 +52,6 @@ namespace Domain.Entities.CentralStudiesBranch
         public StudyBuildingType BuildingType { get; set; }
         public int BuildingCount { get; set; }
         public decimal BuildingsArea { get; set; }
-        public decimal? SiteArea { get; set; }
-        public decimal? InitialCost { get; set; }
     }
 
     /// <summary>بند تكلفة — الإجمالي (الكمية × سعر الوحدة) يُحسب ولا يُخزَّن</summary>

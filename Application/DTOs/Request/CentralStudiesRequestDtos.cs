@@ -45,6 +45,8 @@ namespace Application.DTOs.Request
         public DateTime RequestDate { get; set; }
         /// <summary>1 مستعجل، 2 عادي</summary>
         public int Urgency { get; set; }
+        /// <summary>رقم الطلب من الديوان المركزي (يدوي، اختياري)</summary>
+        public string? DiwanRequestNumber { get; set; }
         public string? MinistryArchiveNumber { get; set; }
         public DateTime? MinistryArchiveDate { get; set; }
         public string? AdminArchiveNumber { get; set; }
@@ -92,6 +94,7 @@ namespace Application.DTOs.Request
     }
 
     /// <summary>إشعار الرد — AssignmentId عند الإنشاء فقط. الأجزاء تُستبدل كاملة عند كل حفظ</summary>
+    /// <summary>جزء القسم المتابع من إشعار الرد (الإنشاء والتعديل): يملؤه موظفو القسم المتابع للتكليف</summary>
     public class StudyResponseFormDto
     {
         public int AssignmentId { get; set; }
@@ -99,9 +102,19 @@ namespace Application.DTOs.Request
         public int? ProposedManagerUserId { get; set; }
         /// <summary>1 قبول، 2 تعديل، 3 غير متاح</summary>
         public int Recommendation { get; set; }
-        public int? RequiredDays { get; set; }
+        /// <summary>مساحة الموقع العام (حقل واحد للرد)</summary>
+        public decimal? SiteArea { get; set; }
+        /// <summary>التكلفة المبدئية (حقل واحد للرد، بجانب جدول البنود)</summary>
+        public decimal? InitialCost { get; set; }
         public List<ResponseBuildingFormDto> Buildings { get; set; } = [];
         public List<ResponseCostItemFormDto> CostItems { get; set; } = [];
+        public byte[]? RowVersion { get; set; }
+    }
+
+    /// <summary>جزء التخطيط وإدارة المشاريع (PUT UpdatePlanning): الكوادر والموارد اللوجستية والمدة</summary>
+    public class StudyResponsePlanningFormDto
+    {
+        public int? RequiredDays { get; set; }
         public List<ResponseStaffFormDto> StaffEstimates { get; set; } = [];
         public List<StudyItemFormDto> LogisticItems { get; set; } = [];
         public byte[]? RowVersion { get; set; }
@@ -113,8 +126,6 @@ namespace Application.DTOs.Request
         public int BuildingType { get; set; }
         public int BuildingCount { get; set; }
         public decimal BuildingsArea { get; set; }
-        public decimal? SiteArea { get; set; }
-        public decimal? InitialCost { get; set; }
     }
 
     public class ResponseCostItemFormDto

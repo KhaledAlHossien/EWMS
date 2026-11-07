@@ -815,14 +815,6 @@ namespace Infrastructure.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("decimal(12,2)");
 
-                    b.Property<decimal?>("InitialCost")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("SiteArea")
-                        .HasPrecision(12, 2)
-                        .HasColumnType("decimal(12,2)");
-
                     b.HasKey("ResponseId", "BuildingType");
 
                     b.ToTable("ResponseBuildings", t =>
@@ -1310,6 +1302,10 @@ namespace Infrastructure.Migrations
                     b.Property<int>("CreatedByUserId")
                         .HasColumnType("int");
 
+                    b.Property<decimal?>("InitialCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int?>("ProposedManagerUserId")
                         .HasColumnType("int");
 
@@ -1322,11 +1318,20 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("ResponseDate")
                         .HasColumnType("date");
 
+                    b.Property<string>("ResponseNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<decimal?>("SiteArea")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -1342,6 +1347,9 @@ namespace Infrastructure.Migrations
                     b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("ProposedManagerUserId");
+
+                    b.HasIndex("ResponseNumber")
+                        .IsUnique();
 
                     b.HasIndex("Status", "CreatedAt");
 
@@ -1585,6 +1593,10 @@ namespace Infrastructure.Migrations
 
                     b.Property<int>("CreatedByUserId")
                         .HasColumnType("int");
+
+                    b.Property<string>("DiwanRequestNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("EntityCode")
                         .HasMaxLength(30)
