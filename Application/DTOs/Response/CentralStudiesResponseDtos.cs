@@ -124,6 +124,7 @@ namespace Application.DTOs.Response
         public DateTime RequestDate { get; set; }
         public int Urgency { get; set; }
         public string UrgencyName { get; set; } = string.Empty;
+        public string? DiwanRequestNumber { get; set; }
         public string? MinistryArchiveNumber { get; set; }
         public DateTime? MinistryArchiveDate { get; set; }
         public string? AdminArchiveNumber { get; set; }
@@ -183,8 +184,6 @@ namespace Application.DTOs.Response
         public string BuildingTypeName { get; set; } = string.Empty;
         public int BuildingCount { get; set; }
         public decimal BuildingsArea { get; set; }
-        public decimal? SiteArea { get; set; }
-        public decimal? InitialCost { get; set; }
     }
 
     public class ResponseCostItemDto
@@ -231,7 +230,16 @@ namespace Application.DTOs.Response
         public int Recommendation { get; set; }
         public string RecommendationName { get; set; } = string.Empty;
         public int? RequiredDays { get; set; }
+        public string ResponseNumber { get; set; } = string.Empty;
+        public decimal? SiteArea { get; set; }
+        /// <summary>التكلفة المبدئية المدخلة يدوياً (جزء القسم المتابع)</summary>
+        public decimal? InitialCost { get; set; }
+        /// <summary>مجموع جدول التكلفة التفصيلي (يُحسب)</summary>
         public decimal TotalCost { get; set; }
+        /// <summary>يعدّل جزء القسم المتابع الآن (مسودة أو مرفوض، من قسم التكليف)</summary>
+        public bool CanEditFollowingPart { get; set; }
+        /// <summary>يعدّل جزء التخطيط الآن (وقع القسم المتابع وجاء دور التخطيط)</summary>
+        public bool CanEditPlanningPart { get; set; }
         public List<ResponseBuildingDto> Buildings { get; set; } = [];
         public List<ResponseCostItemDto> CostItems { get; set; } = [];
         public List<ResponseStaffDto> StaffEstimates { get; set; } = [];
@@ -490,5 +498,40 @@ namespace Application.DTOs.Response
         public int UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+    }
+
+    /// <summary>توقيع في نموذج مطبوع: الصورة هي نسخة التوقيع المحفوظة وقت القرار (Data URL)، وnull تعني مربعاً فارغاً</summary>
+    public class StudyPrintSignatureDto
+    {
+        public int SignerRole { get; set; }
+        public string SignerRoleName { get; set; } = string.Empty;
+        public int Decision { get; set; }
+        public string DecisionName { get; set; } = string.Empty;
+        public string? SignerName { get; set; }
+        public string? JobTitle { get; set; }
+        public DateTime? DecidedAt { get; set; }
+        public string? DecidedAtHijri { get; set; }
+        public string? Note { get; set; }
+        public string? Image { get; set; }
+    }
+
+    /// <summary>نموذج ورقي للطباعة: ترويسة (الرقم، فرع الدراسة، التاريخ الميلادي والهجري) + المستند كاملاً + التواقيع. يُملأ واحد فقط من المستندات الخمسة</summary>
+    public class StudyPrintDto
+    {
+        public string DocumentType { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Number { get; set; } = string.Empty;
+        public string BranchName { get; set; } = string.Empty;
+        public DateTime DocumentDate { get; set; }
+        /// <summary>التاريخ الهجري yyyy/MM/dd بقاعدة طباعة الإجازة (VacationRules.HijriDayOffset)</summary>
+        public string DocumentDateHijri { get; set; } = string.Empty;
+        /// <summary>CDA فقط: رقم أمر بدء المشروع</summary>
+        public string? StartOrderNumber { get; set; }
+        public StudyRequestDto? Request { get; set; }
+        public StudyAssignmentDto? Assignment { get; set; }
+        public StudyResponseDto? Response { get; set; }
+        public StudyStartOrderDto? StartOrder { get; set; }
+        public DesignApprovalDto? DesignApproval { get; set; }
+        public List<StudyPrintSignatureDto> Signatures { get; set; } = [];
     }
 }

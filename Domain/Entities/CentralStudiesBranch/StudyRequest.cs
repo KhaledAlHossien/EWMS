@@ -32,6 +32,8 @@ namespace Domain.Entities.CentralStudiesBranch
         public DateTime RequestDate { get; set; }
         public StudyUrgency Urgency { get; set; }
 
+        /// <summary>رقم الطلب من الديوان المركزي — يُدخَل يدوياً (لا ربط مع الديوان)، ويُطبع في ترويسة الطلب</summary>
+        public string? DiwanRequestNumber { get; set; }
         public string? MinistryArchiveNumber { get; set; }
         public DateTime? MinistryArchiveDate { get; set; }
         public string? AdminArchiveNumber { get; set; }

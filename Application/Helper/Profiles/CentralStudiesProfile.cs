@@ -98,6 +98,8 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.ProposedManagerName, o => o.MapFrom(s => s.ProposedManager != null ? s.ProposedManager.FullName : null))
                 .ForMember(d => d.Recommendation, o => o.MapFrom(s => (int)s.Recommendation))
                 .ForMember(d => d.RecommendationName, o => o.MapFrom(s => StudyRules.Name(s.Recommendation)))
+                .ForMember(d => d.CanEditFollowingPart, o => o.Ignore())
+                .ForMember(d => d.CanEditPlanningPart, o => o.Ignore())
                 .ForMember(d => d.TotalCost, o => o.MapFrom(s => Math.Round(s.CostItems.Sum(c => c.Quantity * c.UnitPrice), 2)))
                 .ForMember(d => d.Buildings, o => o.MapFrom(s => s.Buildings.OrderBy(b => b.BuildingType)))
                 .ForMember(d => d.CostItems, o => o.MapFrom(s => s.CostItems.OrderBy(c => c.SortOrder).ThenBy(c => c.Id)))

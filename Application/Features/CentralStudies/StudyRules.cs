@@ -24,6 +24,8 @@ namespace Application.Features.CentralStudies
         public const string EditDrawing = "EditStudyDrawing";
         public const string EditVersion = "EditArchitecturalVersion";
         public const string ViewActivityLog = "ViewStudyActivityLog";
+        public const string EditResponsePlanning = "EditStudyResponsePlanning";
+        public const string PrintDocuments = "PrintStudyDocuments";
     }
 
     /// <summary>
@@ -95,10 +97,14 @@ namespace Application.Features.CentralStudies
 
         // ════════════════════ الترقيم ════════════════════
 
+        /// <summary>بادئة رقم إشعار الرد — مؤقتة حتى تصل ترويسة النموذج الورقي (تغييرها هنا فقط يغيّر الأرقام الجديدة)</summary>
+        public const string ResponseNumberPrefix = "RSP";
+
         public static string NumberPrefix(StudyDocumentType type) => type switch
         {
             StudyDocumentType.Request => "REQ",
             StudyDocumentType.Assignment => "IPA",
+            StudyDocumentType.Response => ResponseNumberPrefix,
             StudyDocumentType.StartOrder => "PIO",
             StudyDocumentType.DesignApproval => "CDA",
             _ => "DOC"
@@ -107,6 +113,14 @@ namespace Application.Features.CentralStudies
         /// <summary>IPA-26-0001: النوع - آخر رقمين من السنة - الرقم المتسلسل</summary>
         public static string FormatNumber(StudyDocumentType type, int year, int number) =>
             $"{NumberPrefix(type)}-{year % 100:D2}-{number:D4}";
+
+        /// <summary>التاريخ الهجري (أم القرى) للطباعة بقاعدة طباعة الإجازة نفسها: yyyy/MM/dd</summary>
+        public static string Hijri(DateTime date)
+        {
+            var calendar = new System.Globalization.UmAlQuraCalendar();
+            var shifted = date.Date.AddDays(Vacations.VacationRules.HijriDayOffset);
+            return $"{calendar.GetYear(shifted):D4}/{calendar.GetMonth(shifted):D2}/{calendar.GetDayOfMonth(shifted):D2}";
+        }
 
         public static string VersionLabel(int versionNumber) => $"Draft-{versionNumber}";
 

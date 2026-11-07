@@ -135,11 +135,17 @@ namespace API.Controllers
         public async Task<ActionResult<StudyResponseDto>> Create([FromBody] StudyResponseFormDto dto)
             => Ok(await _mediator.Send(new CreateStudyResponseCommand(dto)));
 
-        /// <summary>الأجزاء تُستبدل بما في النموذج (أرسلها كاملة)</summary>
+        /// <summary>جزء القسم المتابع (مسودة أو مرفوض) — المباني والتكلفة وجدولها تُرسل كاملة وتُستبدل</summary>
         [HttpPut("Update/{id}")]
         [Authorize(Policy = "EditStudyResponse")]
         public async Task<ActionResult<StudyResponseDto>> Update(int id, [FromBody] StudyResponseFormDto dto)
             => Ok(await _mediator.Send(new UpdateStudyResponseCommand(id, dto)));
+
+        /// <summary>جزء التخطيط وإدارة المشاريع — بعد توقيع القسم المتابع وقبل توقيع التخطيط (الأجزاء تُرسل كاملة)</summary>
+        [HttpPut("UpdatePlanning/{id}")]
+        [Authorize(Policy = "EditStudyResponsePlanning")]
+        public async Task<ActionResult<StudyResponseDto>> UpdatePlanning(int id, [FromBody] StudyResponsePlanningFormDto dto)
+            => Ok(await _mediator.Send(new UpdateStudyResponsePlanningCommand(id, dto)));
 
         [HttpDelete("Delete/{id}")]
         [Authorize(Policy = "DeleteStudyResponse")]
