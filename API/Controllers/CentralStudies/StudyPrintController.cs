@@ -21,22 +21,22 @@ namespace API.Controllers
 
         [HttpGet("Request/{id}")]
         [Authorize(Policy = "PrintStudyDocuments")]
-        public async Task<ActionResult<StudyPrintDto>> Request(int id) => Ok(await _mediator.Send(new GetStudyPrintQuery(StudyEntityType.Request, id)));
+        public async Task<ActionResult<StudyPrintDto>> PrintRequest(int id) => Ok(await _mediator.Send(new GetStudyPrintQuery(StudyEntityType.Request, id)));
 
         [HttpGet("Assignment/{id}")]
         [Authorize(Policy = "PrintStudyDocuments")]
-        public async Task<ActionResult<StudyPrintDto>> Assignment(int id) => Ok(await _mediator.Send(new GetStudyPrintQuery(StudyEntityType.Assignment, id)));
+        public async Task<ActionResult<StudyPrintDto>> PrintAssignment(int id) => Ok(await _mediator.Send(new GetStudyPrintQuery(StudyEntityType.Assignment, id)));
 
         [HttpGet("Response/{id}")]
         [Authorize(Policy = "PrintStudyDocuments")]
-        public async Task<ActionResult<StudyPrintDto>> Response(int id) => Ok(await _mediator.Send(new GetStudyPrintQuery(StudyEntityType.Response, id)));
+        public async Task<ActionResult<StudyPrintDto>> PrintResponse(int id) => Ok(await _mediator.Send(new GetStudyPrintQuery(StudyEntityType.Response, id)));
 
         [HttpGet("StartOrder/{id}")]
         [Authorize(Policy = "PrintStudyDocuments")]
-        public async Task<ActionResult<StudyPrintDto>> StartOrder(int id) => Ok(await _mediator.Send(new GetStudyPrintQuery(StudyEntityType.StartOrder, id)));
+        public async Task<ActionResult<StudyPrintDto>> PrintStartOrder(int id) => Ok(await _mediator.Send(new GetStudyPrintQuery(StudyEntityType.StartOrder, id)));
 
         [HttpGet("DesignApproval/{id}")]
         [Authorize(Policy = "PrintStudyDocuments")]
-        public async Task<ActionResult<StudyPrintDto>> DesignApproval(int id) => Ok(await _mediator.Send(new GetStudyPrintQuery(StudyEntityType.DesignApproval, id)));
+        public async Task<ActionResult<StudyPrintDto>> PrintDesignApproval(int id) => Ok(await _mediator.Send(new GetStudyPrintQuery(StudyEntityType.DesignApproval, id)));
     }
 }

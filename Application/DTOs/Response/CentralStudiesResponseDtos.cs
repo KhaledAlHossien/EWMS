@@ -335,6 +335,8 @@ namespace Application.DTOs.Response
         public string StartOrderNumber { get; set; } = string.Empty;
         public int BranchId { get; set; }
         public string BranchName { get; set; } = string.Empty;
+        /// <summary>موقع المشروع في سجل المواقع (منسوخ من الطلب، قد يكون فارغاً) — منه تظهر مشاريع الفرع على الخريطة</summary>
+        public int? SiteId { get; set; }
         public int ManagerUserId { get; set; }
         public string ManagerName { get; set; } = string.Empty;
         public DateTime PlannedStartDate { get; set; }

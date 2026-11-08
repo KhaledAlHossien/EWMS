@@ -10,8 +10,14 @@ namespace Application.Interfaces
         /// مع أمر البدء (والرد والتكليف والطلب) والفرع والمدير والمراحل ومهامها؛
         /// withTeam: الأقسام المشاركة وأعضاؤها أيضاً
         /// </summary>
-        Task<StudyProject?> GetByIdAsync(int id, bool withTeam = false);
-        Task<(List<StudyProject> Items, int Total)> SearchAsync(StudyDocumentFilterDto filter, int? branchLimit, int page, int pageSize);
+        Task<StudyProject?> GetByIdAsync(int id);
+        /// <summary>الأقسام المشاركة وأعضاؤها بأسمائهم فقط (إسقاط مباشر بلا تحميل المستخدمين)</summary>
+        Task<List<Application.DTOs.Response.ProjectDepartmentDto>> GetTeamAsync(int projectId);
+        /// <summary>
+        /// بحث المشاريع كـ DTO جاهز (الأعلام يضعها المعالج): إسقاطات مسطّحة بالأعمدة المطلوبة فقط بلا تحميل كيانات User ولا المهام
+        /// ولا ترتيب لصفوف عريضة في SQL — الاستعلام بـ Include كان يطلب نحو 11 MB ذاكرة تنفيذ حتى لصفحة من 3 مشاريع.
+        /// </summary>
+        Task<(List<Application.DTOs.Response.StudyProjectDto> Items, int Total)> SearchAsync(StudyDocumentFilterDto filter, int? branchLimit, int page, int pageSize);
         Task<bool> ExistsForStartOrderAsync(int startOrderId);
         Task<bool> CodeExistsAsync(string code, int? excludeId = null);
         /// <summary>للمشروع مهام أو مخططات أو مرفقات (لا يُحذف)</summary>

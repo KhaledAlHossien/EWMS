@@ -16,7 +16,8 @@ namespace Application.Interfaces
         Task<StageTask?> GetTaskAsync(int id);
         Task<List<StageTask>> GetTasksAsync(int stageId);
         /// <summary>كل مهام المشروع في استعلام واحد (لمخطط Gantt): بترتيب المرحلة ثم البدء المخطط</summary>
-        Task<List<StageTask>> GetProjectTasksAsync(int projectId);
+        /// <summary>أول <paramref name="limit"/> مهمة مع عددها الكلي</summary>
+        Task<(List<StageTask> Items, int Total)> GetProjectTasksAsync(int projectId, int limit);
         /// <summary>المهام المسندة إلى المستخدم أو مكتبه أو قسمه (للقسم: موظفو القسم المباشرون بلا مكتب)</summary>
         Task<(List<StageTask> Items, int Total)> GetAssignedAsync(int userId, int? officeId, int? departmentId, bool openOnly, int page, int pageSize);
         Task AddTaskAsync(StageTask task);

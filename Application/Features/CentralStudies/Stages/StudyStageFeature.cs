@@ -21,7 +21,12 @@ namespace Application.Features.CentralStudies.Stages
 
     public record GetStudyTasksQuery(int StageId) : IRequest<List<StageTaskDto>>;
     /// <summary>كل مهام المشروع (لمخطط Gantt): بترتيب المرحلة ثم البدء المخطط</summary>
-    public record GetStudyProjectTasksQuery(int ProjectId) : IRequest<List<StageTaskDto>>;
+    public record GetStudyProjectTasksQuery(int ProjectId) : IRequest<StudyProjectTasksResult>;
+    /// <summary>Total = العدد الكلي؛ Items مقطوعة عند StudyRules.MaxProjectTasks</summary>
+    public record StudyProjectTasksResult(List<StageTaskDto> Items, int Total)
+    {
+        public bool Truncated => Items.Count < Total;
+    }
     public record GetStudyTaskQuery(int Id) : IRequest<StageTaskDto>;
     public record GetMyStudyTasksQuery(bool OpenOnly, int Page, int PageSize) : IRequest<PagedResultDto<StageTaskDto>>;
     public record CreateStudyTaskCommand(StudyTaskFormDto Dto) : IRequest<StageTaskDto>;
@@ -108,7 +113,7 @@ namespace Application.Features.CentralStudies.Stages
         IRequestHandler<CloseStudyStageCommand, ProjectStageDto>,
         IRequestHandler<ReopenStudyStageCommand, ProjectStageDto>,
         IRequestHandler<GetStudyTasksQuery, List<StageTaskDto>>,
-        IRequestHandler<GetStudyProjectTasksQuery, List<StageTaskDto>>,
+        IRequestHandler<GetStudyProjectTasksQuery, StudyProjectTasksResult>,
         IRequestHandler<GetStudyTaskQuery, StageTaskDto>,
         IRequestHandler<GetMyStudyTasksQuery, PagedResultDto<StageTaskDto>>,
         IRequestHandler<CreateStudyTaskCommand, StageTaskDto>,
@@ -377,11 +382,12 @@ namespace Application.Features.CentralStudies.Stages
         }
 
         /// <summary>حدّ المشروع نفسه في StudyStages/ByProject، والأعلام نفسها في ByStage</summary>
-        public async Task<List<StageTaskDto>> Handle(GetStudyProjectTasksQuery request, CancellationToken ct)
+        public async Task<StudyProjectTasksResult> Handle(GetStudyProjectTasksQuery request, CancellationToken ct)
         {
             var viewer = await _kit.ViewerAsync();
             await LoadProjectAsync(request.ProjectId, viewer);
-            return (await _service.GetProjectTasksAsync(request.ProjectId)).Select(t => TaskDto(t, viewer)).ToList();
+            var (items, total) = await _service.GetProjectTasksAsync(request.ProjectId, StudyRules.MaxProjectTasks);
+            return new StudyProjectTasksResult(items.Select(t => TaskDto(t, viewer)).ToList(), total);
         }
 
         /// <summary>يراها من يرى مشاريع فرعه، أو المكلَّف بها</summary>
