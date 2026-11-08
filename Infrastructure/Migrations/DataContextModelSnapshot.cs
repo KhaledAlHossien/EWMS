@@ -1529,6 +1529,9 @@ namespace Infrastructure.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
+                    b.Property<int?>("SiteId")
+                        .HasColumnType("int");
+
                     b.Property<int>("StartOrderId")
                         .HasColumnType("int");
 
@@ -1547,8 +1550,12 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("ManagerUserId");
 
+                    b.HasIndex("SiteId");
+
                     b.HasIndex("StartOrderId")
                         .IsUnique();
+
+                    b.HasIndex("BranchId", "SiteId");
 
                     b.HasIndex("BranchId", "Status", "CreatedAt");
 
@@ -4419,6 +4426,11 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Domain.Entities.Site", "Site")
+                        .WithMany()
+                        .HasForeignKey("SiteId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Domain.Entities.CentralStudiesBranch.StudyStartOrder", "StartOrder")
                         .WithOne("Project")
                         .HasForeignKey("Domain.Entities.CentralStudiesBranch.StudyProject", "StartOrderId")
@@ -4430,6 +4442,8 @@ namespace Infrastructure.Migrations
                     b.Navigation("CreatedBy");
 
                     b.Navigation("Manager");
+
+                    b.Navigation("Site");
 
                     b.Navigation("StartOrder");
                 });

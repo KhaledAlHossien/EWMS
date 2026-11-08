@@ -1,5 +1,7 @@
 using Application.DTOs.Request;
+using Application.DTOs.Response;
 using Application.Interfaces;
+using Application.Features.CentralStudies;
 using Domain.Entities.CentralStudiesBranch;
 using Infrastructure.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
@@ -10,9 +12,10 @@ namespace Infrastructure.Persistence.Repositories
     {
         public StudyProjectService(DataContext context) : base(context) { }
 
-        private IQueryable<StudyProject> WithDetails(bool withTeam)
-        {
-            var query = _context.StudyProjects
+        // الفريق (الأقسام والأعضاء) لا يُحمَّل هنا: تحميل كيان User كاملاً لكل عضو يجعل الاستعلام المقسَّم يرتّب صفوفاً عريضة
+        // ويطلب ذاكرة تنفيذ كبيرة (8.9 MB لـ 200 عضو) — انظر GetTeamAsync
+        private IQueryable<StudyProject> WithDetails() =>
+            _context.StudyProjects
                 .Include(p => p.StartOrder).ThenInclude(o => o.Response).ThenInclude(r => r.Assignment)
                 .Include(p => p.Branch)
                 .Include(p => p.Manager)
@@ -22,19 +25,52 @@ namespace Infrastructure.Persistence.Repositories
                 .Include(p => p.Stages).ThenInclude(s => s.ClosedBy)
                 .Include(p => p.Stages).ThenInclude(s => s.Tasks)
                 .AsSplitQuery();
-            if (withTeam)
-                query = query
-                    .Include(p => p.Departments).ThenInclude(d => d.Department)
-                    .Include(p => p.Departments).ThenInclude(d => d.AddedBy)
-                    .Include(p => p.Departments).ThenInclude(d => d.Members).ThenInclude(m => m.User)
-                    .Include(p => p.Departments).ThenInclude(d => d.Members).ThenInclude(m => m.AssignedBy);
-            return query;
+
+        public async Task<StudyProject?> GetByIdAsync(int id) =>
+            await WithDetails().FirstOrDefaultAsync(p => p.Id == id);
+
+        /// <summary>
+        /// الأقسام المشاركة وأعضاء فريقها كإسقاط مباشر إلى DTO: الاسم فقط من المستخدم (العضو ومن عيّنه ومن أضاف القسم)
+        /// بلا تحميل كيان User ولا تتبّع — الواجهة لا تحتاج غير الأسماء. استعلامان مسطَّحان بلا ORDER BY في SQL
+        /// (الترتيب والتجميع في الذاكرة): ترتيب صفوف عريضة (أسماء nvarchar(max)) هو ما كان يطلب ذاكرة تنفيذ كبيرة.
+        /// </summary>
+        public async Task<List<ProjectDepartmentDto>> GetTeamAsync(int projectId)
+        {
+            var departments = await _context.ProjectDepartments.AsNoTracking()
+                .Where(d => d.ProjectId == projectId)
+                .Select(d => new ProjectDepartmentDto
+                {
+                    Id = d.Id,
+                    DepartmentId = d.DepartmentId,
+                    DepartmentName = d.Department.Name,
+                    AddedByName = d.AddedBy.FullName,
+                    AddedAt = d.AddedAt
+                })
+                .ToListAsync();
+
+            var members = await _context.ProjectMembers.AsNoTracking()
+                .Where(m => m.ProjectDepartment.ProjectId == projectId)
+                .Select(m => new
+                {
+                    m.ProjectDepartmentId,
+                    Member = new ProjectMemberDto
+                    {
+                        UserId = m.UserId,
+                        FullName = m.User.FullName,
+                        RoleTitle = m.RoleTitle,
+                        AssignedByName = m.AssignedBy.FullName,
+                        AssignedAt = m.AssignedAt
+                    }
+                })
+                .ToListAsync();
+
+            var byDepartment = members.ToLookup(x => x.ProjectDepartmentId, x => x.Member);
+            foreach (var d in departments)
+                d.Members = byDepartment[d.Id].OrderBy(m => m.AssignedAt).ThenBy(m => m.UserId).ToList();
+            return departments.OrderBy(d => d.AddedAt).ThenBy(d => d.Id).ToList();
         }
 
-        public async Task<StudyProject?> GetByIdAsync(int id, bool withTeam = false) =>
-            await WithDetails(withTeam).FirstOrDefaultAsync(p => p.Id == id);
-
-        public async Task<(List<StudyProject> Items, int Total)> SearchAsync(
+        public async Task<(List<StudyProjectDto> Items, int Total)> SearchAsync(
             StudyDocumentFilterDto filter, int? branchLimit, int page, int pageSize)
         {
             var query = _context.StudyProjects.AsQueryable();
@@ -52,8 +88,81 @@ namespace Infrastructure.Persistence.Repositories
             var total = await query.CountAsync();
             var ids = await query.OrderByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id)
                 .Skip((page - 1) * pageSize).Take(pageSize).Select(p => p.Id).ToListAsync();
-            var items = await WithDetails(false).Where(p => ids.Contains(p.Id)).AsNoTracking().ToListAsync();
-            return (items.OrderBy(p => ids.IndexOf(p.Id)).ToList(), total);
+            if (ids.Count == 0) return ([], total);
+
+            // ثلاثة استعلامات مسطّحة بلا ORDER BY (التجميع والترتيب في الذاكرة): المشاريع، مراحلها، وأرقام مهامها فقط
+            var projects = await _context.StudyProjects.AsNoTracking().Where(p => ids.Contains(p.Id))
+                .Select(p => new StudyProjectDto
+                {
+                    Id = p.Id,
+                    Code = p.Code,
+                    Name = p.Name,
+                    StartOrderId = p.StartOrderId,
+                    StartOrderNumber = p.StartOrder.OrderNumber,
+                    BranchId = p.BranchId,
+                    BranchName = p.Branch.Name,
+                    SiteId = p.SiteId,
+                    ManagerUserId = p.ManagerUserId,
+                    ManagerName = p.Manager.FullName,
+                    PlannedStartDate = p.PlannedStartDate,
+                    PlannedEndDate = p.PlannedEndDate,
+                    ActualStartDate = p.ActualStartDate,
+                    ActualEndDate = p.ActualEndDate,
+                    Status = (int)p.Status,
+                    CreatedByName = p.CreatedBy.FullName,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    RowVersion = p.RowVersion
+                })
+                .ToListAsync();
+
+            var stages = await _context.ProjectStages.AsNoTracking().Where(s => ids.Contains(s.ProjectId))
+                .Select(s => new ProjectStageDto
+                {
+                    Id = s.Id,
+                    ProjectId = s.ProjectId,
+                    StageTypeId = s.StageTypeId,
+                    StageTypeName = s.StageType.Name,
+                    LinkedDocument = (int)s.StageType.LinkedDocument,
+                    SortOrder = s.SortOrder,
+                    Weight = s.Weight,
+                    PlannedStartDate = s.PlannedStartDate,
+                    PlannedEndDate = s.PlannedEndDate,
+                    ActualStartDate = s.ActualStartDate,
+                    ActualEndDate = s.ActualEndDate,
+                    Status = (int)s.Status,
+                    ResponsibleDepartmentId = s.ResponsibleDepartmentId,
+                    ResponsibleDepartmentName = s.ResponsibleDepartment == null ? null : s.ResponsibleDepartment.Name,
+                    ClosedByName = s.ClosedBy == null ? null : s.ClosedBy.FullName,
+                    ClosedAt = s.ClosedAt,
+                    RowVersion = s.RowVersion
+                })
+                .ToListAsync();
+
+            var tasks = await _context.StageTasks.AsNoTracking().Where(t => ids.Contains(t.Stage.ProjectId))
+                .Select(t => new { t.StageId, t.Progress, t.Weight, t.Status })
+                .ToListAsync();
+            var tasksByStage = tasks.ToLookup(t => t.StageId);
+            var stagesByProject = stages.ToLookup(s => s.ProjectId);
+
+            // نسب التقدم بقاعدة StudyRules نفسها (المرحلة المغلقة = 100، والباقي متوسط موزون لمهامها)
+            foreach (var stage in stages)
+            {
+                var stageTasks = tasksByStage[stage.Id].ToList();
+                stage.TasksTotal = stageTasks.Count;
+                stage.TasksDone = stageTasks.Count(t => t.Status == StudyTaskStatus.Done);
+                stage.StatusName = StudyRules.Name((StudyStageStatus)stage.Status);
+                stage.Progress = (StudyStageStatus)stage.Status == StudyStageStatus.Closed
+                    ? 100
+                    : StudyRules.Weighted(stageTasks.Select(t => (t.Progress, t.Weight)));
+            }
+            foreach (var project in projects)
+            {
+                project.Stages = stagesByProject[project.Id].OrderBy(s => s.SortOrder).ThenBy(s => s.Id).ToList();
+                project.StatusName = StudyRules.Name((StudyProjectStatus)project.Status);
+                project.Progress = StudyRules.Weighted(project.Stages.Select(s => (s.Progress, s.Weight)));
+            }
+            return (projects.OrderBy(p => ids.IndexOf(p.Id)).ToList(), total);
         }
 
         public async Task<bool> ExistsForStartOrderAsync(int startOrderId) =>
@@ -205,11 +314,16 @@ namespace Infrastructure.Persistence.Repositories
                 .AsNoTracking().ToListAsync();
 
         // المهام بلا بدء مخطط في آخر مرحلتها
-        public async Task<List<StageTask>> GetProjectTasksAsync(int projectId) =>
-            await TasksWithDetails().Where(t => t.Stage.ProjectId == projectId)
+        public async Task<(List<StageTask> Items, int Total)> GetProjectTasksAsync(int projectId, int limit)
+        {
+            var total = await _context.StageTasks.CountAsync(t => t.Stage.ProjectId == projectId);
+            var items = await TasksWithDetails().Where(t => t.Stage.ProjectId == projectId)
                 .OrderBy(t => t.Stage.SortOrder).ThenBy(t => t.StageId)
                 .ThenBy(t => t.PlannedStartDate == null).ThenBy(t => t.PlannedStartDate).ThenBy(t => t.Id)
+                .Take(limit)
                 .AsNoTracking().ToListAsync();
+            return (items, total);
+        }
 
         public async Task<(List<StageTask> Items, int Total)> GetAssignedAsync(
             int userId, int? officeId, int? departmentId, bool openOnly, int page, int pageSize)

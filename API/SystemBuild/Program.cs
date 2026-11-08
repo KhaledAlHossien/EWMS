@@ -24,6 +24,7 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
+              .WithExposedHeaders("X-Total-Count", "X-Truncated")   // StudyTasks/ByProject
               .AllowCredentials();   // ← مهم لـ JWT
     });
 });

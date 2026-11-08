@@ -14,6 +14,13 @@ namespace Domain.Entities.CentralStudiesBranch
         public int BranchId { get; set; }
         public Branch Branch { get; set; } = null!;
 
+        /// <summary>
+        /// موقع المشروع في سجل المواقع المشترك — منسوخ من طلب الدراسة عند إنشاء المشروع (موقع الطلب لا يتغير بعد اعتماده)
+        /// ليقرأه مزوّد الخريطة بلا المرور بسلسلة الطلب ← التكليف ← الرد ← أمر البدء. قد يكون فارغاً (طلب بلا موقع).
+        /// </summary>
+        public int? SiteId { get; set; }
+        public Site? Site { get; set; }
+
         public int ManagerUserId { get; set; }
         public User Manager { get; set; } = null!;
 

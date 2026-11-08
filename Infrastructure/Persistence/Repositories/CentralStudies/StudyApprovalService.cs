@@ -113,11 +113,35 @@ namespace Infrastructure.Persistence.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<StudyActivityLog>> GetForRequestAsync(int requestId) =>
-            await _context.StudyActivityLogs.Where(l => l.RequestId == requestId)
-                .Include(l => l.User)
+        public async Task<(List<Application.DTOs.Response.StudyActivityLogDto> Items, int Total)> GetForRequestAsync(int requestId, int page, int pageSize)
+        {
+            var query = _context.StudyActivityLogs.AsNoTracking().Where(l => l.RequestId == requestId);
+            var total = await query.CountAsync();   // يخدمه الفهرس (RequestId, CreatedAt)
+            var rows = await query
                 .OrderByDescending(l => l.CreatedAt).ThenByDescending(l => l.Id)
-                .AsNoTracking().ToListAsync();
+                .Skip((page - 1) * pageSize).Take(pageSize)
+                .Select(l => new
+                {
+                    l.Id, l.EntityType, l.EntityId, l.Action, l.Title, l.Details, l.UserId,
+                    UserName = l.User.FullName, l.CreatedAt
+                })
+                .ToListAsync();
+            var items = rows.Select(r => new Application.DTOs.Response.StudyActivityLogDto
+            {
+                Id = r.Id,
+                EntityType = (int)r.EntityType,
+                EntityTypeName = Application.Features.CentralStudies.StudyRules.Name(r.EntityType),
+                EntityId = r.EntityId,
+                Action = (int)r.Action,
+                ActionName = Application.Features.CentralStudies.StudyRules.Name(r.Action),
+                Title = r.Title,
+                Details = r.Details,
+                UserId = r.UserId,
+                UserName = r.UserName,
+                CreatedAt = r.CreatedAt
+            }).ToList();
+            return (items, total);
+        }
     }
 
     public class StudyReferenceService : IStudyReferenceService

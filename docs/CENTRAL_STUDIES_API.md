@@ -139,8 +139,17 @@
 | GET | `ActivityLog/{id}` | ViewStudyActivityLog |
 
 - **مكاتب الأقسام المشاركة:** كل `departments[]` في التفاصيل يحمل `offices: [{ id, name }]` (مرتبة بالاسم، وقائمة فارغة لقسم بلا مكاتب). منها يُختار هدف «مكتب» في المهمة، بلا `ViewOffices`.
+- **`siteId`:** موقع المشروع في سجل المواقع، منسوخ من طلب الدراسة عند إنشاء المشروع (قد يكون فارغاً). منه تظهر المشاريع على خريطة الفرع (انظر «الخريطة» أدناه).
 - **تفاصيل المشروع:** تأتي من `Get/{id}` ومن ردود كل التعديلات (الأقسام والأعضاء…)، أما `GetAll` فلا يحمل الأقسام.
 - **`managerUserId`:** موظف نشط من فرع المشروع (من `StudyLookups/Employees`).
+
+### الخريطة
+
+مزوّد خريطة جديد `studies` (العنوان «الدراسات»، الوحدة «مشروع») يظهر تلقائياً في خريطة الفرع ونافذة «طبقات الفروع» (`MapLayers/Sources`)، ولا يحتاج تعديلاً في الواجهة:
+- **المصدر:** مشاريع الفرع التي لها `siteId`، مع عدد المشاريع في كل موقع (`count`). تتبع تفاصيل الموقع صلاحيات المشاريع.
+- **الطبقة التلقائية:** كل مشاريع الفرع **عدا الملغاة**. لا تظهر الملغاة إلا بطبقة تحدد حالتها صراحةً.
+- **الفلاتر:** `status` (حالة المشروع: جارٍ، معلّق، مكتمل، ملغى) و`workType` (إنشاء، صيانة وترميم، من الطلب). القيمتان من التعداد الثابت.
+- **ربط الطلب بموقع:** لا يظهر المشروع على الخريطة إلا إن اختير موقع في الطلب (`siteId` في `StudyRequests/Create|Update`). الموقع يُنسخ للمشروع عند إنشائه، وتغيير موقع الطلب بعد ذلك غير ممكن لأن الطلب المعتمد لا يُعدَّل.
 
 ### المراحل — `api/StudyStages`
 
@@ -168,6 +177,7 @@
 | PUT | `Update/{id}`، DELETE `Delete/{id}` | Edit/DeleteStudyTask |
 | PUT | `Progress/{id}` بالجسم `{ progress, status }` | UpdateStudyTaskProgress (المكلَّف فقط؛ انظر `canUpdateProgress`) |
 
+- **الحد الأعلى:** `ByProject` يعيد 2000 مهمة كحد أقصى (بترتيبه المعتاد). الرد قائمة كما هو، والترويستان `X-Total-Count` (العدد الكلي) و`X-Truncated` (`true` إن قُطع الرد) تكشفان ذلك لتنبّه المستخدم أو تضيّق بمرحلة (`ByStage`).
 - **`ByProject`:** له حدّ `StudyStages/ByProject` نفسه، وأعلام `canEdit` و`canUpdateProgress` نفسها في `ByStage`.
   - الترتيب بترتيب المرحلة (`sortOrder`)، ثم البدء المخطط (المهام بلا بدء مخطط في آخر مرحلتها)، ثم الرقم.
   - كل مهمة تحمل `stageId` و`stageName` و`projectId` و`projectCode`، والتواريخ المخططة والفعلية.
@@ -221,7 +231,10 @@
 
 ### سجل الدراسة
 
-`GET api/StudyActivityLogs/ByRequest/{requestId}` و`GET api/StudyProjects/ActivityLog/{id}` بصلاحية `ViewStudyActivityLog`. السجل مرتب الأحدث أولاً.
+`GET api/StudyActivityLogs/ByRequest/{requestId}?page&pageSize` و`GET api/StudyProjects/ActivityLog/{id}?page&pageSize` بصلاحية `ViewStudyActivityLog`. السجل مرتب الأحدث أولاً.
+
+- **الرد مرقَّم** (تغيير عن الشكل السابق، وكان قائمة): `PagedResultDto` = `{ items, totalCount, page, pageSize, totalPages }`. الافتراضي `pageSize=50` والأقصى 100. صفحة بعد الأخيرة تعيد `items` فارغة.
+- **الأحداث:** كل عنصر فيه `id`، `entityType`/`entityTypeName`، `action`/`actionName`، `title`، `details`، `userId`/`userName`، `createdAt` كما كان.
 
 ## الإشعارات (تصل عبر SignalR كالمعتاد)
 

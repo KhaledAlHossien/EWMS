@@ -111,9 +111,9 @@ namespace Application.Features.CentralStudies.Projects
 
         private static bool IsOpen(StudyProject p) => p.Status is StudyProjectStatus.Running or StudyProjectStatus.Suspended;
 
-        private async Task<StudyProject> LoadAsync(int id, Viewer viewer, bool withTeam = false)
+        private async Task<StudyProject> LoadAsync(int id, Viewer viewer)
         {
-            var entity = await _service.GetByIdAsync(id, withTeam) ?? throw new KeyNotFoundException("المشروع غير موجود");
+            var entity = await _service.GetByIdAsync(id) ?? throw new KeyNotFoundException("المشروع غير موجود");
             StudyRules.EnsureInScope(viewer, entity.BranchId);
             return entity;
         }
@@ -126,22 +126,32 @@ namespace Application.Features.CentralStudies.Projects
         private StudyProjectDto ToDto(StudyProject e, Viewer viewer)
         {
             var dto = _kit.Mapper.Map<StudyProjectDto>(e);
-            var inScope = StudyRules.InScope(viewer, e.BranchId);
-            dto.CanEdit = inScope && viewer.Has(StudyPermissions.EditProject) && IsOpen(e);
-            dto.CanDelete = inScope && viewer.Has("DeleteStudyProject") && e.Status == StudyProjectStatus.Running
-                            && e.Stages.All(s => s.Tasks.Count == 0);
-            dto.CanCancel = inScope && viewer.Has(StudyPermissions.CancelDocuments) && IsOpen(e);
-            dto.CanRequestCompletion = dto.CanEdit && e.Status == StudyProjectStatus.Running && e.Stages.Count > 0
-                                       && e.Stages.All(s => s.Status == StudyStageStatus.Closed);
-            foreach (var d in dto.Departments)
-                d.CanManageMembers = viewer.Has("AddStudyProjectMember") && StudyRules.InDepartment(viewer, d.DepartmentId) && IsOpen(e);
+            ApplyFlags(dto, viewer);
             return dto;
+        }
+
+        /// <summary>أعلام الأزرار من الـ DTO نفسه (حالة المشروع ومراحله وعدد مهامها) — قاعدة واحدة للتفاصيل والقائمة</summary>
+        private static void ApplyFlags(StudyProjectDto dto, Viewer viewer)
+        {
+            var status = (StudyProjectStatus)dto.Status;
+            var open = status is StudyProjectStatus.Running or StudyProjectStatus.Suspended;
+            var inScope = StudyRules.InScope(viewer, dto.BranchId);
+            dto.CanEdit = inScope && viewer.Has(StudyPermissions.EditProject) && open;
+            dto.CanDelete = inScope && viewer.Has("DeleteStudyProject") && status == StudyProjectStatus.Running
+                            && dto.Stages.All(s => s.TasksTotal == 0);
+            dto.CanCancel = inScope && viewer.Has(StudyPermissions.CancelDocuments) && open;
+            dto.CanRequestCompletion = dto.CanEdit && status == StudyProjectStatus.Running && dto.Stages.Count > 0
+                                       && dto.Stages.All(s => s.Status == (int)StudyStageStatus.Closed);
         }
 
         private async Task<StudyProjectDto> DetailAsync(int id, Viewer viewer)
         {
-            var entity = await LoadAsync(id, viewer, withTeam: true);
+            var entity = await LoadAsync(id, viewer);
             var dto = ToDto(entity, viewer);
+            // الفريق بإسقاط مباشر (بلا كيانات User) ثم أعلام إدارة أعضاء كل قسم
+            dto.Departments = await _service.GetTeamAsync(id);
+            foreach (var d in dto.Departments)
+                d.CanManageMembers = viewer.Has("AddStudyProjectMember") && StudyRules.InDepartment(viewer, d.DepartmentId) && IsOpen(entity);
             var requestId = entity.StartOrder.Response.Assignment.RequestId;
             // مكاتب كل قسم مشارك (هدف «مكتب» في المهمة) — بلا ViewOffices
             var offices = await _service.GetOfficesOfDepartmentsAsync(dto.Departments.Select(d => d.DepartmentId));
@@ -163,9 +173,10 @@ namespace Application.Features.CentralStudies.Projects
             var viewer = await _kit.ViewerAsync();
             var (page, size) = StudyRules.NormalizePaging(request.Filter.Page, request.Filter.PageSize);
             var (items, total) = await _service.SearchAsync(request.Filter, StudyRules.BranchLimit(viewer), page, size);
+            foreach (var item in items) ApplyFlags(item, viewer);
             return new PagedResultDto<StudyProjectDto>
             {
-                Items = items.Select(x => ToDto(x, viewer)).ToList(),
+                Items = items,
                 TotalCount = total,
                 Page = page,
                 PageSize = size
@@ -199,6 +210,7 @@ namespace Application.Features.CentralStudies.Projects
             {
                 StartOrderId = order.Id,
                 BranchId = studyRequest.BranchId,
+                SiteId = studyRequest.SiteId,   // يُنسخ من الطلب (للخريطة)
                 ManagerUserId = order.ProjectManagerUserId,
                 CreatedByUserId = viewer.Id,
                 Code = code,
