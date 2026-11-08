@@ -76,6 +76,8 @@ namespace Infrastructure.Persistence.Repositories
             var query = _context.StudyProjects.AsQueryable();
             if (branchLimit != null) query = query.Where(p => p.BranchId == branchLimit);
             if (filter.BranchId is int branchId) query = query.Where(p => p.BranchId == branchId);
+            // يخدمه الفهرس (BranchId, SiteId)؛ حدّ فرع المستخدم أعلاه يبقى مطبَّقاً فلا يرى أحد مشاريع موقع خارج فرعه
+            if (filter.SiteId is int siteId) query = query.Where(p => p.SiteId == siteId);
             if (filter.Status is int status) query = query.Where(p => (int)p.Status == status);
             if (filter.From is DateTime from) query = query.Where(p => p.PlannedStartDate >= from.Date);
             if (filter.To is DateTime to) query = query.Where(p => p.PlannedStartDate <= to.Date);
