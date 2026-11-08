@@ -35,6 +35,8 @@ namespace Application.Features.CentralStudies
     public static class StudyRules
     {
         public const int MaxPageSize = 100;
+        /// <summary>أقصى مهام تعيدها StudyTasks/ByProject (لمخطط Gantt) — يتجاوزها الرد مقطوعاً مع ترويسة X-Truncated</summary>
+        public const int MaxProjectTasks = 2000;
         public const string OutOfScope = "هذا السجل خارج حدود فرعك";
 
         public static (int Page, int PageSize) NormalizePaging(int page, int pageSize) =>

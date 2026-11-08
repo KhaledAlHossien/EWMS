@@ -204,10 +204,12 @@ namespace Infrastructure.Persistence.Data
 
                 e.HasOne(x => x.StartOrder).WithOne(o => o.Project).HasForeignKey<StudyProject>(x => x.StartOrderId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.Site).WithMany().HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.Manager).WithMany().HasForeignKey(x => x.ManagerUserId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
 
                 e.HasIndex(x => x.Code).IsUnique();
+                e.HasIndex(x => new { x.BranchId, x.SiteId });
                 e.HasIndex(x => new { x.BranchId, x.Status, x.CreatedAt });
             });
 

@@ -6,8 +6,8 @@ namespace Application.Interfaces
     public interface IStudyActivityLogService
     {
         Task AddAsync(StudyActivityLog log);
-        /// <summary>كل سجل الدراسة (الأحدث أولاً) مع المنفّذ</summary>
-        Task<List<StudyActivityLog>> GetForRequestAsync(int requestId);
+        /// <summary>صفحة من سجل الدراسة (الأحدث أولاً) مع اسم المنفّذ فقط — إسقاط مباشر بلا كيانات</summary>
+        Task<(List<Application.DTOs.Response.StudyActivityLogDto> Items, int Total)> GetForRequestAsync(int requestId, int page, int pageSize);
     }
 
     /// <summary>حراسة الحذف: هل يرتبط مستخدم/قسم/مكتب/فرع/موقع بسجلات فرع الدراسات (العلاقات Restrict)</summary>

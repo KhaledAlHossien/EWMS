@@ -88,8 +88,9 @@ namespace API.Controllers
         /// <summary>سجل الدراسة كاملاً (من الطلب حتى الآن)</summary>
         [HttpGet("ActivityLog/{id}")]
         [Authorize(Policy = "ViewStudyActivityLog")]
-        public async Task<ActionResult<List<StudyActivityLogDto>>> ActivityLog(int id)
-            => Ok(await _mediator.Send(new GetProjectActivityLogQuery(id)));
+        public async Task<ActionResult<PagedResultDto<StudyActivityLogDto>>> ActivityLog(int id,
+            [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+            => Ok(await _mediator.Send(new GetProjectActivityLogQuery(id, page, pageSize)));
     }
 
     /// <summary>مراحل المشاريع: متتالية، تغلقها إدارة المشاريع بالترتيب (CloseStudyStage)</summary>
@@ -159,7 +160,13 @@ namespace API.Controllers
         [HttpGet("ByProject/{projectId}")]
         [Authorize(Policy = "ViewStudyProjects")]
         public async Task<ActionResult<List<StageTaskDto>>> ByProject(int projectId)
-            => Ok(await _mediator.Send(new GetStudyProjectTasksQuery(projectId)));
+        {
+            var result = await _mediator.Send(new GetStudyProjectTasksQuery(projectId));
+            // الرد قائمة كما هو؛ العدد الكلي وما إن كان مقطوعاً (الحد 2000 مهمة) في الترويسة
+            Response.Headers["X-Total-Count"] = result.Total.ToString();
+            Response.Headers["X-Truncated"] = result.Truncated ? "true" : "false";
+            return Ok(result.Items);
+        }
 
         /// <summary>لمن يرى مشاريع فرعه، أو للمكلَّف بها</summary>
         [HttpGet("Get/{id}")]
@@ -209,7 +216,8 @@ namespace API.Controllers
 
         [HttpGet("ByRequest/{requestId}")]
         [Authorize(Policy = "ViewStudyActivityLog")]
-        public async Task<ActionResult<List<StudyActivityLogDto>>> ByRequest(int requestId)
-            => Ok(await _mediator.Send(new GetStudyActivityLogQuery(requestId)));
+        public async Task<ActionResult<PagedResultDto<StudyActivityLogDto>>> ByRequest(int requestId,
+            [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+            => Ok(await _mediator.Send(new GetStudyActivityLogQuery(requestId, page, pageSize)));
     }
 }
