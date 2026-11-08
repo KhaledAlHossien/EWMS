@@ -30,6 +30,8 @@ namespace Application.DTOs.Request
         public int? BranchId { get; set; }
         public DateTime? From { get; set; }
         public DateTime? To { get; set; }
+        /// <summary>المشاريع فقط: مشاريع موقع واحد من سجل المواقع (تتجاهله بقية المستندات)</summary>
+        public int? SiteId { get; set; }
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 20;
     }

@@ -129,6 +129,9 @@
 | الطريقة | المسار | الصلاحية |
 |---|---|---|
 | GET | `GetAll`، `Get/{id}` (الأقسام والأعضاء والمراحل ونسب التقدم والتواقيع) | ViewStudyProjects |
+
+- **`GetAll?siteId=`:** فلتر اختياري بموقع واحد من سجل المواقع (لعرض مشاريع الموقع عند النقر عليه في الخريطة). يتركّب مع بقية الفلاتر (الحالة، البحث، التاريخ) والترقيم كما هو، وحدّ فرع المستخدم باقٍ، فلا يرى أحد مشاريع موقع خارج فرعه. تتجاهله بقية المستندات.
+
 | POST | `Create` بالجسم `{ startOrderId, name, plannedStartDate, plannedEndDate, code? }` | CreateStudyProject |
 | PUT | `Update/{id}` (`status`: 1 جارٍ أو 2 معلّق، و`managerUserId`) | EditStudyProject |
 | DELETE | `Delete/{id}` (بلا مهام ولا مخططات ولا مرفقات) | DeleteStudyProject |
