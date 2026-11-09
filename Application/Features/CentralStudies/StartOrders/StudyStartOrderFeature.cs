@@ -122,6 +122,7 @@ namespace Application.Features.CentralStudies.StartOrders
             var dto = ToDto(entity, viewer);
             dto.Chain = await _kit.ChainAsync(entity.Response.Assignment.RequestId);
             dto.Approvals = await _kit.ApprovalsAsync(ApprovalOwner.Of(entity));
+            await _kit.AddWhoIsNextAsync(dto, StudyEntityType.StartOrder, entity.Id, ApprovalOwner.Of(entity));
             return dto;
         }
 

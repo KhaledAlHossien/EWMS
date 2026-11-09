@@ -30,7 +30,7 @@ namespace Application.Features.Offices.Queries.GetById
                 ?? throw new KeyNotFoundException("المكتب غير موجود");
 
             var viewer = await Viewer.CurrentAsync(_users, _permissions);
-            StructureScope.EnsureIncludes(viewer, office.Department?.BranchId, "لا يمكنك عرض مكتب خارج فرعك");
+            if (!StructureScope.IncludesOffice(viewer, office)) throw new UnauthorizedAccessException("لا يمكنك عرض مكتب خارج قسمك أو فرعك");
 
             return _mapper.Map<OfficeResponseDto>(office);
         }

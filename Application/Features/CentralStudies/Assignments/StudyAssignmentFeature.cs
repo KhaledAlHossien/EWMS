@@ -112,6 +112,7 @@ namespace Application.Features.CentralStudies.Assignments
             var dto = ToDto(entity, viewer);
             dto.Chain = await _kit.ChainAsync(entity.RequestId);
             dto.Approvals = await _kit.ApprovalsAsync(ApprovalOwner.Of(entity));
+            await _kit.AddWhoIsNextAsync(dto, StudyEntityType.Assignment, entity.Id, ApprovalOwner.Of(entity));
             return dto;
         }
 
