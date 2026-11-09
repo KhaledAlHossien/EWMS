@@ -186,6 +186,7 @@ namespace Application.Features.CentralStudies.Responses
             var dto = ToDto(entity, viewer);
             dto.Chain = await _kit.ChainAsync(entity.Assignment.RequestId);
             dto.Approvals = await _kit.ApprovalsAsync(ApprovalOwner.Of(entity));
+            await _kit.AddWhoIsNextAsync(dto, StudyEntityType.Response, entity.Id, ApprovalOwner.Of(entity));
             var rows = await _approvals.GetForOwnerAsync(StudyEntityType.Response, entity.Id);
             dto.CanEditPlanningPart = CanEditPlanning(viewer, entity, rows);
             dto.CanEdit = dto.CanEditFollowingPart || dto.CanEditPlanningPart;

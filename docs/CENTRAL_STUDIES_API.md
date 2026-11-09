@@ -86,6 +86,10 @@
 - **أجزاء الرد وأمر البدء** تُرسل كاملة في كل حفظ وتُستبدل:
   - في الرد (جزء القسم المتابع): `buildings` (سطر لكل نوع بناء، اثنان كحد أقصى، بالعدد والمساحة فقط) و`costItems`؛ ومعهما `siteArea` و`initialCost` حقلان واحدان للرد كله؛
   - في أمر البدء: `engineers` و`resources`.
+- **من يوقّع الآن ومن يصدر التالي (2026-11-09):** في `Get/{id}` للطلب والتكليف والرد وأمر البدء حقلان اختياريان (`null` = لا ينطبق):
+  - `nextSigners` (+ `nextSignersTotal`): والمستند بانتظار الاعتماد، حاملو صلاحية أول صفة لم توقّع ضمن حدّها.
+  - `nextIssuers` (+ `nextIssuersTotal`): والمستند معتمد ولم يصدر التالي، حاملو صلاحية إصداره (`CreateStudyAssignment` / `CreateStudyResponse` للقسم المتابع / `CreateStudyStartOrder` / `CreateStudyProject`).
+  - كل عنصر `{ id, fullName, departmentName, jobTitle }`، مرتب بالاسم ومقصوص عند 8 والباقي في `…Total`. **المدير العام لا يظهر أبداً** (يبقى مستلماً للإشعارات). **قائمة فارغة = لا أحد يملك الصلاحية** فاعرض تنبيهاً ليراجع مدير النظام الأدوار.
 - **الطلب:** تُرسل فيه `governorateCode` (SY01…SY14)، و`siteId` اختياري (من سجل المواقع)، و`branchId` لنظرة المؤسسة فقط.
 
 ### إشعار الرد بجزأيه — `api/StudyResponses`
@@ -147,6 +151,8 @@
 - **`managerUserId`:** موظف نشط من فرع المشروع (من `StudyLookups/Employees`).
 
 ### الخريطة
+
+**صفحة الموقع (2026-11-09):** تُفتح بالنقر على موقع في خريطة الفرع، وتعرض كل بطاقة بصلاحيتها: بطاقة «مشاريع الدراسات» لمن يملك `ViewStudyProjects` (من `StudyProjects/GetAll?siteId=`)، والتركيبات لصلاحيات الأجهزة، ومعلومات الفروع لسجلات الطبقات. لذلك أُضيفت `ViewStudyProjects` و`CreateStudyRequest` و`EditStudyRequest` إلى سياسة `AnySiteView` (قراءة `Sites/Get` و`Sites/GetAll`): الأولى لفتح الصفحة، والأخريان لقائمة اختيار الموقع في نموذج الطلب.
 
 مزوّد خريطة جديد `studies` (العنوان «الدراسات»، الوحدة «مشروع») يظهر تلقائياً في خريطة الفرع ونافذة «طبقات الفروع» (`MapLayers/Sources`)، ولا يحتاج تعديلاً في الواجهة:
 - **المصدر:** مشاريع الفرع التي لها `siteId`، مع عدد المشاريع في كل موقع (`count`). تتبع تفاصيل الموقع صلاحيات المشاريع.
@@ -246,6 +252,7 @@
 | `StudyApprovalRequested` | مستند بانتظار توقيع صفتك | `StudyAssignment` / `StudyResponse` / `StudyStartOrder` / `StudyDesignApproval` / `StudyProject` |
 | `StudyDocumentDecided` | اعتُمد مستندك نهائياً أو رُفض | كما سبق |
 | `StudyTaskAssigned` | مهمة جديدة لك أو لمكتبك أو قسمك | `StudyTask` |
+| `StudyNextStepReady` (29) | اعتُمد مستند وأنت ممن يصدر التالي: الطلب ← التكليف (`CreateStudyAssignment` في الفرع)، التكليف ← الرد (`CreateStudyResponse` في القسم المتابع)، الرد ← أمر البدء (`CreateStudyStartOrder`، لا شيء إن كانت التوصية «غير متاح»)، أمر البدء ← المشروع (`CreateStudyProject`). يُستثنى من اعتمد الآن، ولا يُستثنى المدير العام | المستند المعتمد: `StudyRequest` / `StudyAssignment` / `StudyResponse` / `StudyStartOrder` (يفتح صفحته وفيها زر «+ إصدار التالي») |
 
 ## الصلاحيات في الواجهة
 

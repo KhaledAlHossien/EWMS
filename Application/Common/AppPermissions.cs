@@ -309,8 +309,11 @@
             // رفع مرفق أو حذفه: بصلاحية تعديل صاحبه (يفحصها الـ handler)
             ["AnyStudyAttachmentWrite"] = ["EditStudyRequest", "EditStudyAssignment", "EditStudyResponse", "EditStudyStartOrder",
                 "EditStudyProject", "EditStudyDrawing", "EditArchitecturalVersion"],
+            // سجل المواقع المشترك (قراءة بيانات الموقع الأساسية): مديرو المواقع، موثّقو الأجهزة، مسجّلو طبقات الفرع،
+            // ومن يرى مشاريع الدراسات (صفحة الموقع تعرض له بطاقة المشاريع وحدها) أو يكتب طلب دراسة (يختار الموقع). تفاصيل كل بطاقة تبقى بصلاحياتها.
             ["AnySiteView"] = ["ViewSites", "CreateSite", "EditSite", "DeleteSite", "ViewDevices", "ViewBranchDevices", "CreateDevice", "EditDevice", "DeleteDevice",
-                "ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry"],
+                "ViewDepartmentMapEntries", "ViewBranchMapEntries", "CreateMapEntry", "EditMapEntry", "DeleteMapEntry",
+                "ViewStudyProjects", "CreateStudyRequest", "EditStudyRequest"],
         };
 
         // أسماء الصلاحيات التي تفحصها الـ handlers نفسها (لتحديد السجلات) — ثوابت بدل نصوص متكررة

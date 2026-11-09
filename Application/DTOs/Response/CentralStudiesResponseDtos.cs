@@ -115,6 +115,27 @@ namespace Application.DTOs.Response
         /// <summary>في التفاصيل فقط</summary>
         public StudyChainDto? Chain { get; set; }
         public List<StudyApprovalDto> Approvals { get; set; } = [];
+
+        /// <summary>
+        /// من يوقّع الآن (المستند بانتظار الاعتماد): حاملو صلاحية الصفة التالية ضمن حدّها، بلا المدير العام. null = لا ينطبق.
+        /// قائمة فارغة = لا أحد يملك الصلاحية فيتعثّر المستند.
+        /// </summary>
+        public List<StudyPersonDto>? NextSigners { get; set; }
+        /// <summary>العدد الكلي لمن يوقّع الآن (القائمة مقصوصة)</summary>
+        public int NextSignersTotal { get; set; }
+        /// <summary>من يصدر المستند التالي (المستند معتمد ولم يصدر التالي): حاملو صلاحية إصداره ضمن حدّها، بلا المدير العام. null = لا ينطبق</summary>
+        public List<StudyPersonDto>? NextIssuers { get; set; }
+        /// <summary>العدد الكلي لمن يصدر التالي (القائمة مقصوصة)</summary>
+        public int NextIssuersTotal { get; set; }
+    }
+
+    /// <summary>موظف في «من يوقّع أو يصدر التالي»: الاسم والقسم والمسمّى فقط</summary>
+    public class StudyPersonDto
+    {
+        public int Id { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string? DepartmentName { get; set; }
+        public string? JobTitle { get; set; }
     }
 
     public class StudyRequestDto : StudyDocumentDtoBase

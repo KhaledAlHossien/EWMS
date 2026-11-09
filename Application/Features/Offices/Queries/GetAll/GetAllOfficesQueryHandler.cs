@@ -27,9 +27,8 @@ namespace Application.Features.Offices.Queries.GetAll
             CancellationToken cancellationToken)
         {
             var viewer = await Viewer.CurrentAsync(_users, _permissions);
-            var branch = StructureScope.BranchOf(viewer);
-            var offices = (await _officeService.GetAllAsync())
-                .Where(o => branch == null || o.Department?.BranchId == branch).ToList();
+            // فرع المستخدم، ثم قسمه إن كان له قسم (رئيس الفرع بلا قسم يرى مكاتب فرعه كلها)
+            var offices = (await _officeService.GetAllAsync()).Where(o => StructureScope.IncludesOffice(viewer, o)).ToList();
             return _mapper.Map<List<OfficeResponseDto>>(offices);
         }
     }

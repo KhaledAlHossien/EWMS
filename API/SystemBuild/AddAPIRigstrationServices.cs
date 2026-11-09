@@ -1,5 +1,7 @@
 using API.Authorization;
 using API.Hubs;
+using API.Middlewares;
+using Microsoft.AspNetCore.Mvc;
 using Application;
 using Application.Common;
 using Application.Interfaces;
@@ -15,7 +17,22 @@ namespace API.SystemBuild
             this IServiceCollection services,
             IConfiguration configuration)
         {
-            services.AddControllers();
+            // أخطاء ربط الطلب (JSON خاطئ النوع، حقل ناقص…) تعود بالشكل الموحّد نفسه وبعربية دائماً بدل نص إطار العمل بالإنجليزية
+            services.AddControllers().ConfigureApiBehaviorOptions(options =>
+                options.InvalidModelStateResponseFactory = context =>
+                {
+                    var errors = context.ModelState
+                        .Where(entry => entry.Value?.Errors.Count > 0)
+                        .SelectMany(entry => entry.Value!.Errors.Select(error => new
+                        {
+                            property = entry.Key,
+                            message = ApiErrorText.Translate(entry.Key, string.IsNullOrEmpty(error.ErrorMessage) ? error.Exception?.Message ?? string.Empty : error.ErrorMessage)
+                        }))
+                        .GroupBy(error => error.message).Select(group => group.First()).ToList();
+                    // «البيانات المرسلة ناقصة» نتيجة جانبية لخطأ حقل آخر فلا تُعرض معه
+                    if (errors.Count > 1) errors.RemoveAll(error => error.message == "البيانات المرسلة ناقصة");
+                    return new BadRequestObjectResult(new { statusCode = 400, message = "خطأ في البيانات المدخلة", errors });
+                });
 
             // الإشعارات اللحظية (SignalR)
             services.AddSignalR();

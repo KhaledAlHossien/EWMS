@@ -140,8 +140,11 @@ namespace Application.Features.CentralStudies.Approvals
             if (final is bool done)
             {
                 if (done)
+                {
                     await _kit.LogAsync(owner.RequestId, owner.Type, owner.Id, StudyLogAction.Approved,
                         $"اعتُمد {StudyRules.Name(owner.Type)} {owner.Number} نهائياً");
+                    await _kit.NotifyNextStepAsync(owner.Type, owner.Id);   // لمن يصدر المستند التالي
+                }
                 await _kit.NotifyDecisionAsync(owner, done, row.Note);
             }
             else

@@ -117,6 +117,7 @@ namespace Application.Features.CentralStudies.Requests
             var entity = await LoadAsync(id, viewer);
             var dto = ToDto(entity, viewer);
             dto.Chain = await _kit.ChainAsync(entity.Id);
+            await _kit.AddWhoIsNextAsync(dto, StudyEntityType.Request, entity.Id);
             return dto;
         }
 
@@ -229,6 +230,7 @@ namespace Application.Features.CentralStudies.Requests
             await _service.UpdateAsync(entity);
             await _kit.LogAsync(entity.Id, StudyEntityType.Request, entity.Id, StudyLogAction.Approved,
                 $"سُجّل الطلب {entity.RequestNumber} نهائياً");
+            await _kit.NotifyNextStepAsync(StudyEntityType.Request, entity.Id);   // لمن يصدر التكليف
             return await DetailAsync(entity.Id, viewer);
         }
 

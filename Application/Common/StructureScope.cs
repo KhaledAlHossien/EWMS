@@ -11,6 +11,17 @@ public static class StructureScope
     public static int? BranchOf(Viewer viewer) =>
         viewer.IsOrganizationWide ? null : viewer.User.BranchId ?? 0;
 
+    /// <summary>
+    /// حدّ المكاتب (ViewOffices) بالقسم: من له قسم يرى مكاتب قسمه فقط (قرار المستخدم 2026-11-09)، ومن لا قسم له (رئيس الفرع) يرى مكاتب فرعه،
+    /// ومن يتصفح المؤسسة يرى كل المكاتب. null = بلا حد قسم. يطابق نطاق إدارة المكاتب في OfficeRules.
+    /// </summary>
+    public static int? DepartmentOf(Viewer viewer) =>
+        viewer.IsOrganizationWide || viewer.User.DepartmentId is not > 0 ? null : viewer.User.DepartmentId;
+
+    /// <summary>المكتب ضمن ما يراه المستخدم: فرعه، ثم قسمه إن كان له قسم</summary>
+    public static bool IncludesOffice(Viewer viewer, Domain.Entities.Office office) =>
+        Includes(viewer, office.Department?.BranchId) && (DepartmentOf(viewer) is not int department || office.DepartmentId == department);
+
     public static bool Includes(Viewer viewer, int? branchId)
     {
         var limit = BranchOf(viewer);

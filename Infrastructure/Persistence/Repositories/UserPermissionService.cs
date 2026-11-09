@@ -38,6 +38,7 @@ namespace Infrastructure.Persistence.Repositories
         {
             var query = _context.Users
                 .Include(u => u.Role)
+                .Include(u => u.Department)   // اسم القسم لمن يعرض «من يوقّع أو يصدر التالي» (إضافة بلا أثر على بقية المستعملين)
                 .Where(u => u.IsActive && _context.RolePermissions
                     .Any(rp => rp.RoleId == u.RoleId && rp.Permission.Name == permission));
 
