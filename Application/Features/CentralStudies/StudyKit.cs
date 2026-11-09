@@ -148,20 +148,31 @@ namespace Application.Features.CentralStudies
 
         private static string RelatedType(StudyEntityType type) => "Study" + type;
 
-        /// <summary>لحاملي صلاحية أول صفة لم توقّع بعد، ضمن حدّها (الفرع أو القسم المعني)</summary>
-        public async Task NotifyNextSignersAsync(ApprovalOwner owner)
+        // ─────────── من يوقّع الآن ومن يصدر التالي: مصدر واحد للإشعار وللعرض في المستند ───────────
+
+        /// <summary>أول صفة لم توقّع بعد ومن يملك صلاحيتها ضمن حدّها (الفرع أو القسم المعني)، بلا من وقّع هذا المستند</summary>
+        private async Task<(StudyApproval? Row, List<User> Holders)> NextSignerHoldersAsync(ApprovalOwner owner)
         {
             var rows = await _approvals.GetForOwnerAsync(owner.Type, owner.Id);
             var next = rows.Where(r => r.Decision == StudyDecision.Pending).OrderBy(r => r.SortOrder).FirstOrDefault();
-            if (next == null) return;
+            if (next == null) return (null, []);
 
             var permission = StudyRules.SignPermission(next.SignerRole);
-            var recipients = StudyRules.IsDepartmentRole(next.SignerRole)
+            var holders = StudyRules.IsDepartmentRole(next.SignerRole)
                 ? (owner.RoleDepartmentId is int dept ? await _permissions.GetUsersWithPermissionAsync(permission, departmentId: dept) : [])
                 : await _permissions.GetUsersWithPermissionAsync(permission, branchId: owner.BranchId);
             var signed = rows.Where(r => r.SignerUserId != null).Select(r => r.SignerUserId!.Value).ToHashSet();
+            return (next, holders.Where(u => !signed.Contains(u.Id)).ToList());
+        }
+
+        /// <summary>لحاملي صلاحية أول صفة لم توقّع بعد، ضمن حدّها (الفرع أو القسم المعني)</summary>
+        public async Task NotifyNextSignersAsync(ApprovalOwner owner)
+        {
+            var (next, recipients) = await NextSignerHoldersAsync(owner);
+            if (next == null) return;
+
             var now = DateTime.Now;
-            var notes = recipients.Where(u => !signed.Contains(u.Id)).Select(u => new Notification
+            var notes = recipients.Select(u => new Notification
             {
                 UserId = u.Id,
                 Title = "مستند دراسات بانتظار توقيعك",
@@ -172,6 +183,119 @@ namespace Application.Features.CentralStudies
                 CreatedAt = now
             }).ToList();
             if (notes.Count > 0) await _notifications.AddRangeAsync(notes);
+        }
+
+        /// <summary>المستند التالي بعد مستند معتمد: صلاحية من يصدره وحدّه، وبيانات الطلب لنص الإشعار</summary>
+        private sealed record NextStepTarget(string Permission, string NextName, int BranchId, int? DepartmentId, StudyRequest Request, string Number);
+
+        private async Task<NextStepTarget?> NextStepOfAsync(StudyEntityType approvedType, int docId)
+        {
+            switch (approvedType)
+            {
+                case StudyEntityType.Request:
+                    var request = await _requests.GetByIdAsync(docId) ?? throw new KeyNotFoundException("الطلب غير موجود");
+                    return new("CreateStudyAssignment", "التكليف الداخلي", request.BranchId, null, request, request.RequestNumber);
+                case StudyEntityType.Assignment:
+                    var assignment = await _assignments.GetByIdAsync(docId) ?? throw new KeyNotFoundException("التكليف غير موجود");
+                    return new("CreateStudyResponse", "إشعار الرد", assignment.Request.BranchId, assignment.FollowingDepartmentId,
+                        assignment.Request, assignment.AssignmentNumber);
+                case StudyEntityType.Response:
+                    var response = await _responses.GetByIdAsync(docId) ?? throw new KeyNotFoundException("الرد غير موجود");
+                    if (response.Recommendation == StudyRecommendation.NotAvailable) return null;   // لا أمر بدء بعده
+                    return new("CreateStudyStartOrder", "أمر البدء", response.Assignment.Request.BranchId, null,
+                        response.Assignment.Request, response.ResponseNumber);
+                case StudyEntityType.StartOrder:
+                    var order = await _startOrders.GetByIdAsync(docId) ?? throw new KeyNotFoundException("أمر البدء غير موجود");
+                    return new("CreateStudyProject", "مشروع الدراسة", order.Response.Assignment.Request.BranchId, null,
+                        order.Response.Assignment.Request, order.OrderNumber);
+                default:
+                    return null;
+            }
+        }
+
+        private async Task<List<User>> IssuersOfAsync(NextStepTarget t) =>
+            t.DepartmentId is int dept
+                ? await _permissions.GetUsersWithPermissionAsync(t.Permission, departmentId: dept)
+                : await _permissions.GetUsersWithPermissionAsync(t.Permission, branchId: t.BranchId);
+
+        /// <summary>
+        /// اعتُمد مستند: لأصحاب صلاحية إصدار المستند التالي، لأنه يُصدَر ولا يُوقَّع فلا يصل إليهم إشعار التواقيع.
+        /// الطلب ← التكليف (حامل CreateStudyAssignment في الفرع)، التكليف ← الرد (حامل CreateStudyResponse في القسم المتابع)،
+        /// الرد ← أمر البدء (CreateStudyStartOrder في الفرع، إلا بتوصية «غير متاح»)، أمر البدء ← المشروع (CreateStudyProject في الفرع).
+        /// يُستثنى من اعتمد أو سجّل الآن، ولا يُستثنى المدير العام (قرار المستخدم 2026-11-09). غير ذلك (CDA، المشروع) لا شيء.
+        /// </summary>
+        public async Task NotifyNextStepAsync(StudyEntityType approvedType, int docId)
+        {
+            var target = await NextStepOfAsync(approvedType, docId);
+            if (target == null) return;
+
+            var viewer = await ViewerAsync();
+            var recipients = await IssuersOfAsync(target);
+            var now = DateTime.Now;
+            var message = $"{StudyRules.Name(approvedType)} {target.Number} — {target.Request.MainBeneficiary}"
+                          + (target.Request.Urgency == StudyUrgency.Urgent ? " (مستعجل)" : "");
+            var notes = recipients.Where(u => u.Id != viewer.Id).Select(u => u.Id).Distinct().Select(id => new Notification
+            {
+                UserId = id,
+                Title = $"دراسة بانتظار إصدار {target.NextName}",
+                Message = message,
+                Type = NotificationType.StudyNextStepReady,
+                RelatedEntityType = RelatedType(approvedType),
+                RelatedEntityId = docId,
+                CreatedAt = now
+            }).ToList();
+            if (notes.Count > 0) await _notifications.AddRangeAsync(notes);
+        }
+
+        /// <summary>أقصى عدد أسماء يُعرض في «من يوقّع أو يصدر التالي» (الباقي يُذكر عدداً)</summary>
+        private const int MaxShownPeople = 8;
+
+        /// <summary>
+        /// للعرض: الأسماء بلا المدير العام أبداً (قرار المستخدم 2026-11-09 — يبقى مستلماً للإشعارات لا في هذه القائمة)،
+        /// مرتبة بالاسم ومقصوصة، مع العدد الكلي.
+        /// </summary>
+        private static (List<StudyPersonDto> Shown, int Total) ShownPeople(IEnumerable<User> holders)
+        {
+            var people = holders.Where(u => !OrganizationRole.IsSystemAdmin(u)).GroupBy(u => u.Id).Select(g => g.First())
+                .OrderBy(u => u.FullName).ToList();
+            var shown = people.Take(MaxShownPeople).Select(u => new StudyPersonDto
+            {
+                Id = u.Id, FullName = u.FullName, DepartmentName = u.Department?.Name, JobTitle = u.Role?.Name
+            }).ToList();
+            return (shown, people.Count);
+        }
+
+        /// <summary>المستند التالي لم يصدر بعد (أو أُلغي) بحسب سلسلة الدراسة</summary>
+        private static bool NextMissing(StudyEntityType type, StudyChainDto? c)
+        {
+            if (c == null) return false;
+            var cancelled = (int)StudyDocumentStatus.Cancelled;
+            return type switch
+            {
+                StudyEntityType.Request => c.AssignmentId == null || c.AssignmentStatus == cancelled,
+                StudyEntityType.Assignment => c.ResponseId == null || c.ResponseStatus == cancelled,
+                StudyEntityType.Response => c.StartOrderId == null || c.StartOrderStatus == cancelled,
+                StudyEntityType.StartOrder => c.ProjectId == null || c.ProjectStatus == (int)StudyProjectStatus.Cancelled,
+                _ => false
+            };
+        }
+
+        /// <summary>
+        /// يملأ في تفاصيل المستند من يوقّعه الآن (بانتظار الاعتماد) أو من يصدر المستند التالي (معتمد ولم يصدر)،
+        /// ليعرف المنشئ إلى من اتجه المستند ومن يتأخر عنده. owner = سطور التوقيع (لا طلب لها).
+        /// </summary>
+        public async Task AddWhoIsNextAsync(StudyDocumentDtoBase dto, StudyEntityType type, int docId, ApprovalOwner? owner = null)
+        {
+            if (dto.Status == (int)StudyDocumentStatus.PendingApproval && owner != null)
+            {
+                var (next, holders) = await NextSignerHoldersAsync(owner);
+                if (next != null) (dto.NextSigners, dto.NextSignersTotal) = ShownPeople(holders);
+            }
+            else if (dto.Status == (int)StudyDocumentStatus.Approved && NextMissing(type, dto.Chain))
+            {
+                var target = await NextStepOfAsync(type, docId);
+                if (target != null) (dto.NextIssuers, dto.NextIssuersTotal) = ShownPeople(await IssuersOfAsync(target));
+            }
         }
 
         /// <summary>للمنشئ: اعتُمد مستنده نهائياً أو رُفض</summary>

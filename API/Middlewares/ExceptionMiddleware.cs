@@ -86,12 +86,13 @@ namespace API.Middlewares
                 var response = new
                 {
                     statusCode,
+                    // الرسالة للمستخدم عربية دائماً: نص الاستثناء التقني (إنجليزي) لا يُعرض، ويبقى في السجل وفي detail في التطوير فقط
                     message = statusCode == (int)HttpStatusCode.RequestEntityTooLarge
                         ? "الملف أكبر من الحد المسموح على الخادم"
-                        : isServerError && !_env.IsDevelopment()
+                        : isServerError
                         ? "حدث خطأ في الخادم، يرجى المحاولة لاحقاً"
-                        : ex.Message,
-                    detail = isServerError && _env.IsDevelopment() ? ex.StackTrace : null
+                        : ApiErrorText.ArabicOrGeneric(ex.Message),
+                    detail = isServerError && _env.IsDevelopment() ? ex.Message + Environment.NewLine + ex.StackTrace : null
                 };
 
                 await context.Response.WriteAsync(
