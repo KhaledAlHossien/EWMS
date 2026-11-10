@@ -1,5 +1,5 @@
 using Application.DTOs.Response;
-using Application.Features.CentralStudies.Print;
+using Application.Features.CentralStudies.Print.Queries.GetPrint;
 using Domain.Entities.CentralStudiesBranch;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;

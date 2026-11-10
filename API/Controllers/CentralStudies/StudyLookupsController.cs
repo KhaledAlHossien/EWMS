@@ -1,5 +1,15 @@
 using Application.DTOs.Request;
 using Application.DTOs.Response;
+using Application.Features.CentralStudies.Lookups.Catalogs.Commands.Create;
+using Application.Features.CentralStudies.Lookups.Catalogs.Commands.Delete;
+using Application.Features.CentralStudies.Lookups.Catalogs.Commands.Update;
+using Application.Features.CentralStudies.Lookups.Catalogs.Queries.GetAll;
+using Application.Features.CentralStudies.Lookups.Employees.Queries.GetEmployees;
+using Application.Features.CentralStudies.Lookups.Enums.Queries.GetEnums;
+using Application.Features.CentralStudies.Lookups.StageTypes.Commands.Create;
+using Application.Features.CentralStudies.Lookups.StageTypes.Commands.Delete;
+using Application.Features.CentralStudies.Lookups.StageTypes.Commands.Update;
+using Application.Features.CentralStudies.Lookups.StageTypes.Queries.GetAll;
 using Application.Features.CentralStudies.Lookups;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
