@@ -260,7 +260,6 @@ namespace Application.DTOs.Request
         public string DrawingNumber { get; set; } = string.Empty;
         public DateTime DrawingDate { get; set; }
         public string? Description { get; set; }
-        public int? OfficeId { get; set; }
         /// <summary>عند الإنشاء ولنظرة المؤسسة فقط: القسم المُصدِر (غيرهم يصدر المخطط باسم قسمه)</summary>
         public int? DepartmentId { get; set; }
         /// <summary>لغير المعماري: نسخة معمارية معتمدة من المشروع نفسه</summary>

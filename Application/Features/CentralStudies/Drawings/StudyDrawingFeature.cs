@@ -199,11 +199,15 @@ namespace Application.Features.CentralStudies.Drawings
                 throw new InvalidOperationException("يُبنى المخطط على نسخة معمارية معتمدة فقط");
         }
 
-        private async Task EnsureOfficeAsync(int? officeId, int departmentId)
+        /// <summary>
+        /// مكتب المُنشئ إن كان تابعاً للقسم المُصدِر، وإلا null (رئيس قسم بلا مكتب، أو منشئ من قسم آخر) — بلا رفض.
+        /// يُملأ عند الإنشاء فقط ولا يُقرأ من الطلب ولا يمسّه التعديل. توثيقي: لا أثر له على الصلاحيات أو المراجعة أو الاعتماد.
+        /// </summary>
+        private async Task<int?> CreatorOfficeAsync(Viewer viewer, int departmentId)
         {
-            if (officeId is not int id) return;
-            var office = await _offices.GetByIdAsync(id) ?? throw new KeyNotFoundException("المكتب غير موجود");
-            if (office.DepartmentId != departmentId) throw new InvalidOperationException("المكتب ليس من القسم المُصدِر");
+            if (viewer.User.OfficeId is not int officeId) return null;
+            var office = await _offices.GetByIdAsync(officeId);
+            return office?.DepartmentId == departmentId ? officeId : null;
         }
 
         // ════════════════════ المخططات ════════════════════
@@ -234,7 +238,6 @@ namespace Application.Features.CentralStudies.Drawings
                 throw new InvalidOperationException("القسم المُصدِر غير مشارك في المشروع");
             var kind = (DrawingKind)request.Dto.Kind;
             await EnsureBasisAsync(kind, request.Dto.BasedOnVersionId, project.Id);
-            await EnsureOfficeAsync(request.Dto.OfficeId, departmentId);
             var number = request.Dto.DrawingNumber.Trim();
             if (await _service.DrawingNumberExistsAsync(project.Id, number))
                 throw new InvalidOperationException("رقم المخطط مستخدم في المشروع");
@@ -242,7 +245,7 @@ namespace Application.Features.CentralStudies.Drawings
             var drawing = ProjectDrawing.Create(kind);
             drawing.ProjectId = project.Id;
             drawing.DepartmentId = departmentId;
-            drawing.OfficeId = request.Dto.OfficeId;
+            drawing.OfficeId = await CreatorOfficeAsync(viewer, departmentId);
             drawing.PreparedByUserId = viewer.Id;
             drawing.BasedOnVersionId = request.Dto.BasedOnVersionId;
             drawing.Name = request.Dto.Name.Trim();
@@ -266,7 +269,6 @@ namespace Application.Features.CentralStudies.Drawings
             EnsureOwnDepartment(viewer, drawing);
             if (drawing.Status == DrawingStatus.Approved) throw new InvalidOperationException("المخطط معتمد — لا يُعدَّل");
             await EnsureBasisAsync(drawing.Kind, request.Dto.BasedOnVersionId, drawing.ProjectId);
-            await EnsureOfficeAsync(request.Dto.OfficeId, drawing.DepartmentId);
             var number = request.Dto.DrawingNumber.Trim();
             if (await _service.DrawingNumberExistsAsync(drawing.ProjectId, number, drawing.Id))
                 throw new InvalidOperationException("رقم المخطط مستخدم في المشروع");
@@ -275,7 +277,6 @@ namespace Application.Features.CentralStudies.Drawings
             drawing.DrawingNumber = number;
             drawing.DrawingDate = request.Dto.DrawingDate.Date;
             drawing.Description = StudyRequestHandler.Clean(request.Dto.Description);
-            drawing.OfficeId = request.Dto.OfficeId;
             drawing.BasedOnVersionId = request.Dto.BasedOnVersionId;
             // حالة المعماري تتبع نسخه واعتماداتها؛ غيره يرسله المعدّ للمراجعة
             if (drawing.Kind != DrawingKind.Architectural && request.Dto.Status is int status)
