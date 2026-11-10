@@ -27,7 +27,7 @@ namespace Application.Features.CentralStudies.Tasks.Commands.Update
             StudyRules.EnsureCanManageStageTasks(viewer, task.Stage);
             StudyStageSupport.EnsureOpen(task.Stage.Project);
             StudyStageSupport.EnsureStageOpen(task.Stage);
-            await _support.ValidateTargetAsync(request.Dto, task.Stage.ProjectId);
+            await _support.ValidateTargetAsync(request.Dto, task.Stage, viewer);
 
             var oldTarget = (task.TargetType, task.DepartmentId, task.OfficeId, task.AssigneeUserId);
             task.Title = request.Dto.Title.Trim();

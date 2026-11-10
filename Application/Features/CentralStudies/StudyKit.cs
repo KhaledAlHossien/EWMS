@@ -49,7 +49,7 @@ namespace Application.Features.CentralStudies
     /// <summary>صاحب مرفق: حدوده وصلاحيتا العرض والتعديل عليه</summary>
     public sealed record AttachmentOwner(
         StudyEntityType Type, int Id, int RequestId, int BranchId,
-        string ViewPermission, string EditPermission, bool Closed, int? EditDepartmentId);
+        string ViewPermission, string EditPermission, bool Closed, int? EditDepartmentId, int? ProjectManagerUserId = null);
 
     /// <summary>
     /// أدوات مشتركة لمعالجات فرع الدراسات (خدمة لكل طلب HTTP): المستخدم الحالي وصلاحياته، سجل الدراسة،
@@ -380,7 +380,7 @@ namespace Application.Features.CentralStudies
                 {
                     var p = await _projects.GetByIdAsync(id) ?? throw new KeyNotFoundException(missing);
                     return new(type, id, p.StartOrder.Response.Assignment.RequestId, p.BranchId, StudyPermissions.ViewProjects, StudyPermissions.EditProject,
-                        p.Status == StudyProjectStatus.Cancelled, null);
+                        p.Status == StudyProjectStatus.Cancelled, null, p.ManagerUserId);
                 }
                 case StudyEntityType.Drawing:
                 {

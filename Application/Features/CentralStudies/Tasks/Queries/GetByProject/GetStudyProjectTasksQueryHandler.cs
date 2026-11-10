@@ -17,12 +17,13 @@ namespace Application.Features.CentralStudies.Tasks.Queries.GetByProject
             _support = support;
         }
 
-        /// <summary>حدّ المشروع نفسه في StudyStages/ByProject، والأعلام نفسها في ByStage</summary>
+        /// <summary>حدّ الرؤية نفسه في StudyStages/ByProject (والعدد الكلي للمرئي منها فقط)، والأعلام نفسها في ByStage</summary>
         public async Task<StudyProjectTasksResult> Handle(GetStudyProjectTasksQuery request, CancellationToken ct)
         {
             var viewer = await _kit.ViewerAsync();
-            await _support.LoadProjectAsync(request.ProjectId, viewer);
-            var (items, total) = await _service.GetProjectTasksAsync(request.ProjectId, StudyRules.MaxProjectTasks);
+            var project = await _support.LoadProjectAsync(request.ProjectId, viewer);
+            var scope = ProjectScope.For(viewer, project);
+            var (items, total) = await _service.GetProjectTasksAsync(request.ProjectId, StudyRules.MaxProjectTasks, scope.TaskFilter());
             return new StudyProjectTasksResult(items.Select(t => _support.TaskDto(t, viewer)).ToList(), total);
         }
     }

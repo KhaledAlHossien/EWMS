@@ -22,7 +22,8 @@ namespace Application.Features.CentralStudies.ActivityLogs.Queries.GetByProject
             var viewer = await _kit.ViewerAsync();
             var project = await _projects.GetByIdAsync(request.ProjectId) ?? throw new KeyNotFoundException("المشروع غير موجود");
             StudyRules.EnsureInScope(viewer, project.BranchId);
-            return await _support.PageAsync(project.StartOrder.Response.Assignment.RequestId, request.Page, request.PageSize);
+            return await _support.PageAsync(project.StartOrder.Response.Assignment.RequestId, request.Page, request.PageSize,
+                project.Id, ProjectScope.For(viewer, project));
         }
     }
 }

@@ -10,11 +10,13 @@ namespace Application.Features.CentralStudies.Projects
     public class StudyProjectSupport
     {
         private readonly IStudyProjectService _service;
+        private readonly IStudyStageService _stages;
         private readonly StudyKit _kit;
 
-        public StudyProjectSupport(IStudyProjectService service, StudyKit kit)
+        public StudyProjectSupport(IStudyProjectService service, IStudyStageService stages, StudyKit kit)
         {
             _service = service;
+            _stages = stages;
             _kit = kit;
         }
 
@@ -22,6 +24,7 @@ namespace Application.Features.CentralStudies.Projects
         {
             var dto = _kit.Mapper.Map<StudyProjectDto>(e);
             ApplyFlags(dto, viewer);
+            ProjectScope.For(viewer, e).Stamp(dto);
             return dto;
         }
 
@@ -67,12 +70,34 @@ namespace Application.Features.CentralStudies.Projects
             return entity;
         }
 
+        /// <summary>
+        /// حدّ الرؤية على قائمة مشاريع (2026-11-10): العلمان CanViewFull/ViewLevel، ولغير الكامل تُخفى المراحل خارج حدّه
+        /// (مراحل قسمه، وكل مرحلة فيها مهمة يراها). الأعلام تُحسب قبلاً من كل المراحل، والنسبة الكلية من كل المراحل كما هي.
+        /// </summary>
+        public async Task ApplyScopeAsync(IReadOnlyList<StudyProjectDto> dtos, Viewer viewer)
+        {
+            var restricted = new List<(StudyProjectDto Dto, ProjectScope Scope)>();
+            foreach (var dto in dtos)
+            {
+                var scope = ProjectScope.For(viewer, dto.ManagerUserId);
+                scope.Stamp(dto);
+                if (!scope.IsFull) restricted.Add((dto, scope));
+            }
+            if (restricted.Count == 0) return;
+            var withTasks = await _stages.GetStageIdsWithTasksAsync(restricted.Select(r => r.Dto.Id), restricted[0].Scope.TaskFilter()!);
+            foreach (var (dto, scope) in restricted)
+                dto.Stages = dto.Stages.Where(s => scope.CanSeeStage(s.ResponsibleDepartmentId, s.Id, withTasks)).ToList();
+        }
+
         public async Task<StudyProjectDto> DetailAsync(int id, Viewer viewer)
         {
             var entity = await LoadAsync(id, viewer);
             var dto = ToDto(entity, viewer);
-            // الفريق بإسقاط مباشر (بلا كيانات User) ثم أعلام إدارة أعضاء كل قسم
-            dto.Departments = await _service.GetTeamAsync(id);
+            var scope = ProjectScope.For(viewer, entity);
+            await ApplyScopeAsync([dto], viewer);
+            // الفريق بإسقاط مباشر (بلا كيانات User) ثم أعلام إدارة أعضاء كل قسم؛ ولغير الكامل صف قسمه بأعضاء حدّه فقط
+            var teamLimit = scope.TeamLimit();
+            dto.Departments = scope.IsFull ? await _service.GetTeamAsync(id) : teamLimit == null ? [] : await _service.GetTeamAsync(id, teamLimit);
             foreach (var d in dto.Departments)
                 d.CanManageMembers = viewer.Has("AddStudyProjectMember") && StudyRules.InDepartment(viewer, d.DepartmentId) && IsOpen(entity);
             var requestId = entity.StartOrder.Response.Assignment.RequestId;
@@ -85,6 +110,8 @@ namespace Application.Features.CentralStudies.Projects
             // طلب إنجاز معلّق (سطر لم يُقرَّر بعد ولم يُرفض الطلب)
             if (dto.Approvals.Any(a => a.Decision == (int)StudyDecision.Pending) && dto.Approvals.All(a => a.Decision != (int)StudyDecision.Rejected))
                 dto.CanRequestCompletion = false;
+            // تواقيع الإنجاز لمن وقّع سطراً منها أو يملك صلاحية توقيع سطر منها (أو الرؤية الكاملة)
+            if (!scope.CanSeeApprovals(viewer, dto.Approvals)) dto.Approvals = [];
             return dto;
         }
 
