@@ -113,9 +113,27 @@ namespace Infrastructure.Persistence.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<(List<Application.DTOs.Response.StudyActivityLogDto> Items, int Total)> GetForRequestAsync(int requestId, int page, int pageSize)
+        public async Task<(List<Application.DTOs.Response.StudyActivityLogDto> Items, int Total)> GetForRequestAsync(
+            int requestId, int page, int pageSize, int? projectId = null,
+            System.Linq.Expressions.Expression<Func<StageTask, bool>>? visibleTasks = null)
         {
             var query = _context.StudyActivityLogs.AsNoTracking().Where(l => l.RequestId == requestId);
+            if (visibleTasks != null && projectId is int project)
+            {
+                // سجل بحدّ الرؤية: تُخفى أحداث المشروع والمراحل والأقسام المشاركة والفريق، وتبقى مهام يراها فقط؛
+                // ومرفقات المشروع تُخفى (الموجود منها بالمالك، والمحذوف بخاتمة عنوان السجل «… مشروع»). الوثائق والمخططات كما هي
+                var visibleTaskIds = _context.StageTasks.Where(t => t.Stage.ProjectId == project).Where(visibleTasks).Select(t => t.Id);
+                var projectAttachmentIds = _context.StudyAttachments.Where(a => a.ProjectId != null).Select(a => a.Id);
+                var existingAttachmentIds = _context.StudyAttachments.Select(a => a.Id);
+                var projectName = Application.Features.CentralStudies.StudyRules.Name(StudyEntityType.Project);
+                query = query.Where(l =>
+                    l.EntityType != StudyEntityType.Project && l.EntityType != StudyEntityType.Stage
+                    && l.EntityType != StudyEntityType.ProjectDepartment && l.EntityType != StudyEntityType.ProjectMember
+                    && (l.EntityType != StudyEntityType.Task || visibleTaskIds.Contains(l.EntityId))
+                    && (l.EntityType != StudyEntityType.Attachment
+                        || !(projectAttachmentIds.Contains(l.EntityId)
+                             || (!existingAttachmentIds.Contains(l.EntityId) && l.Title.EndsWith(projectName)))));
+            }
             var total = await query.CountAsync();   // يخدمه الفهرس (RequestId, CreatedAt)
             var rows = await query
                 .OrderByDescending(l => l.CreatedAt).ThenByDescending(l => l.Id)

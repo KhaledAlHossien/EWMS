@@ -37,7 +37,8 @@ namespace Application.Features.CentralStudies.Stages.Commands.Reorder
             for (var i = 0; i < ordered.Count; i++) ordered[i].SortOrder = i + 1;
             await _service.SaveAsync();
             await _support.LogAsync(project.Id, StudyEntityType.Project, project.Id, StudyLogAction.Edited, $"أعاد ترتيب مراحل المشروع {project.Code}");
-            return (await _service.GetStagesAsync(project.Id)).Select(s => _support.StageDto(s, project, viewer)).ToList();
+            var visible = await _support.VisibleStagesAsync(project, await _service.GetStagesAsync(project.Id), viewer);
+            return visible.Select(s => _support.StageDto(s, project, viewer)).ToList();
         }
     }
 }

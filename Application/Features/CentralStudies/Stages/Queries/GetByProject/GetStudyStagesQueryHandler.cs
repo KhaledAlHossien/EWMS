@@ -21,7 +21,8 @@ namespace Application.Features.CentralStudies.Stages.Queries.GetByProject
         {
             var viewer = await _kit.ViewerAsync();
             var project = await _support.LoadProjectAsync(request.ProjectId, viewer);
-            return (await _service.GetStagesAsync(request.ProjectId)).Select(s => _support.StageDto(s, project, viewer)).ToList();
+            var stages = await _support.VisibleStagesAsync(project, await _service.GetStagesAsync(request.ProjectId), viewer);
+            return stages.Select(s => _support.StageDto(s, project, viewer)).ToList();
         }
     }
 }

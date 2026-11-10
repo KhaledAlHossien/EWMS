@@ -26,6 +26,9 @@ namespace Application.Features.CentralStudies
         public const string ViewActivityLog = "ViewStudyActivityLog";
         public const string EditResponsePlanning = "EditStudyResponsePlanning";
         public const string PrintDocuments = "PrintStudyDocuments";
+        public const string ViewFullProject = "ViewFullStudyProject";
+        public const string ViewDepartmentTasks = "ViewDepartmentStudyTasks";
+        public const string ViewOfficeTasks = "ViewOfficeStudyTasks";
     }
 
     /// <summary>

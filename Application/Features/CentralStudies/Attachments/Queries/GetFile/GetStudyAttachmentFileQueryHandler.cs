@@ -23,7 +23,8 @@ namespace Application.Features.CentralStudies.Attachments.Queries.GetFile
             var viewer = await _kit.ViewerAsync();
             var attachment = await _service.GetByIdAsync(request.Id) ?? throw new KeyNotFoundException("المرفق غير موجود");
             var owner = await _kit.ResolveOwnerAsync(StudyAttachmentSupport.OwnerTypeOf(attachment), StudyAttachmentSupport.OwnerIdOf(attachment));
-            if (!StudyAttachmentSupport.CanView(viewer, owner)) throw new UnauthorizedAccessException("لا تملك صلاحية عرض هذا المرفق");
+            if (!StudyAttachmentSupport.CanView(viewer, owner) || !StudyAttachmentSupport.CanSeeAttachment(viewer, owner, attachment))
+                throw new UnauthorizedAccessException("لا تملك صلاحية عرض هذا المرفق");
             var stream = _files.OpenRead(attachment.StorageKey);
             return new StudyAttachmentContentDto(attachment.FileName, attachment.ContentType, stream, MapFileRules.IsPreviewable(attachment.ContentType));
         }
