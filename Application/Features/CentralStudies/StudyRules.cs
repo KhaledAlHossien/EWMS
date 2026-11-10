@@ -76,6 +76,19 @@ namespace Application.Features.CentralStudies
         public static bool InDepartment(Viewer viewer, int? departmentId) =>
             viewer.IsSuperAdmin || (departmentId != null && viewer.User.DepartmentId == departmentId);
 
+        /// <summary>
+        /// مهام المرحلة (إنشاء/تعديل/حذف) يديرها القسم المسؤول عن المرحلة فقط؛ مدير النظام مستثنى.
+        /// مرحلة بلا قسم مسؤول (مراحل الوثائق) لا يديرها غيره. تحديث الإنجاز لا يتأثر (يحدّثه من كُلِّف).
+        /// </summary>
+        public static bool CanManageStageTasks(Viewer viewer, int? responsibleDepartmentId) =>
+            InDepartment(viewer, responsibleDepartmentId);
+
+        public static void EnsureCanManageStageTasks(Viewer viewer, ProjectStage stage)
+        {
+            if (!CanManageStageTasks(viewer, stage.ResponsibleDepartmentId))
+                throw new UnauthorizedAccessException("مهام هذه المرحلة يديرها القسم المسؤول عنها");
+        }
+
         // ════════════════════ حالات المستند ════════════════════
 
         /// <summary>يُعدَّل المستند وهو مسودة أو بعد رفضه (التعديل يعيده مسودة)</summary>

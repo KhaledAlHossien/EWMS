@@ -344,6 +344,8 @@ namespace Application.DTOs.Response
         public DateTime? ClosedAt { get; set; }
         public int TasksTotal { get; set; }
         public int TasksDone { get; set; }
+        /// <summary>يضيف المستخدم مهمة في هذه المرحلة: القسم المسؤول عنها فقط (أو مدير النظام)، والمشروع والمرحلة مفتوحان</summary>
+        public bool CanAddTask { get; set; }
         public byte[] RowVersion { get; set; } = [];
     }
 

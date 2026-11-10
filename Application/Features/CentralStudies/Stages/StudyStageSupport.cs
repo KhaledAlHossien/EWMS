@@ -68,16 +68,28 @@ namespace Application.Features.CentralStudies.Stages
             t.AssigneeUserId = t.TargetType == StudyTaskTarget.User ? dto.AssigneeUserId : null;
         }
 
-        public async Task<ProjectStageDto> StageDetailAsync(int id) =>
-            StageDto(await _service.GetStageAsync(id) ?? throw new KeyNotFoundException("المرحلة غير موجودة"));
+        public async Task<ProjectStageDto> StageDetailAsync(int id, Viewer viewer)
+        {
+            var stage = await _service.GetStageAsync(id) ?? throw new KeyNotFoundException("المرحلة غير موجودة");
+            return StageDto(stage, stage.Project, viewer);
+        }
 
-        public ProjectStageDto StageDto(ProjectStage stage) => _kit.Mapper.Map<ProjectStageDto>(stage);
+        public ProjectStageDto StageDto(ProjectStage stage, StudyProject project, Viewer viewer)
+        {
+            var dto = _kit.Mapper.Map<ProjectStageDto>(stage);
+            dto.CanAddTask = IsOpen(project) && stage.Status != StudyStageStatus.Closed
+                && StudyRules.InScope(viewer, project.BranchId) && viewer.Has("CreateStudyTask")
+                && StudyRules.CanManageStageTasks(viewer, stage.ResponsibleDepartmentId);
+            return dto;
+        }
 
         public StageTaskDto TaskDto(StageTask t, Viewer viewer)
         {
             var dto = _kit.Mapper.Map<StageTaskDto>(t);
             var editable = IsOpen(t.Stage.Project) && t.Stage.Status != StudyStageStatus.Closed;
-            dto.CanEdit = editable && viewer.Has("EditStudyTask") && StudyRules.InScope(viewer, t.Stage.Project.BranchId);
+            // التعديل والحذف لمدير النظام أو القسم المسؤول عن المرحلة فقط (تحديث الإنجاز بقاعدته الخاصة أدناه)
+            dto.CanEdit = editable && viewer.Has("EditStudyTask") && StudyRules.InScope(viewer, t.Stage.Project.BranchId)
+                && StudyRules.CanManageStageTasks(viewer, t.Stage.ResponsibleDepartmentId);
             dto.CanUpdateProgress = editable && viewer.Has(StudyPermissions.UpdateTaskProgress) && IsTarget(viewer, t);
             return dto;
         }

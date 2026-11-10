@@ -23,6 +23,7 @@ namespace Application.Features.CentralStudies.Tasks.Commands.Delete
             var viewer = await _kit.ViewerAsync();
             var task = await _service.GetTaskAsync(request.Id) ?? throw new KeyNotFoundException("المهمة غير موجودة");
             StudyRules.EnsureInScope(viewer, task.Stage.Project.BranchId);
+            StudyRules.EnsureCanManageStageTasks(viewer, task.Stage);
             StudyStageSupport.EnsureOpen(task.Stage.Project);
             StudyStageSupport.EnsureStageOpen(task.Stage);
             var (projectId, title) = (task.Stage.ProjectId, task.Title);
