@@ -35,6 +35,17 @@ namespace Application
             // فرع الدراسات المركزية: أدوات المعالجات المشتركة (المستخدم الحالي، السجل، التواقيع، الإشعارات)
             services.AddScoped<Application.Features.CentralStudies.StudyKit>();
 
+            // فرع الدراسات: الدوال المشتركة بين عمليات كل ميزة (تحميل السجل، التحويل إلى DTO…) — صنف «Support» لكل ميزة
+            services.AddScoped<Application.Features.CentralStudies.ActivityLogs.StudyActivityLogSupport>();
+            services.AddScoped<Application.Features.CentralStudies.Assignments.StudyAssignmentSupport>();
+            services.AddScoped<Application.Features.CentralStudies.Attachments.StudyAttachmentSupport>();
+            services.AddScoped<Application.Features.CentralStudies.Drawings.StudyDrawingSupport>();
+            services.AddScoped<Application.Features.CentralStudies.Projects.StudyProjectSupport>();
+            services.AddScoped<Application.Features.CentralStudies.Requests.StudyRequestSupport>();
+            services.AddScoped<Application.Features.CentralStudies.Responses.StudyResponseSupport>();
+            services.AddScoped<Application.Features.CentralStudies.Stages.StudyStageSupport>();
+            services.AddScoped<Application.Features.CentralStudies.StartOrders.StudyStartOrderSupport>();
+
             return services;
         }
     }

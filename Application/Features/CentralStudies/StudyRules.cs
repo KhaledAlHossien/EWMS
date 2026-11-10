@@ -39,6 +39,9 @@ namespace Application.Features.CentralStudies
         public const int MaxProjectTasks = 2000;
         public const string OutOfScope = "هذا السجل خارج حدود فرعك";
 
+        /// <summary>نص اختياري: الفراغ يصبح null والباقي يُقصّ (كان ضمن معالج الطلبات)</summary>
+        public static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
         public static (int Page, int PageSize) NormalizePaging(int page, int pageSize) =>
             (Math.Max(1, page), Math.Clamp(pageSize <= 0 ? 20 : pageSize, 1, MaxPageSize));
 
