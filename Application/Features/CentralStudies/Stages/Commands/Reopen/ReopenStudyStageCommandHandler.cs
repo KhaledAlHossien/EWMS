@@ -36,7 +36,7 @@ namespace Application.Features.CentralStudies.Stages.Commands.Reopen
             stage.ActualEndDate = null;
             await _service.UpdateStageAsync(stage);
             await _support.LogAsync(stage.ProjectId, StudyEntityType.Stage, stage.Id, StudyLogAction.Reopened, $"أعاد فتح المرحلة «{stage.StageType.Name}»");
-            return await _support.StageDetailAsync(stage.Id);
+            return await _support.StageDetailAsync(stage.Id, viewer);
         }
     }
 }
