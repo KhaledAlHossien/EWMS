@@ -37,7 +37,7 @@ namespace Application.Features.CentralStudies.Stages.Commands.Close
             stage.ActualEndDate ??= DateTime.Today;
             await _service.UpdateStageAsync(stage);
             await _support.LogAsync(stage.ProjectId, StudyEntityType.Stage, stage.Id, StudyLogAction.Closed, $"أغلق المرحلة «{stage.StageType.Name}»");
-            return await _support.StageDetailAsync(stage.Id);
+            return await _support.StageDetailAsync(stage.Id, viewer);
         }
     }
 }

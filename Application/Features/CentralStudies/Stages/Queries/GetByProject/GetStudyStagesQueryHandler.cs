@@ -20,8 +20,8 @@ namespace Application.Features.CentralStudies.Stages.Queries.GetByProject
         public async Task<List<ProjectStageDto>> Handle(GetStudyStagesQuery request, CancellationToken ct)
         {
             var viewer = await _kit.ViewerAsync();
-            await _support.LoadProjectAsync(request.ProjectId, viewer);
-            return (await _service.GetStagesAsync(request.ProjectId)).Select(_support.StageDto).ToList();
+            var project = await _support.LoadProjectAsync(request.ProjectId, viewer);
+            return (await _service.GetStagesAsync(request.ProjectId)).Select(s => _support.StageDto(s, project, viewer)).ToList();
         }
     }
 }

@@ -49,6 +49,10 @@ namespace Application.Features.CentralStudies.Projects
             dto.CanCancel = inScope && viewer.Has(StudyPermissions.CancelDocuments) && open;
             dto.CanRequestCompletion = dto.CanEdit && status == StudyProjectStatus.Running && dto.Stages.Count > 0
                                        && dto.Stages.All(s => s.Status == (int)StudyStageStatus.Closed);
+            // إضافة مهمة: القسم المسؤول عن المرحلة فقط — القاعدة نفسها في StudyStageSupport.StageDto
+            foreach (var s in dto.Stages)
+                s.CanAddTask = open && inScope && s.Status != (int)StudyStageStatus.Closed && viewer.Has("CreateStudyTask")
+                               && StudyRules.CanManageStageTasks(viewer, s.ResponsibleDepartmentId);
         }
 
         public async Task<int> RequestIdOf(StudyProject p) =>

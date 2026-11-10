@@ -40,7 +40,7 @@ namespace Application.Features.CentralStudies.Stages.Commands.Update
             }
             await _service.UpdateStageAsync(stage, request.Dto.RowVersion);
             await _support.LogAsync(stage.ProjectId, StudyEntityType.Stage, stage.Id, StudyLogAction.Edited, $"عدّل المرحلة «{stage.StageType.Name}»");
-            return await _support.StageDetailAsync(stage.Id);
+            return await _support.StageDetailAsync(stage.Id, viewer);
         }
     }
 }

@@ -45,7 +45,7 @@ namespace Application.Features.CentralStudies.Stages.Commands.Create
             };
             await _service.AddStageAsync(stage);
             await _support.LogAsync(project.Id, StudyEntityType.Stage, stage.Id, StudyLogAction.Created, $"أضاف المرحلة «{type.Name}» إلى المشروع {project.Code}");
-            return await _support.StageDetailAsync(stage.Id);
+            return await _support.StageDetailAsync(stage.Id, viewer);
         }
     }
 }

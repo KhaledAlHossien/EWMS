@@ -23,6 +23,7 @@ namespace Application.Features.CentralStudies.Tasks.Commands.Create
         {
             var viewer = await _kit.ViewerAsync();
             var stage = await _support.LoadStageAsync(request.Dto.StageId, viewer);
+            StudyRules.EnsureCanManageStageTasks(viewer, stage);
             StudyStageSupport.EnsureOpen(stage.Project);
             StudyStageSupport.EnsureStageOpen(stage);
             await _support.ValidateTargetAsync(request.Dto, stage.ProjectId);
