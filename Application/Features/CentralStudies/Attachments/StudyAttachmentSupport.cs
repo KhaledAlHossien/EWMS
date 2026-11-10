@@ -36,6 +36,16 @@ namespace Application.Features.CentralStudies.Attachments
         public static bool CanView(Viewer viewer, AttachmentOwner owner) =>
             viewer.Has(owner.ViewPermission) && StudyRules.InScope(viewer, owner.BranchId);
 
+        /// <summary>
+        /// مرفقات المشروع نفسه (2026-11-10) لصاحب الرؤية الكاملة ومن رفعها؛ ومرفقات الوثائق والمخططات والنسخ كما هي
+        /// (مدير المشروع يرى مرفقات مشروعه كلها)
+        /// </summary>
+        public static bool CanSeeAttachment(Viewer viewer, AttachmentOwner owner, StudyAttachment attachment) =>
+            owner.Type != StudyEntityType.Project
+            || (owner.ProjectManagerUserId is int manager
+                ? ProjectScope.For(viewer, manager).CanSeeProjectAttachment(attachment.UploadedByUserId)
+                : attachment.UploadedByUserId == viewer.Id);
+
         public static int OwnerIdOf(StudyAttachment a) =>
             a.RequestId ?? a.AssignmentId ?? a.ResponseId ?? a.StartOrderId ?? a.ProjectId ?? a.DrawingId ?? a.VersionId ?? 0;
     }

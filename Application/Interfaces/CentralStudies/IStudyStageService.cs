@@ -14,10 +14,16 @@ namespace Application.Interfaces
 
         /// <summary>مع المرحلة ومشروعها والجهة المسندة إليها ومن أسندها</summary>
         Task<StageTask?> GetTaskAsync(int id);
-        Task<List<StageTask>> GetTasksAsync(int stageId);
+        /// <param name="filter">شرط المهام المرئية (ProjectScope.TaskFilter)؛ null = كلها</param>
+        Task<List<StageTask>> GetTasksAsync(int stageId, System.Linq.Expressions.Expression<Func<StageTask, bool>>? filter = null);
         /// <summary>كل مهام المشروع في استعلام واحد (لمخطط Gantt): بترتيب المرحلة ثم البدء المخطط</summary>
         /// <summary>أول <paramref name="limit"/> مهمة مع عددها الكلي</summary>
-        Task<(List<StageTask> Items, int Total)> GetProjectTasksAsync(int projectId, int limit);
+        /// <param name="filter">شرط المهام المرئية؛ والعدد الكلي للمرئي منها فقط</param>
+        Task<(List<StageTask> Items, int Total)> GetProjectTasksAsync(int projectId, int limit, System.Linq.Expressions.Expression<Func<StageTask, bool>>? filter = null);
+        /// <summary>المراحل (من المشاريع المعطاة) التي فيها مهمة واحدة على الأقل تحقق الشرط</summary>
+        Task<HashSet<int>> GetStageIdsWithTasksAsync(IEnumerable<int> projectIds, System.Linq.Expressions.Expression<Func<StageTask, bool>> filter);
+        /// <summary>هل المهمة تحقق شرط الرؤية (استعلام واحد بالشرط نفسه فلا نسختان من القاعدة)</summary>
+        Task<bool> IsTaskVisibleAsync(int taskId, System.Linq.Expressions.Expression<Func<StageTask, bool>> filter);
         /// <summary>المهام المسندة إلى المستخدم أو مكتبه أو قسمه (للقسم: موظفو القسم المباشرون بلا مكتب)</summary>
         Task<(List<StageTask> Items, int Total)> GetAssignedAsync(int userId, int? officeId, int? departmentId, bool openOnly, int page, int pageSize);
         Task AddTaskAsync(StageTask task);

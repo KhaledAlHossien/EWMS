@@ -26,7 +26,7 @@ namespace Application.Features.CentralStudies.Tasks.Commands.Create
             StudyRules.EnsureCanManageStageTasks(viewer, stage);
             StudyStageSupport.EnsureOpen(stage.Project);
             StudyStageSupport.EnsureStageOpen(stage);
-            await _support.ValidateTargetAsync(request.Dto, stage.ProjectId);
+            await _support.ValidateTargetAsync(request.Dto, stage, viewer);
 
             var task = new StageTask
             {

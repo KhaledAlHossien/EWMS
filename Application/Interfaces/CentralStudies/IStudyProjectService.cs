@@ -3,6 +3,9 @@ using Domain.Entities.CentralStudiesBranch;
 
 namespace Application.Interfaces
 {
+    /// <summary>حدّ الفريق الذي يراه المستخدم: صف قسمه، وأعضاء مكتبه فقط أو هو وحده (ProjectScope.TeamLimit)</summary>
+    public sealed record TeamLimit(int DepartmentId, int? OfficeId, int? OnlyUserId);
+
     /// <summary>المشاريع وأقسامها المشاركة وفريقها</summary>
     public interface IStudyProjectService
     {
@@ -12,7 +15,10 @@ namespace Application.Interfaces
         /// </summary>
         Task<StudyProject?> GetByIdAsync(int id);
         /// <summary>الأقسام المشاركة وأعضاؤها بأسمائهم فقط (إسقاط مباشر بلا تحميل المستخدمين)</summary>
-        Task<List<Application.DTOs.Response.ProjectDepartmentDto>> GetTeamAsync(int projectId);
+        /// <param name="limit">بلا حدّ = كل الأقسام وأعضائها؛ وإلا صف قسم المستخدم بأعضاء حدّه فقط</param>
+        Task<List<Application.DTOs.Response.ProjectDepartmentDto>> GetTeamAsync(int projectId, TeamLimit? limit = null);
+        /// <summary>مدير المشروع ورقمه لدراسة (طلب) — لحدّ سجل النشاط؛ null إن لم يُنشأ مشروع بعد</summary>
+        Task<(int Id, int ManagerUserId)?> GetBriefByRequestAsync(int requestId);
         /// <summary>
         /// بحث المشاريع كـ DTO جاهز (الأعلام يضعها المعالج): إسقاطات مسطّحة بالأعمدة المطلوبة فقط بلا تحميل كيانات User ولا المهام
         /// ولا ترتيب لصفوف عريضة في SQL — الاستعلام بـ Include كان يطلب نحو 11 MB ذاكرة تنفيذ حتى لصفحة من 3 مشاريع.
@@ -35,6 +41,8 @@ namespace Application.Interfaces
         /// <summary>مهام المشروع المسندة إلى القسم أو أحد مكاتبه</summary>
         Task<bool> HasTasksForDepartmentAsync(int projectId, int departmentId);
         Task<bool> IsMemberAsync(int projectId, int userId);
+        /// <summary>عضو في فريق المشروع وقسمه في حسابه هو القسم المعطى (لحصر إسناد مهام المرحلة بقسمها)</summary>
+        Task<bool> IsMemberOfDepartmentAsync(int projectId, int userId, int departmentId);
         /// <summary>للعضو مهام في المشروع (لا يُزال قبل نقلها)</summary>
         Task<bool> HasTasksForUserAsync(int projectId, int userId);
         /// <summary>مكاتب الأقسام المعطاة (لتفاصيل المشروع: هدف «مكتب» في المهمة)</summary>

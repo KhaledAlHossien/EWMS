@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Interfaces;
@@ -34,10 +35,11 @@ namespace Infrastructure.Persistence.Repositories
         /// بلا تحميل كيان User ولا تتبّع — الواجهة لا تحتاج غير الأسماء. استعلامان مسطَّحان بلا ORDER BY في SQL
         /// (الترتيب والتجميع في الذاكرة): ترتيب صفوف عريضة (أسماء nvarchar(max)) هو ما كان يطلب ذاكرة تنفيذ كبيرة.
         /// </summary>
-        public async Task<List<ProjectDepartmentDto>> GetTeamAsync(int projectId)
+        public async Task<List<ProjectDepartmentDto>> GetTeamAsync(int projectId, TeamLimit? limit = null)
         {
-            var departments = await _context.ProjectDepartments.AsNoTracking()
-                .Where(d => d.ProjectId == projectId)
+            var departmentsQuery = _context.ProjectDepartments.AsNoTracking().Where(d => d.ProjectId == projectId);
+            if (limit != null) departmentsQuery = departmentsQuery.Where(d => d.DepartmentId == limit.DepartmentId);
+            var departments = await departmentsQuery
                 .Select(d => new ProjectDepartmentDto
                 {
                     Id = d.Id,
@@ -48,8 +50,14 @@ namespace Infrastructure.Persistence.Repositories
                 })
                 .ToListAsync();
 
-            var members = await _context.ProjectMembers.AsNoTracking()
-                .Where(m => m.ProjectDepartment.ProjectId == projectId)
+            var membersQuery = _context.ProjectMembers.AsNoTracking().Where(m => m.ProjectDepartment.ProjectId == projectId);
+            if (limit != null)
+            {
+                membersQuery = membersQuery.Where(m => m.ProjectDepartment.DepartmentId == limit.DepartmentId);
+                if (limit.OnlyUserId is int onlyUser) membersQuery = membersQuery.Where(m => m.UserId == onlyUser);
+                else if (limit.OfficeId is int officeId) membersQuery = membersQuery.Where(m => m.User.OfficeId == officeId);
+            }
+            var members = await membersQuery
                 .Select(m => new
                 {
                     m.ProjectDepartmentId,
@@ -219,6 +227,18 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<bool> IsMemberAsync(int projectId, int userId) =>
             await _context.ProjectMembers.AnyAsync(m => m.ProjectDepartment.ProjectId == projectId && m.UserId == userId);
 
+        public async Task<bool> IsMemberOfDepartmentAsync(int projectId, int userId, int departmentId) =>
+            await _context.ProjectMembers.AnyAsync(m => m.ProjectDepartment.ProjectId == projectId && m.UserId == userId
+                && m.User.DepartmentId == departmentId);
+
+        public async Task<(int Id, int ManagerUserId)?> GetBriefByRequestAsync(int requestId)
+        {
+            var row = await _context.StudyProjects.AsNoTracking()
+                .Where(p => p.StartOrder.Response.Assignment.RequestId == requestId)
+                .Select(p => new { p.Id, p.ManagerUserId }).FirstOrDefaultAsync();
+            return row == null ? null : (row.Id, row.ManagerUserId);
+        }
+
         public async Task<bool> HasTasksForUserAsync(int projectId, int userId) =>
             await _context.StageTasks.AnyAsync(t => t.Stage.ProjectId == projectId && t.AssigneeUserId == userId);
 
@@ -310,16 +330,38 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<StageTask?> GetTaskAsync(int id) =>
             await TasksWithDetails().FirstOrDefaultAsync(t => t.Id == id);
 
-        public async Task<List<StageTask>> GetTasksAsync(int stageId) =>
-            await TasksWithDetails().Where(t => t.StageId == stageId)
-                .OrderBy(t => t.Status).ThenBy(t => t.PlannedEndDate).ThenBy(t => t.Id)
+        public async Task<List<StageTask>> GetTasksAsync(int stageId, Expression<Func<StageTask, bool>>? filter = null)
+        {
+            var query = TasksWithDetails().Where(t => t.StageId == stageId);
+            if (filter != null) query = query.Where(filter);
+            return await query.OrderBy(t => t.Status).ThenBy(t => t.PlannedEndDate).ThenBy(t => t.Id)
                 .AsNoTracking().ToListAsync();
+        }
+
+        public async Task<HashSet<int>> GetStageIdsWithTasksAsync(IEnumerable<int> projectIds, Expression<Func<StageTask, bool>> filter)
+        {
+            var ids = projectIds.Distinct().ToList();
+            if (ids.Count == 0) return [];
+            var stageIds = await _context.StageTasks.AsNoTracking().Where(t => ids.Contains(t.Stage.ProjectId))
+                .Where(filter).Select(t => t.StageId).Distinct().ToListAsync();
+            return stageIds.ToHashSet();
+        }
+
+        public async Task<bool> IsTaskVisibleAsync(int taskId, Expression<Func<StageTask, bool>> filter) =>
+            await _context.StageTasks.Where(t => t.Id == taskId).Where(filter).AnyAsync();
 
         // المهام بلا بدء مخطط في آخر مرحلتها
-        public async Task<(List<StageTask> Items, int Total)> GetProjectTasksAsync(int projectId, int limit)
+        public async Task<(List<StageTask> Items, int Total)> GetProjectTasksAsync(int projectId, int limit, Expression<Func<StageTask, bool>>? filter = null)
         {
-            var total = await _context.StageTasks.CountAsync(t => t.Stage.ProjectId == projectId);
-            var items = await TasksWithDetails().Where(t => t.Stage.ProjectId == projectId)
+            var scoped = _context.StageTasks.Where(t => t.Stage.ProjectId == projectId);
+            var detailed = TasksWithDetails().Where(t => t.Stage.ProjectId == projectId);
+            if (filter != null)
+            {
+                scoped = scoped.Where(filter);
+                detailed = detailed.Where(filter);
+            }
+            var total = await scoped.CountAsync();
+            var items = await detailed
                 .OrderBy(t => t.Stage.SortOrder).ThenBy(t => t.StageId)
                 .ThenBy(t => t.PlannedStartDate == null).ThenBy(t => t.PlannedStartDate).ThenBy(t => t.Id)
                 .Take(limit)

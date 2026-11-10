@@ -23,7 +23,8 @@ namespace Application.Features.CentralStudies.Attachments.Queries.GetByOwner
             var owner = await _support.OwnerAsync(request.OwnerType, request.OwnerId);
             if (!StudyAttachmentSupport.CanView(viewer, owner)) throw new UnauthorizedAccessException("لا تملك صلاحية عرض مرفقات هذا السجل");
             var canEdit = StudyAttachmentSupport.CanEdit(viewer, owner);
-            return (await _service.GetForOwnerAsync(owner.Type, owner.Id)).Select(a =>
+            // مرفقات المشروع لغير الكامل: ما رفعه هو فقط
+            return (await _service.GetForOwnerAsync(owner.Type, owner.Id)).Where(a => StudyAttachmentSupport.CanSeeAttachment(viewer, owner, a)).Select(a =>
             {
                 var dto = _kit.Mapper.Map<StudyAttachmentDto>(a);
                 dto.CanDelete = canEdit;

@@ -380,6 +380,12 @@ namespace Application.DTOs.Response
         /// <summary>كل المراحل مغلقة ولا طلب إنجاز معلّق</summary>
         public bool CanRequestCompletion { get; set; }
 
+        /// <summary>يرى المستخدم المشروع كاملاً (ViewFullStudyProject، أو مدير المشروع، أو مدير النظام)؛ وإلا تُخفى عنه المراحل والمهام والفريق والتواقيع خارج حدّه</summary>
+        public bool CanViewFull { get; set; }
+        /// <summary>1 كاملة، 2 مهام القسم، 3 مهام المكتب، 4 مهامي — ليشرح للمستخدم ما يراه</summary>
+        public int ViewLevel { get; set; }
+        public string ViewLevelName { get; set; } = string.Empty;
+
         /// <summary>في التفاصيل فقط</summary>
         public StudyChainDto? Chain { get; set; }
         public List<ProjectDepartmentDto> Departments { get; set; } = [];

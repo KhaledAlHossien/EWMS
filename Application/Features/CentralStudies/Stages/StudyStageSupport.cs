@@ -39,9 +39,16 @@ namespace Application.Features.CentralStudies.Stages
         public async Task<StageTaskDto> TaskDetailAsync(int id, Viewer viewer) =>
             TaskDto(await _service.GetTaskAsync(id) ?? throw new KeyNotFoundException("المهمة غير موجودة"), viewer);
 
-        /// <summary>الجهة من فريق المشروع: قسم مشارك، مكتب من قسم مشارك، أو عضو في الفريق</summary>
-        public async Task ValidateTargetAsync(StudyTaskFormDto dto, int projectId)
+        /// <summary>
+        /// الجهة من فريق المشروع: قسم مشارك، مكتب من قسم مشارك، أو عضو في الفريق.
+        /// وللمرحلة ذات القسم المسؤول (2026-11-10) تُسنَد مهامها إلى قسمها فقط: القسم نفسه أو مكتب منه أو عضو فريق من قسمه؛
+        /// مدير النظام والمراحل بلا قسم مسؤول كما كانت.
+        /// </summary>
+        public async Task ValidateTargetAsync(StudyTaskFormDto dto, ProjectStage stage, Viewer viewer)
         {
+            var projectId = stage.ProjectId;
+            if (!viewer.IsSuperAdmin && stage.ResponsibleDepartmentId is int responsible)
+                await EnsureTargetInResponsibleDepartmentAsync(dto, projectId, responsible);
             switch ((StudyTaskTarget)dto.TargetType)
             {
                 case StudyTaskTarget.Department:
@@ -58,6 +65,44 @@ namespace Application.Features.CentralStudies.Stages
                         throw new InvalidOperationException("الموظف ليس عضواً في فريق المشروع");
                     break;
             }
+        }
+
+        private async Task EnsureTargetInResponsibleDepartmentAsync(StudyTaskFormDto dto, int projectId, int responsibleDepartmentId)
+        {
+            const string message = "تُسنَد مهام المرحلة إلى القسم المسؤول عنها (قسمه ومكاتبه وأعضائه) فقط";
+            switch ((StudyTaskTarget)dto.TargetType)
+            {
+                case StudyTaskTarget.Department:
+                    if (dto.DepartmentId != responsibleDepartmentId) throw new InvalidOperationException(message);
+                    break;
+                case StudyTaskTarget.Office:
+                    var office = await _offices.GetByIdAsync(dto.OfficeId!.Value) ?? throw new KeyNotFoundException("المكتب غير موجود");
+                    if (office.DepartmentId != responsibleDepartmentId) throw new InvalidOperationException(message);
+                    break;
+                default:
+                    if (!await _projects.IsMemberOfDepartmentAsync(projectId, dto.AssigneeUserId!.Value, responsibleDepartmentId))
+                        throw new InvalidOperationException(message);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// حدّ الرؤية (2026-11-10): مرحلة قسمه يراها كل موظفيه، وغيرها فقط إن كان فيها مهمة يراها؛ وإلا 403 لا قائمة فارغة
+        /// </summary>
+        public async Task EnsureStageVisibleAsync(ProjectScope scope, ProjectStage stage)
+        {
+            if (scope.OwnsStage(stage.ResponsibleDepartmentId)) return;
+            var withTasks = await _service.GetStageIdsWithTasksAsync([stage.ProjectId], scope.TaskFilter()!);
+            if (!withTasks.Contains(stage.Id)) throw new UnauthorizedAccessException("لا تملك صلاحية عرض هذه المرحلة");
+        }
+
+        /// <summary>المراحل التي يراها المستخدم من مراحل مشروع (الكل لصاحب الرؤية الكاملة)</summary>
+        public async Task<List<ProjectStage>> VisibleStagesAsync(StudyProject project, IReadOnlyList<ProjectStage> stages, Viewer viewer)
+        {
+            var scope = ProjectScope.For(viewer, project);
+            if (scope.IsFull) return stages.ToList();
+            var withTasks = await _service.GetStageIdsWithTasksAsync([project.Id], scope.TaskFilter()!);
+            return stages.Where(s => scope.CanSeeStage(s.ResponsibleDepartmentId, s.Id, withTasks)).ToList();
         }
 
         public static void ApplyTarget(StudyTaskFormDto dto, StageTask t)
