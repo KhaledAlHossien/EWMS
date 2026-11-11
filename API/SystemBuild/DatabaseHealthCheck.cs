@@ -27,7 +27,11 @@ namespace API.SystemBuild
         public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default) =>
             Task.FromResult(
                 _settings.Root is string root
-                    ? (FileStore.CanWrite(root) ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy("تعذّرت الكتابة في مجلد المرفقات"))
+                    ? (FileStore.CanWrite(root) ? HealthCheckResult.Healthy()
+                        // المجلد الافتراضي داخل مجلد التطبيق في وضع Database: عطله لا يوقف النظام، فيُبلَّغ كتحذير
+                        : _settings.IsDefaultRoot && !_settings.UseFileSystem
+                            ? HealthCheckResult.Degraded("تعذّرت الكتابة في مجلد المرفقات الافتراضي (wwwroot/upload) — اضبط FileStorage__Root أو صلاحيات مجلد التطبيق")
+                            : HealthCheckResult.Unhealthy("تعذّرت الكتابة في مجلد المرفقات"))
                     : _settings.UseFileSystem
                         ? HealthCheckResult.Unhealthy("مجلد المرفقات غير مضبوط")
                         // وضع Database بلا مجلد: النظام يعمل، لكن مرفقات فرع الدراسات (تُحفظ في المجلد دائماً) لا تُرفع
