@@ -8,6 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 // ==================== 0. الإعدادات الإلزامية ====================
 // الأسرار لا تُكتب في appsettings.json: في التطوير appsettings.Development.json، وفي الإنتاج متغيرات البيئة (docs/DEPLOYMENT.md).
 // نقصُ أيٍّ منها يوقف الإقلاع برسالة واضحة بدل أن يفشل لاحقاً عند أول طلب.
+// مجلد المرفقات الافتراضي (حين لا يُضبط FileStorage:Root): wwwroot/upload داخل مجلد مشروع الـ API، وفيه مجلد لكل مشروع دراسة (قرار المستخدم 2026-11-11)
+if (string.IsNullOrWhiteSpace(builder.Configuration["FileStorage:DefaultRoot"]))
+    builder.Configuration["FileStorage:DefaultRoot"] = Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "upload");
 StartupSettings.EnsureValid(builder.Configuration);
 
 // ==================== 1. تسجيل كل الخدمات ====================
@@ -42,6 +45,17 @@ app.MapHealthChecks("/health");
 // حزمة الإصدار تضع ملفات الواجهة في wwwroot: موقع واحد وعنوان واحد (بلا CORS، وSignalR من العنوان نفسه).
 // أي مسار ليس ملفاً ولا api/hubs/health/swagger يعيد index.html (مسارات Angular). index.html بلا تخزين مؤقت
 // كي تصل النسخة الجديدة فوراً؛ بقية الملفات بأسماء فيها بصمة المحتوى. في التطوير لا يوجد wwwroot/index.html فلا يتغير شيء.
+// المرفقات داخل wwwroot/upload لا تُقدَّم كملفات ثابتة أبداً: تصل فقط من endpoints المرفقات بصلاحياتها (حدّ الرؤية). تُرفض قبل أي middleware للملفات.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/upload", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+    await next();
+});
+
 if (app.Environment.WebRootPath is { } webRoot && File.Exists(Path.Combine(webRoot, "index.html")))
 {
     var spaFiles = new StaticFileOptions

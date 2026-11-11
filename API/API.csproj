@@ -27,4 +27,10 @@
     <Folder Include="wwwroot\uploads\" />
   </ItemGroup>
 
+  <!-- المرفقات المرفوعة (wwwroot/upload) لا تُنسخ مع النشر ولا تدخل ملفات المشروع -->
+  <ItemGroup>
+    <Content Remove="wwwroot\upload\**" />
+    <None Remove="wwwroot\upload\**" />
+  </ItemGroup>
+
 </Project>

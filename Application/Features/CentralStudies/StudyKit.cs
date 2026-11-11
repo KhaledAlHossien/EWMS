@@ -49,7 +49,8 @@ namespace Application.Features.CentralStudies
     /// <summary>صاحب مرفق: حدوده وصلاحيتا العرض والتعديل عليه</summary>
     public sealed record AttachmentOwner(
         StudyEntityType Type, int Id, int RequestId, int BranchId,
-        string ViewPermission, string EditPermission, bool Closed, int? EditDepartmentId, int? ProjectManagerUserId = null);
+        string ViewPermission, string EditPermission, bool Closed, int? EditDepartmentId, int? ProjectManagerUserId = null,
+        int? ProjectId = null);
 
     /// <summary>
     /// أدوات مشتركة لمعالجات فرع الدراسات (خدمة لكل طلب HTTP): المستخدم الحالي وصلاحياته، سجل الدراسة،
@@ -380,19 +381,21 @@ namespace Application.Features.CentralStudies
                 {
                     var p = await _projects.GetByIdAsync(id) ?? throw new KeyNotFoundException(missing);
                     return new(type, id, p.StartOrder.Response.Assignment.RequestId, p.BranchId, StudyPermissions.ViewProjects, StudyPermissions.EditProject,
-                        p.Status == StudyProjectStatus.Cancelled, null, p.ManagerUserId);
+                        p.Status == StudyProjectStatus.Cancelled, null, p.ManagerUserId, p.Id);
                 }
                 case StudyEntityType.Drawing:
                 {
                     var d = await _drawings.GetDrawingAsync(id) ?? throw new KeyNotFoundException(missing);
                     return new(type, id, await _projects.GetRequestIdAsync(d.ProjectId), d.Project.BranchId,
-                        StudyPermissions.ViewDrawings, StudyPermissions.EditDrawing, d.Project.Status == StudyProjectStatus.Cancelled, d.DepartmentId);
+                        StudyPermissions.ViewDrawings, StudyPermissions.EditDrawing, d.Project.Status == StudyProjectStatus.Cancelled, d.DepartmentId,
+                        null, d.ProjectId);
                 }
                 case StudyEntityType.Version:
                 {
                     var v = await _drawings.GetVersionAsync(id) ?? throw new KeyNotFoundException(missing);
                     return new(type, id, await _projects.GetRequestIdAsync(v.Drawing.ProjectId), v.Drawing.Project.BranchId,
-                        StudyPermissions.ViewDrawings, StudyPermissions.EditVersion, v.Drawing.Project.Status == StudyProjectStatus.Cancelled, v.Drawing.DepartmentId);
+                        StudyPermissions.ViewDrawings, StudyPermissions.EditVersion, v.Drawing.Project.Status == StudyProjectStatus.Cancelled, v.Drawing.DepartmentId,
+                        null, v.Drawing.ProjectId);
                 }
                 default:
                     throw new ArgumentException("نوع صاحب المرفق غير مدعوم");

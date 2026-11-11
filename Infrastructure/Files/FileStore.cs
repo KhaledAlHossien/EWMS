@@ -13,8 +13,17 @@ namespace Infrastructure.Files
             UseFileSystem = string.Equals(mode, "FileSystem", StringComparison.OrdinalIgnoreCase);
             ModeValid = string.IsNullOrEmpty(mode) || UseFileSystem || string.Equals(mode, "Database", StringComparison.OrdinalIgnoreCase);
             var root = configuration["FileStorage:Root"]?.Trim();
+            // بلا مجلد مضبوط: مجلد wwwroot/upload داخل مجلد مشروع الـ API (يضبطه Program.cs من مجلد المحتوى) — حلّ مؤقت للتطوير بقرار المستخدم
+            if (string.IsNullOrEmpty(root))
+            {
+                root = configuration["FileStorage:DefaultRoot"]?.Trim();
+                IsDefaultRoot = !string.IsNullOrEmpty(root);
+            }
             Root = string.IsNullOrEmpty(root) ? null : Path.GetFullPath(root);
         }
+
+        /// <summary>true = المجلد هو الافتراضي (wwwroot/upload داخل مشروع الـ API) لا مجلداً ضُبط صراحةً</summary>
+        public bool IsDefaultRoot { get; }
 
         /// <summary>true = المرفقات الجديدة تُحفظ في المجلد؛ false = في القاعدة (الافتراضي)</summary>
         public bool UseFileSystem { get; }
@@ -25,6 +34,16 @@ namespace Infrastructure.Files
         /// <summary>مشكلة تمنع الإقلاع (للرسالة العربية في StartupSettings)، أو null</summary>
         public string? Problem()
         {
+            // المجلد الافتراضي يُنشأ عند الإقلاع (فحص /health يكتب فيه ملف اختبار). تعذّر إنشائه (مجلد التطبيق للقراءة فقط مثلاً)
+            // لا يوقف الإقلاع في وضع Database: بقية النظام لا تحتاجه، فيظهر /health «Degraded» ويفشل رفع مرفقات الدراسات برسالة واضحة.
+            if (IsDefaultRoot && Root != null)
+            {
+                try { Directory.CreateDirectory(Root); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException)
+                {
+                    if (UseFileSystem) return $"تعذّر إنشاء مجلد المرفقات الافتراضي: {Root} — اضبط FileStorage__Root على مجلد يملك مستخدم الخدمة الكتابة فيه";
+                }
+            }
             if (!ModeValid) return "طريقة حفظ المرفقات (FileStorage__Mode): Database أو FileSystem";
             if (!UseFileSystem) return null;
             if (Root == null) return "مجلد المرفقات (FileStorage__Root): مطلوب عند FileStorage__Mode=FileSystem";
@@ -45,7 +64,8 @@ namespace Infrastructure.Files
 
         public FileStore(FileStorageSettings settings) => _settings = settings;
 
-        [GeneratedRegex("^(vacations|tasks|map-files|studies)/[0-9]{4}/[0-9]{2}/[0-9a-f]{32}\\z")]
+        // «منطقة/سنة/شهر/معرّف» لكل المناطق، ولمرفقات الدراسات أيضاً «studies/projects|documents/رقم/معرّف» (مجلد لكل مشروع، ومجلد لكل دراسة قبل مشروعها)
+        [GeneratedRegex("^(?:(?:vacations|tasks|map-files|studies)/[0-9]{4}/[0-9]{2}|studies/(?:projects|documents)/[0-9]{1,10})/[0-9a-f]{32}\\z")]
         private static partial Regex KeyPattern();
 
         public static bool IsValidKey(string key) => KeyPattern().IsMatch(key);
@@ -79,14 +99,17 @@ namespace Infrastructure.Files
             return key;
         }
 
-        public async Task<IStagedFile> StageAsync(string area, Func<Stream, CancellationToken, Task> write, CancellationToken ct = default)
+        public async Task<IStagedFile> StageAsync(string area, string? folder, Func<Stream, CancellationToken, Task> write, CancellationToken ct = default)
         {
             if (!FileAreas.All.Contains(area)) throw new ArgumentException("مجلد مرفقات غير معروف", nameof(area));
             if (_settings.Root == null)
                 throw new InvalidOperationException("الملفات الكبيرة تُحفظ في مجلد على الخادم ولم يُضبط بعد (FileStorage:Root) — أبلغ مدير النظام");
 
             var now = DateTime.UtcNow;
-            var key = $"{area}/{now:yyyy}/{now:MM}/{Guid.NewGuid():N}";
+            var key = string.IsNullOrEmpty(folder)
+                ? $"{area}/{now:yyyy}/{now:MM}/{Guid.NewGuid():N}"
+                : $"{area}/{folder}/{Guid.NewGuid():N}";
+            if (!IsValidKey(key)) throw new ArgumentException("مجلد المرفق غير صالح", nameof(folder));   // الشكل المسموح فقط: لا يخرج المسار عن المجلد
             var path = PathOf(key);
             var temp = path + TempSuffix;
             try

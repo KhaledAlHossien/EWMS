@@ -36,7 +36,9 @@ namespace Application.Features.CentralStudies.Attachments.Commands.Upload
 
             // كل الفحوص السابقة قبل استقبال أي بايت؛ ثم الملف تدفقاً إلى ملف مؤقت في المجلد، يُفحص نوعه من محتواه ثم يُعتمد
             string? originalName = null;
-            await using var staged = await _files.StageAsync(FileAreas.Studies,
+            // مجلد لكل مشروع: مرفقات المشروع ومخططاته ونسخها في studies/projects/{id}، ومستندات الدراسة قبل مشروعها في studies/documents/{رقم الطلب}
+            var folder = owner.ProjectId is int projectId ? $"projects/{projectId}" : $"documents/{owner.RequestId}";
+            await using var staged = await _files.StageAsync(FileAreas.Studies, folder,
                 async (destination, token) => originalName = await request.Upload.CopyFileToAsync(destination, token), ct);
             if (originalName == null || staged.Size == 0) throw new InvalidOperationException("اختر ملفاً غير فارغ");
 
