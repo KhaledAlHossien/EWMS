@@ -19,9 +19,10 @@ namespace Application.Interfaces
         /// <summary>
         /// كتابة متدفقة إلى المجلد **دائماً** أيّاً كان FileStorage:Mode (لملفات كبيرة بلا سقف، مثل مخططات فرع الدراسات):
         /// write يكتب المحتوى في ملف مؤقت داخل المجلد دون تحميله في الذاكرة، ثم يُفحص (OpenRead) ويُعتمد (CommitAsync)،
-        /// وإن لم يُعتمد يُحذف عند التخلص منه. يتطلب FileStorage:Root.
+        /// وإن لم يُعتمد يُحذف عند التخلص منه. يتطلب FileStorage:Root (وإن لم يُضبط فمجلد wwwroot/upload في مجلد مشروع الـ API).
+        /// <paramref name="folder"/>: مجلد فرعي للملف داخل المنطقة (مثل <c>projects/12</c> = مجلد المشروع 12)، وبلا مجلد يكون «سنة/شهر».
         /// </summary>
-        Task<IStagedFile> StageAsync(string area, Func<Stream, CancellationToken, Task> write, CancellationToken ct = default);
+        Task<IStagedFile> StageAsync(string area, string? folder, Func<Stream, CancellationToken, Task> write, CancellationToken ct = default);
     }
 
     /// <summary>ملف مكتوب في المجلد ولم يُعتمد بعد: يُقرأ للفحص ثم يُعتمد باسمه النهائي، أو يُحذف بالتخلص منه</summary>
