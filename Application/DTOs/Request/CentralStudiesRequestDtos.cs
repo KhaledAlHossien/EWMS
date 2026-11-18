@@ -115,6 +115,8 @@ namespace Application.DTOs.Request
         public decimal? SiteArea { get; set; }
         /// <summary>التكلفة المبدئية (حقل واحد للرد، بجانب جدول البنود)</summary>
         public decimal? InitialCost { get; set; }
+        public bool CostsInUsd { get; set; }
+        public decimal? UsdToSypRate { get; set; }
         public List<ResponseBuildingFormDto> Buildings { get; set; } = [];
         public List<ResponseCostItemFormDto> CostItems { get; set; } = [];
         public byte[]? RowVersion { get; set; }
@@ -135,6 +137,14 @@ namespace Application.DTOs.Request
         public int BuildingType { get; set; }
         public int BuildingCount { get; set; }
         public decimal BuildingsArea { get; set; }
+        public List<ResponseBuildingDetailFormDto> Details { get; set; } = [];
+    }
+
+    public class ResponseBuildingDetailFormDto
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Function { get; set; } = string.Empty;
+        public decimal Area { get; set; }
     }
 
     public class ResponseCostItemFormDto
