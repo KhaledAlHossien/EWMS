@@ -46,10 +46,12 @@ namespace Application.DTOs.Request
     /// <summary>طلب تجهيز دراسة تكاليف</summary>
     public class StudyRequestFormDto
     {
+        /// <summary>رقم الطلب الوارد من الديوان المركزي — إدخال يدوي إلزامي</summary>
+        public string RequestNumber { get; set; } = string.Empty;
         public DateTime RequestDate { get; set; }
         /// <summary>1 مستعجل، 2 عادي</summary>
         public int Urgency { get; set; }
-        /// <summary>رقم الطلب من الديوان المركزي (يدوي، اختياري)</summary>
+        /// <summary>حقل قديم محفوظ للتوافق؛ رقم الطلب المعتمد هو RequestNumber</summary>
         public string? DiwanRequestNumber { get; set; }
         public string? MinistryArchiveNumber { get; set; }
         public DateTime? MinistryArchiveDate { get; set; }

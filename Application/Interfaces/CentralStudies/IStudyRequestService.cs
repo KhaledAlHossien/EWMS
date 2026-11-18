@@ -12,6 +12,8 @@ namespace Application.Interfaces
         /// <summary>branchLimit: null = كل الفروع، 0 = لا شيء، وإلا فرع واحد</summary>
         Task<(List<StudyRequest> Items, int Total)> SearchAsync(StudyDocumentFilterDto filter, int? branchLimit, int page, int pageSize);
 
+        Task<bool> NumberExistsAsync(string number, int? excludeRequestId = null);
+
         Task<StudyRequest> AddAsync(StudyRequest request);
         /// <summary>expectedRowVersion: نسخة السجل التي رآها المستخدم (null = بلا فحص)</summary>
         Task UpdateAsync(StudyRequest request, byte[]? expectedRowVersion = null);

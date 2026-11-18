@@ -8,15 +8,13 @@ namespace Application.Features.CentralStudies.Requests.Commands.Create
     public class CreateStudyRequestCommandHandler : IRequestHandler<CreateStudyRequestCommand, StudyRequestDto>
     {
         private readonly IStudyRequestService _service;
-        private readonly IStudyNumberService _numbers;
         private readonly IBranchService _branches;
         private readonly StudyKit _kit;
         private readonly StudyRequestSupport _support;
 
-        public CreateStudyRequestCommandHandler(IStudyRequestService service, IStudyNumberService numbers, IBranchService branches, StudyKit kit, StudyRequestSupport support)
+        public CreateStudyRequestCommandHandler(IStudyRequestService service, IBranchService branches, StudyKit kit, StudyRequestSupport support)
         {
             _service = service;
-            _numbers = numbers;
             _branches = branches;
             _kit = kit;
             _support = support;
@@ -37,8 +35,8 @@ namespace Application.Features.CentralStudies.Requests.Commands.Create
             entity.MainBeneficiary = beneficiary.Name;
             entity.EntityCode = beneficiary.Code;
             StudyRequestSupport.Normalize(entity);
-            var number = await _numbers.NextAsync(StudyDocumentType.Request, DateTime.Today.Year);
-            entity.RequestNumber = StudyRules.FormatNumber(StudyDocumentType.Request, DateTime.Today.Year, number);
+            if (await _service.NumberExistsAsync(entity.RequestNumber))
+                throw new InvalidOperationException("رقم طلب الدراسة مستخدم في طلب آخر");
             entity.BranchId = branchId;
             entity.CreatedByUserId = viewer.Id;
             entity.Status = StudyDocumentStatus.Draft;

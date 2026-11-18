@@ -24,6 +24,8 @@ namespace Application.Features.CentralStudies.Requests.Commands.Update
             var entity = await _support.LoadAsync(request.Id, viewer);
             StudyRules.EnsureEditable(entity.Status);
             await _support.EnsureSiteAsync(request.Dto.SiteId);
+            if (await _service.NumberExistsAsync(request.Dto.RequestNumber.Trim(), entity.Id))
+                throw new InvalidOperationException("رقم طلب الدراسة مستخدم في طلب آخر");
 
             var beneficiary = await _support.BeneficiaryAsync(request.Dto.MainBeneficiaryId, entity);
             _kit.Mapper.Map(request.Dto, entity);

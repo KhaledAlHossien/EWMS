@@ -119,7 +119,7 @@
 - **التوصية «غير متاح»:** حقول جزء التخطيط اختيارية دائماً، والتواقيع تبقى.
 - **حدّ القسم المتابع:** إنشاء الرد وتعديله وإرساله لموظفي قسم التكليف المتابع فقط (من غيرهم 403)، وجزء التخطيط حدّه الفرع.
 - **الرقم:** `responseNumber` بصيغة `RSP-26-0001` من عدّاد الترقيم (البادئة مؤقتة، ثابت واحد `StudyRules.ResponseNumberPrefix`). مساحة الموقع والتكلفة المبدئية انتقلتا من سطور المباني إلى الرد (`siteArea`، `initialCost`)، و`totalCost` مجموع جدول البنود يُحسب منفصلاً.
-- **الطلب:** حقل `diwanRequestNumber` (رقم الديوان المركزي، نص اختياري حتى 50 حرفاً، يدوي) في `Create`/`Update` ويعود في المخرَج. الرقم الداخلي `requestNumber` (REQ-yy-nnnn) كما هو.
+- **الطلب:** حقل `requestNumber` إلزامي في `Create`/`Update`: رقم طلب تجهيز الدراسة كما ورد من الديوان المركزي، نص حتى 30 حرفاً يحافظ على الأصفار والشرطات. لا يُولَّد من عدّاد النظام. يُرفض الرقم الفارغ أو المكرر، ويُستخدم الرقم المدخل في القوائم والتكليفات والطباعة. يبقى `diwanRequestNumber` حقلاً قديماً للتوافق مع البيانات السابقة ولا يلزم إدخاله للطلبات الجديدة.
 
 ### الطباعة — `api/StudyPrint`
 
@@ -128,11 +128,11 @@
 | GET | `Request/{id}`، `Assignment/{id}`، `Response/{id}`، `StartOrder/{id}`، `DesignApproval/{id}` (CDA) | `PrintStudyDocuments` + صلاحية عرض المستند نفسه (ViewStudyRequests / ViewStudyAssignments / ViewStudyResponses / ViewStudyStartOrders / ViewStudyDrawings)، وحدّها فرع الدراسة |
 
 يعيد `StudyPrintDto`:
-- **الترويسة:** `title`، `number` (REQ-/IPA-/RSP-/PIO-/CDA-yy-nnnn)، `branchName` (اسم فرع الدراسة من قاعدة البيانات)، `documentDate` و`documentDateHijri` (`1448/04/12`، بقاعدة طباعة الإجازة نفسها `VacationRules.HijriDayOffset`).
+- **الترويسة:** `title`، `number` (رقم الديوان المدخل يدوياً للطلب، وIPA-/RSP-/PIO-/CDA-yy-nnnn لبقية المستندات)، `branchName` (اسم فرع الدراسة من قاعدة البيانات)، `documentDate` و`documentDateHijri` (`1448/04/12`، بقاعدة طباعة الإجازة نفسها `VacationRules.HijriDayOffset`).
 - **المستند:** كاملاً في خاصية واحدة مملوءة بحسب النوع: `request` أو `assignment` أو `response` أو `startOrder` أو `designApproval`، وهي مخرجات الـ `Get` نفسها.
 - **التواقيع (`signatures`):** سطر لكل صفة بالترتيب: `signerRoleName`، `signerName`، `jobTitle`، `decisionName`، `decidedAt` و`decidedAtHijri`، `note`، و`image`، وهي **نسخة التوقيع المحفوظة وقت القرار** (Data URL) لا التوقيع الحالي. تغيير التوقيع لاحقاً لا يغيّر المطبوع. `image = null` ترسم مربعاً فارغاً (قرار بلا توقيع، أو لم يُقرَّر بعد).
 - **المضاف:**
-  - الطلب: `request.diwanRequestNumber` و`request.urgencyName`.
+  - الطلب: `request.requestNumber` و`request.urgencyName`.
   - الرد: `response.costItems` و`totalCost` للجدول التفصيلي ملحقاً.
   - أمر البدء: توقيع رئيس القسم المختص ضمن `signatures` (الصفة «رئيس القسم المختص») مع `startOrder.competentDepartmentName`.
   - CDA: `startOrderNumber`.

@@ -44,6 +44,9 @@ namespace Infrastructure.Persistence.Repositories
             return (items, total);
         }
 
+        public async Task<bool> NumberExistsAsync(string number, int? excludeRequestId = null) =>
+            await _context.StudyRequests.AnyAsync(r => r.RequestNumber == number && r.Id != excludeRequestId);
+
         public async Task<StudyRequest> AddAsync(StudyRequest request)
         {
             _context.StudyRequests.Add(request);

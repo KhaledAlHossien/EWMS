@@ -23,6 +23,8 @@ namespace Application.Features.CentralStudies.Requests.Commands.Submit
             var viewer = await _kit.ViewerAsync();
             var entity = await _support.LoadAsync(request.Id, viewer);
             StudyRules.EnsureEditable(entity.Status);
+            if (string.IsNullOrWhiteSpace(entity.RequestNumber))
+                throw new InvalidOperationException("أكمل رقم طلب الدراسة من الديوان المركزي قبل تسجيل الطلب نهائياً");
             entity.Status = StudyDocumentStatus.Approved;
             entity.UpdatedAt = DateTime.Now;
             await _service.UpdateAsync(entity);
