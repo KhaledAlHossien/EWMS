@@ -6,6 +6,7 @@ using Application.Features.CentralStudies.Assignments.Commands.Delete;
 using Application.Features.CentralStudies.Assignments.Commands.Submit;
 using Application.Features.CentralStudies.Assignments.Commands.Update;
 using Application.Features.CentralStudies.Assignments.Queries.GetById;
+using Application.Features.CentralStudies.Assignments.Queries.PreviewProjectCode;
 using Application.Features.CentralStudies.Assignments.Queries.Search;
 using Application.Features.CentralStudies.Requests.Commands.Cancel;
 using Application.Features.CentralStudies.Requests.Commands.Create;
@@ -105,6 +106,11 @@ namespace API.Controllers
         [HttpGet("Get/{id}")]
         [Authorize(Policy = "ViewStudyAssignments")]
         public async Task<ActionResult<StudyAssignmentDto>> Get(int id) => Ok(await _mediator.Send(new GetStudyAssignmentQuery(id)));
+
+        [HttpGet("ProjectCode/{requestId}")]
+        [Authorize(Policy = "CreateStudyAssignment")]
+        public async Task<ActionResult> PreviewProjectCode(int requestId, [FromQuery] DateTime assignmentDate, [FromQuery] string? adminArchiveNumber)
+            => Ok(new { projectCode = await _mediator.Send(new PreviewStudyProjectCodeQuery(requestId, assignmentDate, adminArchiveNumber), HttpContext.RequestAborted) });
 
         /// <summary>لطلب معتمد بلا تكليف (RequestId في النموذج)</summary>
         [HttpPost("Create")]

@@ -3,6 +3,7 @@ using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using Domain.Entities.CentralStudiesBranch;
+using System.Globalization;
 
 namespace Application.Features.CentralStudies.Assignments
 {
@@ -35,16 +36,41 @@ namespace Application.Features.CentralStudies.Assignments
             return dto;
         }
 
-        /// <summary>القسم المتابع من أقسام فرع الطلب، وكود المشروع فريد</summary>
-        public async Task ValidateAsync(StudyAssignmentFormDto dto, int branchId, int? excludeId)
+        public async Task EnsureDepartmentAsync(int departmentId, int branchId)
         {
-            var department = await _departments.GetByIdAsync(dto.FollowingDepartmentId)
+            var department = await _departments.GetByIdAsync(departmentId)
                 ?? throw new KeyNotFoundException("القسم المتابع غير موجود");
             if (department.BranchId != branchId)
                 throw new InvalidOperationException("القسم المتابع يجب أن يكون من أقسام فرع الطلب");
-            var code = StudyRules.Clean(dto.ProjectCode);
-            if (code != null && await _service.ProjectCodeExistsAsync(code, excludeId))
+        }
+
+        public async Task<string> NewProjectCodeAsync(StudyRequest request, DateTime assignmentDate, string? adminArchiveNumber)
+        {
+            var code = FormatProjectCode(request, assignmentDate, adminArchiveNumber);
+            if (await _service.ProjectCodeExistsAsync(code))
                 throw new InvalidOperationException("كود المشروع مستخدم في تكليف أو مشروع آخر");
+            return code;
+        }
+
+        public static string FormatProjectCode(StudyRequest request, DateTime assignmentDate, string? adminArchiveNumber)
+        {
+            if (assignmentDate == default)
+                throw new InvalidOperationException("تاريخ التكليف مطلوب");
+            var requestNumber = StudyRules.Clean(request.RequestNumber)
+                ?? throw new InvalidOperationException("رقم طلب الدراسة مطلوب لتوليد كود المشروع");
+            var archiveNumber = StudyRules.Clean(request.AdminArchiveNumber) ?? StudyRules.Clean(adminArchiveNumber)
+                ?? throw new InvalidOperationException("رقم أرشيف ديوان الإدارة مطلوب لتوليد كود المشروع");
+            if (archiveNumber.Length > 50)
+                throw new InvalidOperationException("رقم أرشيف ديوان الإدارة لا يتجاوز 50 حرفاً");
+            var workCode = request.WorkType switch
+            {
+                StudyWorkType.Construction => "N",
+                StudyWorkType.MaintenanceAndRestoration => "R",
+                StudyWorkType.ConstructionAndMaintenanceAndRestoration => "RN",
+                _ => throw new InvalidOperationException("نوع العمل في طلب الدراسة غير صالح لتوليد كود المشروع")
+            };
+            return string.Create(CultureInfo.InvariantCulture,
+                $"{request.BranchId}-{assignmentDate:yy}-{workCode}-{requestNumber}-{archiveNumber}");
         }
 
         public async Task<StudyAssignment> LoadAsync(int id, Viewer viewer)
@@ -68,7 +94,6 @@ namespace Application.Features.CentralStudies.Assignments
         {
             e.FollowingDepartmentId = dto.FollowingDepartmentId;
             e.AssignmentDate = dto.AssignmentDate.Date;
-            e.ProjectCode = StudyRules.Clean(dto.ProjectCode);
             e.AllocatedBudget = dto.AllocatedBudget;
             e.ScopeSummary = dto.ScopeSummary.Trim();
             e.NeedsTechnicalEvaluation = dto.NeedsTechnicalEvaluation;

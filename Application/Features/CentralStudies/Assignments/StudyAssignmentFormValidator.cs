@@ -11,7 +11,7 @@ namespace Application.Features.CentralStudies.Assignments
         {
             RuleFor(x => x.FollowingDepartmentId).GreaterThan(0).WithMessage("اختر القسم المتابع");
             RuleFor(x => x.AssignmentDate).NotEmpty().WithMessage("تاريخ التكليف مطلوب");
-            RuleFor(x => x.ProjectCode).MaximumLength(50).WithMessage("كود المشروع لا يتجاوز 50 حرفاً");
+            RuleFor(x => x.AdminArchiveNumber).MaximumLength(50).WithMessage("رقم أرشيف ديوان الإدارة لا يتجاوز 50 حرفاً");
             RuleFor(x => x.AllocatedBudget).GreaterThanOrEqualTo(0).When(x => x.AllocatedBudget != null).WithMessage("الميزانية لا تكون سالبة");
             RuleFor(x => x.ScopeSummary).NotEmpty().WithMessage("ملخص نطاق العمل والمتطلبات مطلوب")
                 .MaximumLength(4000).WithMessage("ملخص النطاق لا يتجاوز 4000 حرف");
