@@ -230,7 +230,13 @@ namespace Application.Features.CentralStudies
 
         public static string Name(StudyUrgency s) => s == StudyUrgency.Urgent ? "مستعجل" : "عادي";
 
-        public static string Name(StudyWorkType s) => s == StudyWorkType.Construction ? "إنشاء" : "صيانة وترميم";
+        public static string Name(StudyWorkType s) => s switch
+        {
+            StudyWorkType.Construction => "إنشاء",
+            StudyWorkType.MaintenanceAndRestoration => "صيانة وترميم",
+            StudyWorkType.ConstructionAndMaintenanceAndRestoration => "إنشاء جديد / صيانة وترميم",
+            _ => s.ToString()
+        };
 
         public static string Name(StudyPriority s) => s switch
         {
