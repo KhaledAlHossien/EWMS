@@ -13,8 +13,7 @@ namespace Application.Features.CentralStudies.Requests
             RuleFor(x => x.RequestDate).NotEmpty().WithMessage("تاريخ الطلب مطلوب");
             RuleFor(x => x.Urgency).Must(v => Enum.IsDefined(typeof(StudyUrgency), v)).WithMessage("حدد الاستعجال");
             RuleFor(x => x.WorkType).Must(v => Enum.IsDefined(typeof(StudyWorkType), v)).WithMessage("حدد نوع العمل");
-            RuleFor(x => x.MainBeneficiary).NotEmpty().WithMessage("الجهة المستفيدة الرئيسية مطلوبة")
-                .MaximumLength(200).WithMessage("الجهة المستفيدة لا تتجاوز 200 حرف");
+            RuleFor(x => x.MainBeneficiaryId).Must(id => id is > 0).WithMessage("اختر الجهة المستفيدة الرئيسية من القائمة");
             RuleFor(x => x.SubBeneficiary).MaximumLength(200).WithMessage("اسم الجهة الفرعية لا يتجاوز 200 حرف");
             RuleFor(x => x.GovernorateCode).Must(Governorates.IsValidCode).WithMessage("اختر المحافظة من القائمة");
             RuleFor(x => x.DiwanRequestNumber).MaximumLength(50).WithMessage("رقم الديوان لا يتجاوز 50 حرفاً");

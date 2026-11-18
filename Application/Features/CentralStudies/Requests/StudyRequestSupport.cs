@@ -10,13 +10,15 @@ namespace Application.Features.CentralStudies.Requests
     {
         private readonly IStudyRequestService _service;
         private readonly ISiteService _sites;
+        private readonly IStudyLookupService _lookups;
         private readonly StudyKit _kit;
 
-        public StudyRequestSupport(IStudyRequestService service, ISiteService sites, StudyKit kit)
+        public StudyRequestSupport(IStudyRequestService service, ISiteService sites, StudyKit kit, IStudyLookupService lookups)
         {
             _service = service;
             _sites = sites;
             _kit = kit;
+            _lookups = lookups;
         }
 
         public StudyRequestDto ToDto(StudyRequest entity, Viewer viewer)
@@ -38,6 +40,20 @@ namespace Application.Features.CentralStudies.Requests
         {
             if (siteId is int id && !await _sites.ExistsAsync(id))
                 throw new KeyNotFoundException("الموقع المحدد غير موجود في سجل المواقع");
+        }
+
+        public async Task<(string Name, string Code)> BeneficiaryAsync(int? id, StudyRequest? current = null)
+        {
+            if (id is not int selected || selected <= 0)
+                throw new InvalidOperationException("اختر الجهة المستفيدة الرئيسية من القائمة");
+            var beneficiary = await _lookups.GetBeneficiaryAsync(selected)
+                ?? throw new KeyNotFoundException("الجهة المستفيدة غير موجودة");
+            var code = StudyRules.Clean(beneficiary.Code)
+                ?? throw new InvalidOperationException("رمز الجهة المستفيدة غير محدد — أكمله من إعدادات الدراسات");
+            if (current?.MainBeneficiaryId != selected && !beneficiary.IsActive)
+                throw new InvalidOperationException("الجهة المستفيدة معطلة — اختر جهة فعالة");
+            // يبقى اسم المستند السابق، ويؤخذ الرمز دائماً من الجهة المختارة.
+            return (current?.MainBeneficiaryId == selected ? current.MainBeneficiary : beneficiary.Name, code);
         }
 
         public static void Normalize(StudyRequest e)

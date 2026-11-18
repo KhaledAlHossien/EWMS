@@ -42,7 +42,9 @@ namespace Domain.Entities.CentralStudiesBranch
         public DateTime? AddedDate { get; set; }
 
         public string? EntityCode { get; set; }
-        /// <summary>الجهة المستفيدة الرئيسية — نص الآن، جدول مرجعي لاحقاً</summary>
+        public int? MainBeneficiaryId { get; set; }
+        public StudyBeneficiary? MainBeneficiaryEntity { get; set; }
+        /// <summary>نسخة اسم الجهة وقت الاختيار، تبقى في المستند إذا أُعيدت تسمية الجهة</summary>
         public string MainBeneficiary { get; set; } = string.Empty;
         public string? SubBeneficiary { get; set; }
 
