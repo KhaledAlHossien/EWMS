@@ -8,6 +8,7 @@ namespace Application.Features.CentralStudies.Responses
     public class StudyResponseFormValidator : AbstractValidator<StudyResponseFormDto>
     {
         public const int MaxItems = 200;
+        public const decimal MaxBuildingArea = 9_999_999_999.99m;
 
         public StudyResponseFormValidator()
         {
@@ -15,6 +16,8 @@ namespace Application.Features.CentralStudies.Responses
             RuleFor(x => x.Recommendation).Must(v => Enum.IsDefined(typeof(StudyRecommendation), v)).WithMessage("حدد التوصية الفنية النهائية");
             RuleFor(x => x.SiteArea).GreaterThanOrEqualTo(0).When(x => x.SiteArea != null).WithMessage("مساحة الموقع لا تكون سالبة");
             RuleFor(x => x.InitialCost).GreaterThanOrEqualTo(0).When(x => x.InitialCost != null).WithMessage("التكلفة لا تكون سالبة");
+            RuleFor(x => x.UsdToSypRate).GreaterThan(0).WithMessage("سعر الصرف يجب أن يكون أكبر من صفر")
+                .PrecisionScale(18, 6, true).WithMessage("أدخل سعر صرف صالحاً حتى ست خانات عشرية");
             RuleFor(x => x.ProposedManagerUserId).GreaterThan(0).When(x => x.ProposedManagerUserId != null).WithMessage("مدير المشروع المقترح غير صالح");
 
             RuleFor(x => x.Buildings).Must(b => b.Count <= 2).WithMessage("بيانات المباني سطران على الأكثر (إعادة تأهيل وإنشاء جديد)")
@@ -23,7 +26,19 @@ namespace Application.Features.CentralStudies.Responses
             {
                 b.RuleFor(x => x.BuildingType).Must(v => Enum.IsDefined(typeof(StudyBuildingType), v)).WithMessage("نوع البناء غير صالح");
                 b.RuleFor(x => x.BuildingCount).GreaterThanOrEqualTo(0).WithMessage("عدد المباني لا يكون سالباً");
-                b.RuleFor(x => x.BuildingsArea).GreaterThanOrEqualTo(0).WithMessage("المساحة لا تكون سالبة");
+                b.RuleFor(x => x.BuildingsArea).InclusiveBetween(0, MaxBuildingArea).WithMessage("المساحة الإجمالية للمباني خارج النطاق");
+                b.RuleFor(x => x.Details).Must((building, rows) => rows != null &&
+                        (rows.Count == 0 || (rows.Count == building.BuildingCount && rows.Count <= MaxItems)))
+                    .WithMessage("يجب أن يطابق عدد صفوف التفاصيل عدد المباني (حتى 200 مبنى لكل نوع)");
+                b.RuleForEach(x => x.Details).NotNull().WithMessage("تفاصيل المبنى مطلوبة").ChildRules(d =>
+                {
+                    d.RuleFor(x => x.Code).NotEmpty().WithMessage("رمز المبنى مطلوب")
+                        .MaximumLength(50).WithMessage("رمز المبنى لا يتجاوز 50 حرفاً");
+                    d.RuleFor(x => x.Function).NotEmpty().WithMessage("وظيفة المبنى مطلوبة")
+                        .MaximumLength(200).WithMessage("وظيفة المبنى لا تتجاوز 200 حرف");
+                    d.RuleFor(x => x.Area).GreaterThan(0).WithMessage("مساحة المبنى يجب أن تكون أكبر من صفر")
+                        .PrecisionScale(12, 2, true).WithMessage("أدخل مساحة صالحة بخانتين عشريتين على الأكثر");
+                });
             });
 
             RuleFor(x => x.CostItems).Must(c => c.Count <= MaxItems).WithMessage($"بنود التكلفة {MaxItems} على الأكثر");

@@ -80,7 +80,9 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.Approvals, o => o.Ignore());
 
             // ----- الرد -----
+            CreateMap<ResponseBuildingDetail, ResponseBuildingDetailDto>();
             CreateMap<ResponseBuilding, ResponseBuildingDto>()
+                .ForMember(d => d.Details, o => o.MapFrom(s => s.Details.OrderBy(x => x.SortOrder)))
                 .ForMember(d => d.BuildingType, o => o.MapFrom(s => (int)s.BuildingType))
                 .ForMember(d => d.BuildingTypeName, o => o.MapFrom(s => StudyRules.Name(s.BuildingType)));
             CreateMap<ResponseCostItem, ResponseCostItemDto>()

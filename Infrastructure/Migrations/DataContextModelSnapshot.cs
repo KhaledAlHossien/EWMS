@@ -823,6 +823,47 @@ namespace Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ResponseBuildingDetail", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Area")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<int>("BuildingType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Function")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("ResponseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResponseId", "BuildingType");
+
+                    b.ToTable("ResponseBuildingDetails", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ResponseBuildingDetails_Area", "[Area] > 0");
+                        });
+                });
+
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ResponseCostItem", b =>
                 {
                     b.Property<int>("Id")
@@ -1296,6 +1337,9 @@ namespace Infrastructure.Migrations
                     b.Property<int>("AssignmentId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("CostsInUsd")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -1339,6 +1383,10 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal?>("UsdToSypRate")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AssignmentId")
@@ -1353,7 +1401,10 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("Status", "CreatedAt");
 
-                    b.ToTable("StudyAssignmentResponses");
+                    b.ToTable("StudyAssignmentResponses", t =>
+                        {
+                            t.HasCheckConstraint("CK_StudyAssignmentResponses_UsdToSypRate", "[UsdToSypRate] IS NULL OR ([CostsInUsd] = 1 AND [UsdToSypRate] > 0)");
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyAttachment", b =>
@@ -4145,6 +4196,15 @@ namespace Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ResponseBuildingDetail", b =>
+                {
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.ResponseBuilding", null)
+                        .WithMany("Details")
+                        .HasForeignKey("ResponseId", "BuildingType")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ResponseCostItem", b =>
                 {
                     b.HasOne("Domain.Entities.CentralStudiesBranch.StudyAssignmentResponse", null)
@@ -5297,6 +5357,11 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ProjectStage", b =>
                 {
                     b.Navigation("Tasks");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ResponseBuilding", b =>
+                {
+                    b.Navigation("Details");
                 });
 
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyAssignment", b =>

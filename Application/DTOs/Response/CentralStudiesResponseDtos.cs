@@ -207,6 +207,14 @@ namespace Application.DTOs.Response
         public string BuildingTypeName { get; set; } = string.Empty;
         public int BuildingCount { get; set; }
         public decimal BuildingsArea { get; set; }
+        public List<ResponseBuildingDetailDto> Details { get; set; } = [];
+    }
+
+    public class ResponseBuildingDetailDto
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Function { get; set; } = string.Empty;
+        public decimal Area { get; set; }
     }
 
     public class ResponseCostItemDto
@@ -257,6 +265,8 @@ namespace Application.DTOs.Response
         public decimal? SiteArea { get; set; }
         /// <summary>التكلفة المبدئية المدخلة يدوياً (جزء القسم المتابع)</summary>
         public decimal? InitialCost { get; set; }
+        public bool CostsInUsd { get; set; }
+        public decimal? UsdToSypRate { get; set; }
         /// <summary>مجموع جدول التكلفة التفصيلي (يُحسب)</summary>
         public decimal TotalCost { get; set; }
         /// <summary>يعدّل جزء القسم المتابع الآن (مسودة أو مرفوض، من قسم التكليف)</summary>
