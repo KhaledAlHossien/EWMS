@@ -30,11 +30,13 @@ namespace Application.Features.CentralStudies.Assignments.Commands.Create
             StudyRules.EnsureApproved(studyRequest.Status, "الطلب");
             if (await _service.ExistsForRequestAsync(studyRequest.Id))
                 throw new InvalidOperationException("للطلب تكليف داخلي مسبقاً — تكليف واحد لكل طلب");
-            await _support.ValidateAsync(request.Dto, studyRequest.BranchId, null);
+            await _support.EnsureDepartmentAsync(request.Dto.FollowingDepartmentId, studyRequest.BranchId);
+            var projectCode = await _support.NewProjectCodeAsync(studyRequest, request.Dto.AssignmentDate, request.Dto.AdminArchiveNumber);
 
             var entity = new StudyAssignment
             {
                 RequestId = studyRequest.Id,
+                ProjectCode = projectCode,
                 CreatedByUserId = viewer.Id,
                 Status = StudyDocumentStatus.Draft,
                 CreatedAt = DateTime.Now

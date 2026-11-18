@@ -91,7 +91,7 @@ namespace Infrastructure.Persistence.Data
             {
                 e.Property(x => x.AssignmentNumber).HasMaxLength(30).IsRequired();
                 e.Property(x => x.AssignmentDate).HasColumnType("date");
-                e.Property(x => x.ProjectCode).HasMaxLength(50);
+                e.Property(x => x.ProjectCode).HasMaxLength(100);
                 e.Property(x => x.AllocatedBudget).HasPrecision(18, 2);
                 e.Property(x => x.ScopeSummary).HasMaxLength(4000).IsRequired();
                 e.Property(x => x.ReferralDate).HasColumnType("date");
@@ -203,7 +203,7 @@ namespace Infrastructure.Persistence.Data
             // ==================== المشروع ====================
             builder.Entity<StudyProject>(e =>
             {
-                e.Property(x => x.Code).HasMaxLength(50).IsRequired();
+                e.Property(x => x.Code).HasMaxLength(100).IsRequired();
                 e.Property(x => x.Name).HasMaxLength(200).IsRequired();
                 e.Property(x => x.PlannedStartDate).HasColumnType("date");
                 e.Property(x => x.PlannedEndDate).HasColumnType("date");

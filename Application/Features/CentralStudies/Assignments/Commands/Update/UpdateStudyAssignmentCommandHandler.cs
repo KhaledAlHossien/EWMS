@@ -23,7 +23,7 @@ namespace Application.Features.CentralStudies.Assignments.Commands.Update
             var viewer = await _kit.ViewerAsync();
             var entity = await _support.LoadAsync(request.Id, viewer);
             StudyRules.EnsureEditable(entity.Status);
-            await _support.ValidateAsync(request.Dto, entity.Request.BranchId, entity.Id);
+            await _support.EnsureDepartmentAsync(request.Dto.FollowingDepartmentId, entity.Request.BranchId);
 
             StudyAssignmentSupport.Apply(request.Dto, entity);
             entity.Status = StudyDocumentStatus.Draft;
