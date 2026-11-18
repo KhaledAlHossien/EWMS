@@ -29,6 +29,10 @@ namespace Domain.Entities.CentralStudiesBranch
         public decimal? SiteArea { get; set; }
         /// <summary>التكلفة المبدئية — حقل واحد للرد كله (جزء القسم المتابع)، بجانب مجموع الجدول التفصيلي</summary>
         public decimal? InitialCost { get; set; }
+        /// <summary>الأرقام المالية في الرد بالدولار عند تفعيل هذا الحقل؛ الردود السابقة تحتفظ بقيمها.</summary>
+        public bool CostsInUsd { get; set; }
+        /// <summary>سعر الصرف المدخل يدوياً: ليرات سورية لكل دولار أمريكي.</summary>
+        public decimal? UsdToSypRate { get; set; }
         /// <summary>المدة اللازمة بالأيام التقويمية (جزء التخطيط)</summary>
         public int? RequiredDays { get; set; }
 
@@ -52,6 +56,18 @@ namespace Domain.Entities.CentralStudiesBranch
         public StudyBuildingType BuildingType { get; set; }
         public int BuildingCount { get; set; }
         public decimal BuildingsArea { get; set; }
+        public List<ResponseBuildingDetail> Details { get; set; } = [];
+    }
+
+    public class ResponseBuildingDetail
+    {
+        public int Id { get; set; }
+        public int ResponseId { get; set; }
+        public StudyBuildingType BuildingType { get; set; }
+        public int SortOrder { get; set; }
+        public string Code { get; set; } = string.Empty;
+        public string Function { get; set; } = string.Empty;
+        public decimal Area { get; set; }
     }
 
     /// <summary>بند تكلفة — الإجمالي (الكمية × سعر الوحدة) يُحسب ولا يُخزَّن</summary>

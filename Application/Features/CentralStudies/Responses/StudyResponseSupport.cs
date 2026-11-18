@@ -89,11 +89,27 @@ namespace Application.Features.CentralStudies.Responses
         /// <summary>جزء القسم المتابع: الحقول البسيطة + المباني بنوعها (مفتاحها مركّب) وبنود التكلفة تُستبدل</summary>
         public static void Apply(StudyResponseFormDto dto, StudyAssignmentResponse e)
         {
+            var costsInUsd = e.CostsInUsd || dto.CostsInUsd;
+            if (!costsInUsd && dto.UsdToSypRate != null)
+                throw new InvalidOperationException("سعر الصرف يُستخدم فقط عند التسعير بالدولار");
+
+            if (dto.Buildings.Sum(b => (long)b.BuildingCount) > 1 &&
+                dto.Buildings.Any(b => b.BuildingCount > 0 && b.Details.Count == 0) &&
+                !KeepsLegacyBuildingSummary(dto, e))
+                throw new InvalidOperationException("أدخل الرمز والوظيفة والمساحة لكل مبنى");
+
+            var areas = dto.Buildings.ToDictionary(b => b.BuildingType,
+                b => b.Details.Count == 0 ? b.BuildingsArea : b.Details.Sum(d => d.Area));
+            if (areas.Values.Any(a => a > StudyResponseFormValidator.MaxBuildingArea))
+                throw new InvalidOperationException("المساحة الإجمالية للمباني خارج النطاق");
+
             e.ResponseDate = dto.ResponseDate.Date;
             e.ProposedManagerUserId = dto.ProposedManagerUserId;
             e.Recommendation = (StudyRecommendation)dto.Recommendation;
             e.SiteArea = dto.SiteArea;
             e.InitialCost = dto.InitialCost;
+            e.CostsInUsd = costsInUsd;
+            e.UsdToSypRate = dto.UsdToSypRate;
 
             var buildingTypes = dto.Buildings.Select(b => (StudyBuildingType)b.BuildingType).ToHashSet();
             e.Buildings.RemoveAll(b => !buildingTypes.Contains(b.BuildingType));
@@ -103,7 +119,15 @@ namespace Application.Features.CentralStudies.Responses
                 var row = e.Buildings.FirstOrDefault(x => x.BuildingType == type);
                 if (row == null) e.Buildings.Add(row = new ResponseBuilding { BuildingType = type });
                 row.BuildingCount = b.BuildingCount;
-                row.BuildingsArea = b.BuildingsArea;
+                row.BuildingsArea = areas[b.BuildingType];
+                row.Details.Clear();
+                row.Details.AddRange(b.Details.Select((d, i) => new ResponseBuildingDetail
+                {
+                    SortOrder = i + 1,
+                    Code = d.Code.Trim(),
+                    Function = d.Function.Trim(),
+                    Area = d.Area
+                }));
             }
 
             e.CostItems.Clear();
@@ -116,5 +140,11 @@ namespace Application.Features.CentralStudies.Responses
                 UnitPrice = c.UnitPrice
             }));
         }
+
+        private static bool KeepsLegacyBuildingSummary(StudyResponseFormDto dto, StudyAssignmentResponse e) =>
+            dto.Buildings.Count == e.Buildings.Count &&
+            dto.Buildings.All(b => b.Details.Count == 0 && e.Buildings.Any(saved =>
+                (int)saved.BuildingType == b.BuildingType && saved.Details.Count == 0 &&
+                saved.BuildingCount == b.BuildingCount && saved.BuildingsArea == b.BuildingsArea));
     }
 }

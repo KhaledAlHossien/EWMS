@@ -172,7 +172,7 @@ namespace Infrastructure.Persistence.Repositories
             .Include(r => r.Assignment).ThenInclude(a => a.FollowingDepartment)
             .Include(r => r.ProposedManager)
             .Include(r => r.CreatedBy)
-            .Include(r => r.Buildings)
+            .Include(r => r.Buildings).ThenInclude(b => b.Details)
             .Include(r => r.CostItems)
             .Include(r => r.StaffEstimates).ThenInclude(s => s.Discipline)
             .Include(r => r.LogisticItems)

@@ -118,6 +118,9 @@ namespace Infrastructure.Persistence.Data
                 e.Property(x => x.ResponseDate).HasColumnType("date");
                 e.Property(x => x.SiteArea).HasPrecision(12, 2);
                 e.Property(x => x.InitialCost).HasPrecision(18, 2);
+                e.Property(x => x.UsdToSypRate).HasPrecision(18, 6);
+                e.ToTable(t => t.HasCheckConstraint("CK_StudyAssignmentResponses_UsdToSypRate",
+                    "[UsdToSypRate] IS NULL OR ([CostsInUsd] = 1 AND [UsdToSypRate] > 0)"));
                 e.Property(x => x.Recommendation).HasConversion<int>();
                 e.Property(x => x.Status).HasConversion<int>();
                 e.Property(x => x.RowVersion).IsRowVersion();
@@ -136,6 +139,17 @@ namespace Infrastructure.Persistence.Data
                 e.Property(x => x.BuildingsArea).HasPrecision(12, 2);
                 e.HasOne<StudyAssignmentResponse>().WithMany(r => r.Buildings).HasForeignKey(x => x.ResponseId).OnDelete(DeleteBehavior.Cascade);
                 e.ToTable(t => t.HasCheckConstraint("CK_ResponseBuildings_Count", "[BuildingCount] >= 0"));
+            });
+
+            builder.Entity<ResponseBuildingDetail>(e =>
+            {
+                e.ToTable("ResponseBuildingDetails", t => t.HasCheckConstraint("CK_ResponseBuildingDetails_Area", "[Area] > 0"));
+                e.Property(x => x.BuildingType).HasConversion<int>();
+                e.Property(x => x.Code).HasMaxLength(50).IsRequired();
+                e.Property(x => x.Function).HasMaxLength(200).IsRequired();
+                e.Property(x => x.Area).HasPrecision(12, 2);
+                e.HasOne<ResponseBuilding>().WithMany(b => b.Details)
+                    .HasForeignKey(x => new { x.ResponseId, x.BuildingType }).OnDelete(DeleteBehavior.Cascade);
             });
 
             builder.Entity<ResponseCostItem>(e =>

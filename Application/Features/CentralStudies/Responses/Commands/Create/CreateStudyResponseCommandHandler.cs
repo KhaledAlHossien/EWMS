@@ -34,16 +34,17 @@ namespace Application.Features.CentralStudies.Responses.Commands.Create
                 throw new UnauthorizedAccessException("يكتب الرد موظفو القسم المتابع للتكليف");
             await _support.ValidateAsync(request.Dto, assignment.Request.BranchId);
 
-            var year = DateTime.Today.Year;
             var entity = new StudyAssignmentResponse
             {
-                ResponseNumber = StudyRules.FormatNumber(StudyDocumentType.Response, year, await _numbers.NextAsync(StudyDocumentType.Response, year)),
                 AssignmentId = assignment.Id,
+                CostsInUsd = true,
                 CreatedByUserId = viewer.Id,
                 Status = StudyDocumentStatus.Draft,
                 CreatedAt = DateTime.Now
             };
             StudyResponseSupport.Apply(request.Dto, entity);
+            var year = DateTime.Today.Year;
+            entity.ResponseNumber = StudyRules.FormatNumber(StudyDocumentType.Response, year, await _numbers.NextAsync(StudyDocumentType.Response, year));
             await _service.AddAsync(entity);
             await _kit.LogAsync(assignment.RequestId, StudyEntityType.Response, entity.Id, StudyLogAction.Created,
                 $"كتب إشعار الرد على التكليف {assignment.AssignmentNumber}");
