@@ -87,7 +87,8 @@ namespace Application.DTOs.Request
         public int RequestId { get; set; }
         public int FollowingDepartmentId { get; set; }
         public DateTime AssignmentDate { get; set; }
-        public string? ProjectCode { get; set; }
+        /// <summary>يُستخدم عند غياب رقم أرشيف ديوان الإدارة من الطلب المرتبط.</summary>
+        public string? AdminArchiveNumber { get; set; }
         public decimal? AllocatedBudget { get; set; }
         public string ScopeSummary { get; set; } = string.Empty;
         public bool NeedsTechnicalEvaluation { get; set; }
