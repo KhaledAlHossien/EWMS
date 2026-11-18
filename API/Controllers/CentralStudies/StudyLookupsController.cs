@@ -18,7 +18,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers
 {
     /// <summary>
-    /// فرع الدراسات — القوائم: أنواع المراحل، أنواع المرفقات، الاختصاصات الهندسية، وقيم التعدادات للواجهة.
+    /// فرع الدراسات — القوائم: أنواع المراحل، أنواع المرفقات، الاختصاصات الهندسية، الجهات المستفيدة، وقيم التعدادات للواجهة.
     /// العرض ViewStudyLookups، والإدارة Create/Edit/DeleteStudyLookup.
     /// </summary>
     [ApiController]
@@ -96,6 +96,31 @@ namespace API.Controllers
         {
             await _mediator.Send(new DeleteStudyLookupCommand(StudyLookupKind.AttachmentType, id));
             return Ok(new { message = "تم حذف نوع المرفق" });
+        }
+
+        // ════════ الجهات المستفيدة ════════
+
+        [HttpGet("Beneficiaries/GetAll")]
+        [Authorize(Policy = "AnyStudyBeneficiaryPick")]
+        public async Task<ActionResult<List<StudyLookupDto>>> GetBeneficiaries([FromQuery] bool activeOnly = false)
+            => Ok(await _mediator.Send(new GetStudyLookupsQuery(StudyLookupKind.Beneficiary, activeOnly)));
+
+        [HttpPost("Beneficiaries/Create")]
+        [Authorize(Policy = "CreateStudyLookup")]
+        public async Task<ActionResult<StudyLookupDto>> CreateBeneficiary([FromBody] StudyLookupFormDto dto)
+            => Ok(await _mediator.Send(new CreateStudyLookupCommand(StudyLookupKind.Beneficiary, dto)));
+
+        [HttpPut("Beneficiaries/Update/{id}")]
+        [Authorize(Policy = "EditStudyLookup")]
+        public async Task<ActionResult<StudyLookupDto>> UpdateBeneficiary(int id, [FromBody] StudyLookupFormDto dto)
+            => Ok(await _mediator.Send(new UpdateStudyLookupCommand(StudyLookupKind.Beneficiary, id, dto)));
+
+        [HttpDelete("Beneficiaries/Delete/{id}")]
+        [Authorize(Policy = "DeleteStudyLookup")]
+        public async Task<ActionResult> DeleteBeneficiary(int id)
+        {
+            await _mediator.Send(new DeleteStudyLookupCommand(StudyLookupKind.Beneficiary, id));
+            return Ok(new { message = "تم حذف الجهة المستفيدة" });
         }
 
         // ════════ الاختصاصات الهندسية ════════

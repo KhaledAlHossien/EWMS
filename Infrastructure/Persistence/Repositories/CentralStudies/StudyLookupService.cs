@@ -59,6 +59,23 @@ namespace Infrastructure.Persistence.Repositories
             return await _context.EngineeringDisciplines.CountAsync(d => list.Contains(d.Id) && d.IsActive);
         }
 
+        // ----- الجهات المستفيدة -----
+        public async Task<List<StudyBeneficiary>> GetBeneficiariesAsync(bool activeOnly) =>
+            await _context.StudyBeneficiaries.Where(x => !activeOnly || (x.IsActive && x.Code != null && x.Code != ""))
+                .OrderBy(x => x.Name).AsNoTracking().ToListAsync();
+
+        public async Task<StudyBeneficiary?> GetBeneficiaryAsync(int id) =>
+            await _context.StudyBeneficiaries.FirstOrDefaultAsync(x => x.Id == id);
+
+        public async Task<bool> BeneficiaryNameExistsAsync(string name, int? excludeId = null) =>
+            await _context.StudyBeneficiaries.AnyAsync(x => x.Name == name && x.Id != excludeId);
+
+        public async Task<bool> BeneficiaryCodeExistsAsync(string code, int? excludeId = null) =>
+            await _context.StudyBeneficiaries.AnyAsync(x => x.Code == code && x.Id != excludeId);
+
+        public async Task<bool> BeneficiaryInUseAsync(int id) =>
+            await _context.StudyRequests.AnyAsync(x => x.MainBeneficiaryId == id);
+
         // ----- موظفو الفرع لقوائم الاختيار (إسقاط مباشر: لا تُقرأ الحقول الحساسة أصلاً) -----
         public async Task<List<StudyEmployeeDto>> GetEmployeesAsync(int branchId, int? departmentId) =>
             await _context.Users.AsNoTracking()

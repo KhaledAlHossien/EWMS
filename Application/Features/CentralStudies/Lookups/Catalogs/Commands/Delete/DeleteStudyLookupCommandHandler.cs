@@ -14,6 +14,14 @@ namespace Application.Features.CentralStudies.Lookups.Catalogs.Commands.Delete
 
         public async Task<Unit> Handle(DeleteStudyLookupCommand request, CancellationToken ct)
         {
+            if (request.Kind == StudyLookupKind.Beneficiary)
+            {
+                var entity = await _service.GetBeneficiaryAsync(request.Id) ?? throw new KeyNotFoundException("الجهة المستفيدة غير موجودة");
+                if (await _service.BeneficiaryInUseAsync(entity.Id))
+                    throw new InvalidOperationException("لا تُحذف جهة مستفيدة مستخدمة في طلبات دراسة — عطّلها بدلاً من ذلك");
+                await _service.RemoveAsync(entity);
+                return Unit.Value;
+            }
             if (request.Kind == StudyLookupKind.AttachmentType)
             {
                 var entity = await _service.GetAttachmentTypeAsync(request.Id) ?? throw new KeyNotFoundException("نوع المرفق غير موجود");

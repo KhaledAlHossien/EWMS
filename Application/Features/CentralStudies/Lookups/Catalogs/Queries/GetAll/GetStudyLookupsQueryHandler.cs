@@ -16,10 +16,14 @@ namespace Application.Features.CentralStudies.Lookups.Catalogs.Queries.GetAll
             _mapper = mapper;
         }
 
-        // ----- أنواع المرفقات والاختصاصات -----
+        // ----- أنواع المرفقات والاختصاصات والجهات المستفيدة -----
         public async Task<List<StudyLookupDto>> Handle(GetStudyLookupsQuery request, CancellationToken ct) =>
-            request.Kind == StudyLookupKind.AttachmentType
-                ? _mapper.Map<List<StudyLookupDto>>(await _service.GetAttachmentTypesAsync(request.ActiveOnly))
-                : _mapper.Map<List<StudyLookupDto>>(await _service.GetDisciplinesAsync(request.ActiveOnly));
+            request.Kind switch
+            {
+                StudyLookupKind.AttachmentType => _mapper.Map<List<StudyLookupDto>>(await _service.GetAttachmentTypesAsync(request.ActiveOnly)),
+                StudyLookupKind.Discipline => _mapper.Map<List<StudyLookupDto>>(await _service.GetDisciplinesAsync(request.ActiveOnly)),
+                StudyLookupKind.Beneficiary => _mapper.Map<List<StudyLookupDto>>(await _service.GetBeneficiariesAsync(request.ActiveOnly)),
+                _ => throw new ArgumentOutOfRangeException(nameof(request.Kind))
+            };
     }
 }

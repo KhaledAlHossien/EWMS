@@ -51,6 +51,7 @@
 | GET/POST/PUT/DELETE | `StageTypes/GetAll?activeOnly`، `StageTypes/Create`، `StageTypes/Update/{id}`، `StageTypes/Delete/{id}` | View/Create/Edit/DeleteStudyLookup | `linkedDocument`: 0 لا شيء، 1 طلب، 2 تكليف، 3 رد، 4 أمر بدء |
 | GET/POST/PUT/DELETE | `AttachmentTypes/…` بالنمط نفسه | العرض: أي صلاحية عرض للدراسات | |
 | GET/POST/PUT/DELETE | `Disciplines/…` بالنمط نفسه | ViewStudyLookups… | |
+| GET/POST/PUT/DELETE | `Beneficiaries/…` بالنمط نفسه | القراءة: أي صلاحية للقوائم View/Create/Edit/DeleteStudyLookup أو Create/EditStudyRequest؛ الإدارة: Create/Edit/DeleteStudyLookup | اسم حتى 200 حرف + رمز `code` مطلوب وفريد حتى 30 حرفاً + `isActive`؛ و`activeOnly=true` يعيد الجهات الفعالة ذات الرمز المكتمل |
 | GET | `Employees?branchId&departmentId` | `AnyStudyEmployeePick` (أيٌّ من: Create/EditStudyResponse، Create/EditStudyStartOrder، EditStudyProject، AddStudyProjectMember) | موظفو فرع الدراسة لقوائم الاختيار — انظر تحت الجدول |
 
 **`Employees`: قائمة اختيار الموظفين بلا `ViewUsers`:**
@@ -66,6 +67,14 @@
 - **مطابقة الخادم:** ما في القائمة هو ما يقبله الخادم. مدير المشروع المقترح ومدير المشروع والمهندسون يجب أن يكونوا موظفين نشطين من فرع الدراسة، وإلا يعود 400 «… ليس من موظفي فرع الدراسة»، أو 404 للموظف غير النشط. والعضو يجب أن يكون من القسم المشارك نفسه.
 
 ### المستندات
+
+**الجهة المستفيدة في الطلب:** يرسل الإنشاء والتعديل `mainBeneficiaryId` لجهة فعالة من قائمة الجهات المستفيدة.
+يأخذ الخادم اسمها ورمزها من القائمة ويحفظهما في `mainBeneficiary` و`entityCode`؛ لا يعتمد الاسم أو الرمز الذي يرسله العميل.
+حقل الرمز في الطلب يُملأ تلقائياً ويُعرض للقراءة فقط؛ الأصفار في بداية الرمز تبقى محفوظة لأن الرمز نص.
+يمكن إبقاء الجهة نفسها عند تعديل طلب قديم حتى بعد تعطيلها أو تغيير اسمها، ويبقى الاسم الأصلي في المستند.
+الجهة المستخدمة في طلبات لا تُحذف، بل تُعطّل. الترحيل `Study_Beneficiaries` يستورد أسماء الجهات الحالية ويربط الطلبات بها.
+الترحيل `Study_Beneficiary_Codes` يستعيد الرمز من الطلبات القديمة إذا كان رمزاً واحداً للجهة وغير مشترك مع جهة أخرى؛
+الرموز الناقصة أو المتعارضة تستكمل من الإعدادات قبل اختيار الجهة أو حفظ تعديل طلبها. لا يغيّر الترحيل رموز المستندات السابقة.
 
 المستندات هي `api/StudyRequests` و`api/StudyAssignments` و`api/StudyResponses` و`api/StudyStartOrders`، ولكل منها المسارات نفسها:
 

@@ -306,6 +306,8 @@
             ["AnyStudyView"] = ["ViewStudyRequests", "ViewStudyAssignments", "ViewStudyResponses", "ViewStudyStartOrders",
                 "ViewStudyProjects", "ViewStudyDrawings", "ViewStudyActivityLog"],
             ["AnyStudyTaskView"] = ["ViewStudyProjects", "UpdateStudyTaskProgress"],
+            ["AnyStudyBeneficiaryPick"] = ["ViewStudyLookups", "CreateStudyLookup", "EditStudyLookup", "DeleteStudyLookup",
+                "CreateStudyRequest", "EditStudyRequest"],
             // قائمة موظفي فرع الدراسة (بلا بيانات حساسة): لمن يختار مدير المشروع أو المهندسين أو أعضاء الفريق
             ["AnyStudyEmployeePick"] = ["CreateStudyResponse", "EditStudyResponse", "CreateStudyStartOrder", "EditStudyStartOrder",
                 "EditStudyProject", "AddStudyProjectMember"],

@@ -25,7 +25,10 @@ namespace Application.Features.CentralStudies.Requests.Commands.Update
             StudyRules.EnsureEditable(entity.Status);
             await _support.EnsureSiteAsync(request.Dto.SiteId);
 
+            var beneficiary = await _support.BeneficiaryAsync(request.Dto.MainBeneficiaryId, entity);
             _kit.Mapper.Map(request.Dto, entity);
+            entity.MainBeneficiary = beneficiary.Name;
+            entity.EntityCode = beneficiary.Code;
             StudyRequestSupport.Normalize(entity);
             entity.Status = StudyDocumentStatus.Draft;
             entity.UpdatedAt = DateTime.Now;

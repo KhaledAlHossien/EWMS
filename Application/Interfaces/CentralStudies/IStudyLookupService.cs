@@ -3,7 +3,7 @@ using Domain.Entities.CentralStudiesBranch;
 
 namespace Application.Interfaces
 {
-    /// <summary>قوائم فرع الدراسات: أنواع المراحل، أنواع المرفقات، الاختصاصات الهندسية</summary>
+    /// <summary>قوائم فرع الدراسات: أنواع المراحل، أنواع المرفقات، الاختصاصات الهندسية، الجهات المستفيدة</summary>
     public interface IStudyLookupService
     {
         Task<List<StudyStageType>> GetStageTypesAsync(bool activeOnly);
@@ -23,6 +23,12 @@ namespace Application.Interfaces
         Task<bool> DisciplineInUseAsync(int id);
         /// <summary>عدد الاختصاصات الفعّالة الموجودة من المعرّفات المعطاة</summary>
         Task<int> CountActiveDisciplinesAsync(IEnumerable<int> ids);
+
+        Task<List<StudyBeneficiary>> GetBeneficiariesAsync(bool activeOnly);
+        Task<StudyBeneficiary?> GetBeneficiaryAsync(int id);
+        Task<bool> BeneficiaryNameExistsAsync(string name, int? excludeId = null);
+        Task<bool> BeneficiaryCodeExistsAsync(string code, int? excludeId = null);
+        Task<bool> BeneficiaryInUseAsync(int id);
 
         /// <summary>موظفو الفرع النشطون (اختيارياً قسم واحد منه) بالاسم والقسم والمكتب فقط</summary>
         Task<List<StudyEmployeeDto>> GetEmployeesAsync(int branchId, int? departmentId);
