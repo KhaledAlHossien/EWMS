@@ -34,6 +34,15 @@ namespace Infrastructure.Persistence.Data
                 e.HasIndex(x => x.Name).IsUnique();
             });
 
+            builder.Entity<StudyBeneficiary>(e =>
+            {
+                e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+                e.Property(x => x.Code).HasMaxLength(30);
+                e.HasIndex(x => x.Name).IsUnique();
+                e.HasIndex(x => x.Code).IsUnique().HasFilter("[Code] IS NOT NULL");
+                e.ToTable(t => t.HasCheckConstraint("CK_StudyBeneficiaries_Code", "[Code] IS NULL OR LEN(LTRIM(RTRIM([Code]))) > 0"));
+            });
+
             builder.Entity<EngineeringDiscipline>(e =>
             {
                 e.Property(x => x.Name).HasMaxLength(100).IsRequired();
@@ -69,6 +78,7 @@ namespace Infrastructure.Persistence.Data
 
                 e.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.Site).WithMany().HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.MainBeneficiaryEntity).WithMany().HasForeignKey(x => x.MainBeneficiaryId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
 
                 e.HasIndex(x => x.RequestNumber).IsUnique();

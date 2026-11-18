@@ -23,6 +23,16 @@ namespace Domain.Entities.CentralStudiesBranch
         public bool IsActive { get; set; }
     }
 
+    /// <summary>الجهات المستفيدة الرئيسية التي تُختار في طلب تجهيز الدراسة</summary>
+    public class StudyBeneficiary
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        /// <summary>مطلوب عند الإدارة والاختيار؛ null للبيانات القديمة التي تحتاج استكمال الرمز</summary>
+        public string? Code { get; set; }
+        public bool IsActive { get; set; }
+    }
+
     /// <summary>اختصاص هندسي: مدني، معماري، ديكور، كهرباء، ميكانيك…</summary>
     public class EngineeringDiscipline
     {

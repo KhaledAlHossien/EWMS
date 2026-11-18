@@ -24,8 +24,9 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.RowVersion, o => o.Ignore())
                 .ForMember(d => d.LinkedDocument, o => o.MapFrom(s => (StudyLinkedDocument)s.LinkedDocument));
 
-            CreateMap<StudyAttachmentType, StudyLookupDto>();
-            CreateMap<EngineeringDiscipline, StudyLookupDto>();
+            CreateMap<StudyAttachmentType, StudyLookupDto>().ForMember(d => d.Code, o => o.Ignore());
+            CreateMap<EngineeringDiscipline, StudyLookupDto>().ForMember(d => d.Code, o => o.Ignore());
+            CreateMap<StudyBeneficiary, StudyLookupDto>();
             CreateMap<StudyLookupFormDto, StudyAttachmentType>().ForMember(d => d.Id, o => o.Ignore());
             CreateMap<StudyLookupFormDto, EngineeringDiscipline>().ForMember(d => d.Id, o => o.Ignore());
 
@@ -54,6 +55,9 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.Chain, o => o.Ignore())
                 .ForMember(d => d.Approvals, o => o.Ignore());
             CreateMap<StudyRequestFormDto, StudyRequest>()
+                .ForMember(d => d.MainBeneficiary, o => o.Ignore())
+                .ForMember(d => d.EntityCode, o => o.Ignore())
+                .ForMember(d => d.MainBeneficiaryEntity, o => o.Ignore())
                 .ForMember(d => d.Urgency, o => o.MapFrom(s => (StudyUrgency)s.Urgency))
                 .ForMember(d => d.WorkType, o => o.MapFrom(s => (StudyWorkType)s.WorkType))
                 .ForMember(d => d.RequestDate, o => o.MapFrom(s => s.RequestDate.Date))

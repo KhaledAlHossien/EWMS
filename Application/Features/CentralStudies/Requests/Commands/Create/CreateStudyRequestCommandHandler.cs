@@ -33,6 +33,9 @@ namespace Application.Features.CentralStudies.Requests.Commands.Create
             await _support.EnsureSiteAsync(request.Dto.SiteId);
 
             var entity = _kit.Mapper.Map<StudyRequest>(request.Dto);
+            var beneficiary = await _support.BeneficiaryAsync(request.Dto.MainBeneficiaryId);
+            entity.MainBeneficiary = beneficiary.Name;
+            entity.EntityCode = beneficiary.Code;
             StudyRequestSupport.Normalize(entity);
             var number = await _numbers.NextAsync(StudyDocumentType.Request, DateTime.Today.Year);
             entity.RequestNumber = StudyRules.FormatNumber(StudyDocumentType.Request, DateTime.Today.Year, number);

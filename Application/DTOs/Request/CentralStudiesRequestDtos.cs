@@ -15,10 +15,12 @@ namespace Application.DTOs.Request
         public bool IsActive { get; set; } = true;
     }
 
-    /// <summary>عنصر قائمة بسيطة: نوع مرفق أو اختصاص هندسي</summary>
+    /// <summary>عنصر قائمة بسيطة: نوع مرفق أو اختصاص هندسي أو جهة مستفيدة</summary>
     public class StudyLookupFormDto
     {
         public string Name { get; set; } = string.Empty;
+        /// <summary>مطلوب للجهات المستفيدة فقط</summary>
+        public string? Code { get; set; }
         public bool IsActive { get; set; } = true;
     }
 
@@ -56,6 +58,8 @@ namespace Application.DTOs.Request
         public string? BeneficiaryArchiveNumber { get; set; }
         public DateTime? AddedDate { get; set; }
         public string? EntityCode { get; set; }
+        public int? MainBeneficiaryId { get; set; }
+        /// <summary>للتوافق مع عرض المستند؛ الخادم يأخذ الاسم من الجهة المختارة</summary>
         public string MainBeneficiary { get; set; } = string.Empty;
         public string? SubBeneficiary { get; set; }
         /// <summary>رمز المحافظة SY01…SY14</summary>

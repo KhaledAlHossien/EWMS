@@ -1465,6 +1465,41 @@ namespace Infrastructure.Migrations
                     b.ToTable("StudyAttachmentTypes");
                 });
 
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyBeneficiary", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasFilter("[Code] IS NOT NULL");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("StudyBeneficiaries", t =>
+                        {
+                            t.HasCheckConstraint("CK_StudyBeneficiaries_Code", "[Code] IS NULL OR LEN(LTRIM(RTRIM([Code]))) > 0");
+                        });
+                });
+
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyNumberSequence", b =>
                 {
                     b.Property<int>("DocumentType")
@@ -1627,6 +1662,9 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int?>("MainBeneficiaryId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("MinistryArchiveDate")
                         .HasColumnType("date");
 
@@ -1680,6 +1718,8 @@ namespace Infrastructure.Migrations
                     b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("MainBeneficiary");
+
+                    b.HasIndex("MainBeneficiaryId");
 
                     b.HasIndex("RequestNumber")
                         .IsUnique();
@@ -4462,6 +4502,11 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyBeneficiary", "MainBeneficiaryEntity")
+                        .WithMany()
+                        .HasForeignKey("MainBeneficiaryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Domain.Entities.Site", "Site")
                         .WithMany()
                         .HasForeignKey("SiteId")
@@ -4470,6 +4515,8 @@ namespace Infrastructure.Migrations
                     b.Navigation("Branch");
 
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("MainBeneficiaryEntity");
 
                     b.Navigation("Site");
                 });

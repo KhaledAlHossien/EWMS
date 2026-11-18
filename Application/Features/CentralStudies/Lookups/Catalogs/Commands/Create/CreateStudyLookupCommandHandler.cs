@@ -20,6 +20,17 @@ namespace Application.Features.CentralStudies.Lookups.Catalogs.Commands.Create
         public async Task<StudyLookupDto> Handle(CreateStudyLookupCommand request, CancellationToken ct)
         {
             var name = request.Dto.Name.Trim();
+            if (request.Kind == StudyLookupKind.Beneficiary)
+            {
+                if (await _service.BeneficiaryNameExistsAsync(name))
+                    throw new InvalidOperationException("توجد جهة مستفيدة بهذا الاسم مسبقاً");
+                var code = StudyRules.Clean(request.Dto.Code) ?? throw new InvalidOperationException("رمز الجهة مطلوب");
+                if (await _service.BeneficiaryCodeExistsAsync(code))
+                    throw new InvalidOperationException("رمز الجهة مستخدم لجهة مستفيدة أخرى");
+                var entity = new StudyBeneficiary { Name = name, Code = code, IsActive = request.Dto.IsActive };
+                await _service.AddAsync(entity);
+                return _mapper.Map<StudyLookupDto>(entity);
+            }
             if (request.Kind == StudyLookupKind.AttachmentType)
             {
                 if (await _service.AttachmentTypeNameExistsAsync(name))

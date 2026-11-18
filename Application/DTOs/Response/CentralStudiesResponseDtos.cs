@@ -7,6 +7,7 @@ namespace Application.DTOs.Response
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string? Code { get; set; }
         public bool IsActive { get; set; }
     }
 
@@ -153,6 +154,7 @@ namespace Application.DTOs.Response
         public string? BeneficiaryArchiveNumber { get; set; }
         public DateTime? AddedDate { get; set; }
         public string? EntityCode { get; set; }
+        public int? MainBeneficiaryId { get; set; }
         public string MainBeneficiary { get; set; } = string.Empty;
         public string? SubBeneficiary { get; set; }
         public string GovernorateCode { get; set; } = string.Empty;
