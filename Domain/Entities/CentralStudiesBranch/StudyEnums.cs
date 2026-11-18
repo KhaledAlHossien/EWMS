@@ -14,7 +14,12 @@ namespace Domain.Entities.CentralStudiesBranch
 
     public enum StudyUrgency { Urgent = 1, Normal = 2 }
 
-    public enum StudyWorkType { Construction = 1, MaintenanceAndRestoration = 2 }
+    public enum StudyWorkType
+    {
+        Construction = 1,
+        MaintenanceAndRestoration = 2,
+        ConstructionAndMaintenanceAndRestoration = 3
+    }
 
     public enum StudyPriority { TopSecretUrgent = 1, Urgent = 2, Normal = 3 }
 

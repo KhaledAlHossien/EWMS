@@ -63,7 +63,7 @@ namespace Application.DTOs.Request
         public string? Area { get; set; }
         public string? CityOrVillage { get; set; }
         public string? PropertyNature { get; set; }
-        /// <summary>1 إنشاء، 2 صيانة وترميم</summary>
+        /// <summary>1 إنشاء، 2 صيانة وترميم، 3 إنشاء جديد / صيانة وترميم</summary>
         public int WorkType { get; set; }
         public string? FollowerName { get; set; }
         public string? FollowerPhone { get; set; }
