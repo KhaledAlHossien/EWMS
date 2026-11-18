@@ -58,6 +58,7 @@ namespace Application.Features.CentralStudies.Requests
 
         public static void Normalize(StudyRequest e)
         {
+            e.RequestNumber = e.RequestNumber.Trim();
             e.MainBeneficiary = e.MainBeneficiary.Trim();
             e.SubBeneficiary = StudyRules.Clean(e.SubBeneficiary);
             e.DiwanRequestNumber = StudyRules.Clean(e.DiwanRequestNumber);

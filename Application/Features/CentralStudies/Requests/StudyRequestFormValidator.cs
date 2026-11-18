@@ -10,6 +10,8 @@ namespace Application.Features.CentralStudies.Requests
     {
         public StudyRequestFormValidator()
         {
+            RuleFor(x => x.RequestNumber).NotEmpty().WithMessage("رقم طلب الدراسة من الديوان المركزي مطلوب")
+                .MaximumLength(30).WithMessage("رقم طلب الدراسة لا يتجاوز 30 حرفاً");
             RuleFor(x => x.RequestDate).NotEmpty().WithMessage("تاريخ الطلب مطلوب");
             RuleFor(x => x.Urgency).Must(v => Enum.IsDefined(typeof(StudyUrgency), v)).WithMessage("حدد الاستعجال");
             RuleFor(x => x.WorkType).Must(v => Enum.IsDefined(typeof(StudyWorkType), v)).WithMessage("حدد نوع العمل");
