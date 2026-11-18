@@ -28,11 +28,11 @@ namespace Domain.Entities.CentralStudiesBranch
         public int CreatedByUserId { get; set; }
         public User CreatedBy { get; set; } = null!;
 
-        public string RequestNumber { get; set; } = string.Empty;   // REQ-26-0001 من عدّاد الترقيم
+        public string RequestNumber { get; set; } = string.Empty;   // رقم الديوان المركزي — إدخال يدوي إلزامي
         public DateTime RequestDate { get; set; }
         public StudyUrgency Urgency { get; set; }
 
-        /// <summary>رقم الطلب من الديوان المركزي — يُدخَل يدوياً (لا ربط مع الديوان)، ويُطبع في ترويسة الطلب</summary>
+        /// <summary>حقل قديم محفوظ للتوافق مع البيانات السابقة؛ الرقم الرسمي هو RequestNumber</summary>
         public string? DiwanRequestNumber { get; set; }
         public string? MinistryArchiveNumber { get; set; }
         public DateTime? MinistryArchiveDate { get; set; }
