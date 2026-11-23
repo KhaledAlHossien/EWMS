@@ -1,7 +1,7 @@
 namespace Domain.Entities.CentralStudiesBranch
 {
     /// <summary>
-    /// أمر بدء دراسة مشروع (PIO) — واحد لكل رد (ResponseId فريد)، ويرتبط بالرد فقط؛ كود المشروع يُعرض من التكليف.
+    /// أمر بدء دراسة مشروع (PIO) — واحد لكل سلسلة دراسة؛ الأمر الجديد يصدر من كتاب الموافقة المركزي المحال.
     /// يوقّعه رئيس القسم المختص ثم رئيس الفرع. المهندسون المخصصون مستخدمون محددون من النظام (فريق الدراسة).
     /// </summary>
     public class StudyStartOrder : IStudyDocument
@@ -10,6 +10,8 @@ namespace Domain.Entities.CentralStudiesBranch
 
         public int ResponseId { get; set; }
         public StudyAssignmentResponse Response { get; set; } = null!;
+        public int? DiwanReplyId { get; set; }
+        public StudyDiwanReply? DiwanReply { get; set; }
 
         public int CompetentDepartmentId { get; set; }
         public Department CompetentDepartment { get; set; } = null!;

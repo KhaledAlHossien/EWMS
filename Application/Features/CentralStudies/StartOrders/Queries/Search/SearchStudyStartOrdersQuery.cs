@@ -4,7 +4,7 @@ using MediatR;
 
 namespace Application.Features.CentralStudies.StartOrders.Queries.Search
 {
-    // أمر بدء دراسة مشروع (PIO) — واحد لكل رد معتمد (التوصية ليست «غير متاح»)، يرتبط بالرد فقط.
+    // أمر بدء دراسة مشروع (PIO) — واحد لكل سلسلة دراسة، ومرجع الأمر الجديد هو كتاب الموافقة المحال.
     // يوقّعه رئيس القسم المختص ثم رئيس الفرع. المهندسون مستخدمون محددون (فريق الدراسة).
     public record SearchStudyStartOrdersQuery(StudyDocumentFilterDto Filter) : IRequest<PagedResultDto<StudyStartOrderDto>>;
 }

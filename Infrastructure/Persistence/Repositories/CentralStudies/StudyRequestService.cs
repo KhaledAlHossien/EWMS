@@ -78,6 +78,10 @@ namespace Infrastructure.Persistence.Repositories
                     AssignmentStatus = r.Assignment == null ? null : (int)r.Assignment.Status,
                     ResponseId = r.Assignment == null || r.Assignment.Response == null ? null : r.Assignment.Response.Id,
                     ResponseStatus = r.Assignment == null || r.Assignment.Response == null ? null : (int)r.Assignment.Response.Status,
+                    DiwanStage = r.Assignment == null || r.Assignment.Response == null ? null
+                        : r.Assignment.Response.DiwanCase != null ? (int)r.Assignment.Response.DiwanCase.Stage
+                        : r.Assignment.Response.Status == StudyDocumentStatus.Approved && r.Assignment.Response.StartOrder == null
+                            ? (int)StudyDiwanStage.AwaitingDispatch : null,
                     StartOrderId = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.StartOrder == null
                         ? null : r.Assignment.Response.StartOrder.Id,
                     StartOrderNumber = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.StartOrder == null
@@ -177,10 +181,14 @@ namespace Infrastructure.Persistence.Repositories
             .Include(r => r.StaffEstimates).ThenInclude(s => s.Discipline)
             .Include(r => r.LogisticItems)
             .Include(r => r.StartOrder)
+            .Include(r => r.DiwanCase).ThenInclude(d => d!.Replies)
             .AsSplitQuery();
 
         public async Task<StudyAssignmentResponse?> GetByIdAsync(int id) =>
             await WithDetails().FirstOrDefaultAsync(r => r.Id == id);
+
+        public async Task<StudyAssignmentResponse?> GetByDiwanReplyAsync(int replyId) =>
+            await WithDetails().FirstOrDefaultAsync(r => r.DiwanCase != null && r.DiwanCase.Replies.Any(reply => reply.Id == replyId));
 
         public async Task<(List<StudyAssignmentResponse> Items, int Total)> SearchAsync(
             StudyDocumentFilterDto filter, int? branchLimit, int page, int pageSize)
@@ -189,6 +197,15 @@ namespace Infrastructure.Persistence.Repositories
             if (branchLimit != null) query = query.Where(r => r.Assignment.Request.BranchId == branchLimit);
             if (filter.BranchId is int branchId) query = query.Where(r => r.Assignment.Request.BranchId == branchId);
             if (filter.Status is int status) query = query.Where(r => (int)r.Status == status);
+            if (filter.DiwanOnly)
+                query = query.Where(r => r.DiwanCase != null || (r.Status == StudyDocumentStatus.Approved && r.StartOrder == null));
+            if (filter.DiwanStage is int diwanStage)
+            {
+                query = query.Where(r => r.Status == StudyDocumentStatus.Approved);
+                query = diwanStage == (int)StudyDiwanStage.AwaitingDispatch
+                    ? query.Where(r => r.DiwanCase == null && r.StartOrder == null)
+                    : query.Where(r => r.DiwanCase != null && (int)r.DiwanCase.Stage == diwanStage);
+            }
             if (filter.From is DateTime from) query = query.Where(r => r.ResponseDate >= from.Date);
             if (filter.To is DateTime to) query = query.Where(r => r.ResponseDate <= to.Date);
             if (!string.IsNullOrWhiteSpace(filter.Search))
@@ -196,7 +213,9 @@ namespace Infrastructure.Persistence.Repositories
                 var text = filter.Search.Trim();
                 query = query.Where(r => r.ResponseNumber.Contains(text) || r.Assignment.AssignmentNumber.Contains(text)
                                          || (r.Assignment.ProjectCode != null && r.Assignment.ProjectCode.Contains(text))
-                                         || r.Assignment.Request.MainBeneficiary.Contains(text));
+                                         || r.Assignment.Request.MainBeneficiary.Contains(text)
+                                         || (r.DiwanCase != null && (r.DiwanCase.DispatchNumber.Contains(text)
+                                             || r.DiwanCase.Replies.Any(reply => reply.Number.Contains(text)))));
             }
 
             var total = await query.CountAsync();
@@ -222,6 +241,15 @@ namespace Infrastructure.Persistence.Repositories
             await SaveChangesAsync();
         }
 
+        public Task SaveDiwanStepAsync(StudyAssignmentResponse response, byte[] expectedRowVersion, StudyActivityLog activity,
+            IReadOnlyCollection<Domain.Entities.Notification> notifications)
+        {
+            ExpectVersion(response, expectedRowVersion);
+            _context.StudyActivityLogs.Add(activity);
+            _context.Notifications.AddRange(notifications);
+            return SaveChangesAsync();
+        }
+
         public async Task DeleteAsync(StudyAssignmentResponse response)
         {
             _context.StudyAssignmentResponses.Remove(response);
@@ -235,6 +263,7 @@ namespace Infrastructure.Persistence.Repositories
 
         private IQueryable<StudyStartOrder> WithDetails() => _context.StudyStartOrders
             .Include(o => o.Response).ThenInclude(r => r.Assignment).ThenInclude(a => a.Request).ThenInclude(q => q.Branch)
+            .Include(o => o.DiwanReply)
             .Include(o => o.CompetentDepartment)
             .Include(o => o.ProjectManager)
             .Include(o => o.CreatedBy)
@@ -285,6 +314,20 @@ namespace Infrastructure.Persistence.Repositories
         {
             ExpectVersion(order, expectedRowVersion);
             await SaveChangesAsync();
+        }
+
+        public async Task CancelAsync(StudyStartOrder order, StudyActivityLog activity, CancellationToken ct)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+            await LockStartOrderStatusAsync(order.Id, ct);
+            if (await _context.StudyProjects.AnyAsync(p => p.StartOrderId == order.Id && p.Status != StudyProjectStatus.Cancelled, ct))
+                throw new InvalidOperationException("لأمر البدء مشروع قائم — ألغِ المشروع أولاً");
+
+            order.Status = StudyDocumentStatus.Cancelled;
+            order.UpdatedAt = DateTime.Now;
+            _context.StudyActivityLogs.Add(activity);
+            await SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
         }
 
         public async Task DeleteAsync(StudyStartOrder order)

@@ -13,6 +13,7 @@ namespace Application.Interfaces
 
         Task<StudyStartOrder> AddAsync(StudyStartOrder order);
         Task UpdateAsync(StudyStartOrder order, byte[]? expectedRowVersion = null);
+        Task CancelAsync(StudyStartOrder order, StudyActivityLog activity, CancellationToken ct);
         Task DeleteAsync(StudyStartOrder order);
     }
 }

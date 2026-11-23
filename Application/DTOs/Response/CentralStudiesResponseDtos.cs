@@ -53,6 +53,7 @@ namespace Application.DTOs.Response
         public int? AssignmentStatus { get; set; }
         public int? ResponseId { get; set; }
         public int? ResponseStatus { get; set; }
+        public int? DiwanStage { get; set; }
         public int? StartOrderId { get; set; }
         public string? StartOrderNumber { get; set; }
         public int? StartOrderStatus { get; set; }
@@ -278,6 +279,8 @@ namespace Application.DTOs.Response
         public List<ResponseStaffDto> StaffEstimates { get; set; } = [];
         public List<StudyItemDto> LogisticItems { get; set; } = [];
         public bool CanCreateStartOrder { get; set; }
+        public int? DiwanStage { get; set; }
+        public StudyDiwanCaseDto? DiwanCase { get; set; }
     }
 
     public class StartOrderEngineerDto
@@ -290,6 +293,8 @@ namespace Application.DTOs.Response
 
     public class StudyStartOrderDto : StudyDocumentDtoBase
     {
+        public int? DiwanReplyId { get; set; }
+        public string? DiwanReplyNumber { get; set; }
         public int Id { get; set; }
         public int ResponseId { get; set; }
         public int AssignmentId { get; set; }
@@ -389,6 +394,7 @@ namespace Application.DTOs.Response
         public bool CanEdit { get; set; }
         public bool CanDelete { get; set; }
         public bool CanCancel { get; set; }
+        public bool CanReactivate { get; set; }
         /// <summary>كل المراحل مغلقة ولا طلب إنجاز معلّق</summary>
         public bool CanRequestCompletion { get; set; }
 

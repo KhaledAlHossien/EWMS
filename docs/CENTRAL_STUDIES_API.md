@@ -91,14 +91,14 @@
 - **الإنشاء يحمل معرّف المستند السابق:**
   - التكليف: `requestId`؛
   - الرد: `assignmentId`؛
-  - أمر البدء: `responseId`.
+  - أمر البدء: `diwanReplyId` لكتاب الموافقة المركزي المحال من رئيس الفرع.
 - **كود المشروع في التكليف:** يولّده الخادم من `رقم الفرع-سنة التكليف (رقمان)-نوع العمل (N/R/RN)-رقم الطلب-رقم أرشيف ديوان الإدارة`. تعيد `GET api/StudyAssignments/ProjectCode/{requestId}?assignmentDate=yyyy-MM-dd` القيمة `{ projectCode }` قبل الحفظ بصلاحية إنشاء التكليف. إذا خلا الطلب من رقم أرشيف ديوان الإدارة، يُرسل `adminArchiveNumber` في المعاينة والإنشاء. يولّد الخادم الكود مجدداً عند الإنشاء، ويحفظه كمرجع ثابت للتكليف والمشروع.
 - **أجزاء الرد وأمر البدء** تُرسل كاملة في كل حفظ وتُستبدل:
   - في الرد (جزء القسم المتابع): `buildings` (سطر لكل نوع بناء، اثنان كحد أقصى، بالعدد والمساحة فقط) و`costItems`؛ ومعهما `siteArea` و`initialCost` حقلان واحدان للرد كله؛
   - في أمر البدء: `engineers` و`resources`.
 - **من يوقّع الآن ومن يصدر التالي (2026-11-09):** في `Get/{id}` للطلب والتكليف والرد وأمر البدء حقلان اختياريان (`null` = لا ينطبق):
   - `nextSigners` (+ `nextSignersTotal`): والمستند بانتظار الاعتماد، حاملو صلاحية أول صفة لم توقّع ضمن حدّها.
-  - `nextIssuers` (+ `nextIssuersTotal`): والمستند معتمد ولم يصدر التالي، حاملو صلاحية إصداره (`CreateStudyAssignment` / `CreateStudyResponse` للقسم المتابع / `CreateStudyStartOrder` / `CreateStudyProject`).
+  - `nextIssuers` (+ `nextIssuersTotal`): والمستند معتمد ولم يُنجز الإجراء التالي، حاملو صلاحية الإجراء. بعد اعتماد إشعار الرد تُحسب الجهة حسب حالة معاملة الديوان.
   - كل عنصر `{ id, fullName, departmentName, jobTitle }`، مرتب بالاسم ومقصوص عند 8 والباقي في `…Total`. **المدير العام لا يظهر أبداً** (يبقى مستلماً للإشعارات). **قائمة فارغة = لا أحد يملك الصلاحية** فاعرض تنبيهاً ليراجع مدير النظام الأدوار.
 - **الطلب:** تُرسل فيه `governorateCode` (SY01…SY14)، و`siteId` اختياري (من سجل المواقع)، و`branchId` لنظرة المؤسسة فقط.
 
@@ -121,6 +121,19 @@
 - **حدّ القسم المتابع:** إنشاء الرد وتعديله وإرساله لموظفي قسم التكليف المتابع فقط (من غيرهم 403)، وجزء التخطيط حدّه الفرع.
 - **الرقم:** `responseNumber` بصيغة `RSP-26-0001` من عدّاد الترقيم (البادئة مؤقتة، ثابت واحد `StudyRules.ResponseNumberPrefix`). مساحة الموقع والتكلفة المبدئية انتقلتا من سطور المباني إلى الرد (`siteArea`، `initialCost`)، و`totalCost` مجموع جدول البنود يُحسب منفصلاً.
 - **الطلب:** حقل `requestNumber` إلزامي في `Create`/`Update`: رقم طلب تجهيز الدراسة كما ورد من الديوان المركزي، نص حتى 30 حرفاً يحافظ على الأصفار والشرطات. لا يُولَّد من عدّاد النظام. يُرفض الرقم الفارغ أو المكرر، ويُستخدم الرقم المدخل في القوائم والتكليفات والطباعة. يبقى `diwanRequestNumber` حقلاً قديماً للتوافق مع البيانات السابقة ولا يلزم إدخاله للطلبات الجديدة.
+
+### معاملة الديوان بعد اعتماد إشعار الرد
+
+يشمل المسار كل إشعار رد معتمد لم يصدر له أمر بدء، بما فيه التوصية «غير متاح». يحافظ الرد على حالة اعتماده الفني، وتظهر حالة الديوان في `diwanStage` في قوائم الردود وداخل `chain`. يعيد `Get/{id}` بيانات المعاملة في `diwanCase`. تقبل قائمة الردود `diwanOnly=true` وفلتر `diwanStage`.
+
+| الطريقة | المسار تحت `api/StudyResponses/Diwan/{id}` | الحقول |
+|---|---|---|
+| POST | `Dispatch` | JSON ‏`{ number, date, rowVersion }` |
+| POST | `Reply` | معاملات العنوان `number, date, decision, rowVersion`، وحقل الملف `file` في جسم multipart. القرار 1 موافقة أو 2 رفض، ونسخة الكتاب إلزامية (PDF أو صورة). |
+| POST | `Review` | JSON ‏`{ action, note, rowVersion }`. الإجراء 1 إحالة أو إثبات اطلاع بحسب القرار والتوصية، و2 إعادة للتصحيح مع سبب إلزامي. |
+| GET | `Reply/{replyId}/File` | تنزيل نسخة الكتاب بصلاحية عرض إشعار الرد ضمن نطاقه. |
+
+تتطلب كتابة الصادر والوارد `ManageStudyDiwanCorrespondence`، وإجراء رئيس الفرع `SignStudyAsBranchHead`، مع صلاحية `ViewStudyResponses` والانتماء إلى فرع الدراسة في الحالتين. يُحفظ الكتاب السابق عند إعادة التسجيل للتصحيح. بعد إحالة كتاب الموافقة يمكن إصدار أمر البدء لكتاب الإحالة نفسه بشرط أن تسمح التوصية الفنية. أوامر البدء الموجودة قبل الترحيل قد تخلو من مرجع كتاب مركزي.
 
 ### الطباعة — `api/StudyPrint`
 
@@ -150,6 +163,7 @@
 | PUT | `Update/{id}` (`status`: 1 جارٍ أو 2 معلّق، و`managerUserId`) | EditStudyProject |
 | DELETE | `Delete/{id}` (بلا مهام ولا مخططات ولا مرفقات) | DeleteStudyProject |
 | PUT | `Cancel/{id}` | CancelStudyDocuments |
+| PUT | `Reactivate/{id}` (يعيد المشروع الملغى إلى «جارٍ» إذا كان أمر البدء معتمداً، ويعيد تفاصيل المشروع) | CancelStudyDocuments |
 | PUT | `RequestCompletion/{id}` (كل المراحل مغلقة) | EditStudyProject |
 | POST / DELETE | `Departments/{projectId}` بالجسم `{ departmentId }` / `Departments/{projectDepartmentId}` | Add/RemoveStudyProjectDepartment |
 | POST / DELETE | `Members/{projectDepartmentId}` بالجسم `{ userId, roleTitle }` / `Members/{projectDepartmentId}/{userId}` | Add/RemoveStudyProjectMember (رئيس القسم لموظفي قسمه؛ انظر `departments[].canManageMembers`) |
@@ -302,7 +316,7 @@
 | `StudyApprovalRequested` | مستند بانتظار توقيع صفتك | `StudyAssignment` / `StudyResponse` / `StudyStartOrder` / `StudyDesignApproval` / `StudyProject` |
 | `StudyDocumentDecided` | اعتُمد مستندك نهائياً أو رُفض | كما سبق |
 | `StudyTaskAssigned` | مهمة جديدة لك أو لمكتبك أو قسمك | `StudyTask` |
-| `StudyNextStepReady` (29) | اعتُمد مستند وأنت ممن يصدر التالي: الطلب ← التكليف (`CreateStudyAssignment` في الفرع)، التكليف ← الرد (`CreateStudyResponse` في القسم المتابع)، الرد ← أمر البدء (`CreateStudyStartOrder`، لا شيء إن كانت التوصية «غير متاح»)، أمر البدء ← المشروع (`CreateStudyProject`). يُستثنى من اعتمد الآن، ولا يُستثنى المدير العام | المستند المعتمد: `StudyRequest` / `StudyAssignment` / `StudyResponse` / `StudyStartOrder` (يفتح صفحته وفيها زر «+ إصدار التالي») |
+| `StudyNextStepReady` (29) | الخطوة التالية في السلسلة: الطلب ← التكليف، التكليف ← الرد، الرد المعتمد ← ديوان الفرع، تسجيل الكتاب ← رئيس الفرع، إحالة الموافقة ← إدارة المشاريع، أمر البدء المعتمد ← إنشاء المشروع. الإعادة للتصحيح تُشعر ديوان الفرع. | `StudyRequest` / `StudyAssignment` / `StudyResponse` / `StudyStartOrder` |
 
 ## الصلاحيات في الواجهة
 

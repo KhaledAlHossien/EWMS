@@ -14,11 +14,13 @@ namespace Application.Features.CentralStudies
         public const string EditAssignment = "EditStudyAssignment";
         public const string ViewResponses = "ViewStudyResponses";
         public const string EditResponse = "EditStudyResponse";
+        public const string ManageDiwan = "ManageStudyDiwanCorrespondence";
         public const string ViewStartOrders = "ViewStudyStartOrders";
         public const string EditStartOrder = "EditStudyStartOrder";
         public const string CancelDocuments = "CancelStudyDocuments";
         public const string ViewProjects = "ViewStudyProjects";
         public const string EditProject = "EditStudyProject";
+        public const string AddProjectMember = "AddStudyProjectMember";
         public const string UpdateTaskProgress = "UpdateStudyTaskProgress";
         public const string ViewDrawings = "ViewStudyDrawings";
         public const string EditDrawing = "EditStudyDrawing";
@@ -360,6 +362,7 @@ namespace Application.Features.CentralStudies
             StudyLogAction.Closed => "إغلاق",
             StudyLogAction.Deleted => "حذف",
             StudyLogAction.Reopened => "إعادة فتح",
+            StudyLogAction.Reactivated => "إعادة تفعيل",
             _ => s.ToString()
         };
     }

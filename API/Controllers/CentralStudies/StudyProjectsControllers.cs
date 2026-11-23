@@ -7,6 +7,7 @@ using Application.Features.CentralStudies.Projects.Commands.AddMember;
 using Application.Features.CentralStudies.Projects.Commands.Cancel;
 using Application.Features.CentralStudies.Projects.Commands.Create;
 using Application.Features.CentralStudies.Projects.Commands.Delete;
+using Application.Features.CentralStudies.Projects.Commands.Reactivate;
 using Application.Features.CentralStudies.Projects.Commands.RemoveDepartment;
 using Application.Features.CentralStudies.Projects.Commands.RemoveMember;
 using Application.Features.CentralStudies.Projects.Commands.RequestCompletion;
@@ -79,6 +80,11 @@ namespace API.Controllers
         [Authorize(Policy = "CancelStudyDocuments")]
         public async Task<ActionResult<StudyProjectDto>> Cancel(int id, [FromBody] StudyCancelDto dto)
             => Ok(await _mediator.Send(new CancelStudyProjectCommand(id, dto.Reason)));
+
+        [HttpPut("Reactivate/{id}")]
+        [Authorize(Policy = "CancelStudyDocuments")]
+        public async Task<ActionResult<StudyProjectDto>> Reactivate(int id)
+            => Ok(await _mediator.Send(new ReactivateStudyProjectCommand(id)));
 
         /// <summary>بعد إغلاق كل المراحل: يُرسل الإنجاز لتوقيع إدارة المشاريع ثم رئيس الفرع (يكتمل المشروع بالموافقتين)</summary>
         [HttpPut("RequestCompletion/{id}")]

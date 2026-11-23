@@ -102,7 +102,12 @@ namespace Application.Features.CentralStudies
         public async Task LogAsync(int requestId, StudyEntityType type, int entityId, StudyLogAction action, string title, string? details = null)
         {
             var viewer = await ViewerAsync();
-            await _log.AddAsync(new StudyActivityLog
+            await _log.AddAsync(CreateActivity(viewer, requestId, type, entityId, action, title, details));
+        }
+
+        public static StudyActivityLog CreateActivity(Viewer viewer, int requestId, StudyEntityType type, int entityId,
+            StudyLogAction action, string title, string? details = null) =>
+            new()
             {
                 RequestId = requestId,
                 UserId = viewer.Id,
@@ -112,8 +117,7 @@ namespace Application.Features.CentralStudies
                 Title = title.Length > 200 ? title[..200] : title,
                 Details = string.IsNullOrWhiteSpace(details) ? null : details,
                 CreatedAt = DateTime.Now
-            });
-        }
+            };
 
         // ════════════════════ التواقيع ════════════════════
 
@@ -156,7 +160,8 @@ namespace Application.Features.CentralStudies
         {
             var rows = await _approvals.GetForOwnerAsync(owner.Type, owner.Id);
             var next = rows.Where(r => r.Decision == StudyDecision.Pending).OrderBy(r => r.SortOrder).FirstOrDefault();
-            if (next == null) return (null, []);
+            if (next == null || rows.Any(r => r.SortOrder < next.SortOrder && !StudyRules.IsPositive(r.Decision)))
+                return (null, []);
 
             var permission = StudyRules.SignPermission(next.SignerRole);
             var holders = StudyRules.IsDepartmentRole(next.SignerRole)
@@ -186,8 +191,44 @@ namespace Application.Features.CentralStudies
             if (notes.Count > 0) await _notifications.AddRangeAsync(notes);
         }
 
+        public async Task<IReadOnlyCollection<Notification>> ProjectReactivationNotificationsAsync(StudyProject project, int requestId, CancellationToken ct)
+        {
+            var (assignees, departments) = await _projects.GetOpenTaskRecipientsAsync(project.Id, ct);
+            var recipients = assignees.ToHashSet();
+            recipients.Add(project.ManagerUserId);
+            if (departments.Count > 0)
+            {
+                var departmentIds = departments.ToHashSet();
+                var heads = await _permissions.GetUsersWithPermissionAsync(StudyPermissions.AddProjectMember, branchId: project.BranchId);
+                recipients.UnionWith(heads.Where(u => u.DepartmentId is int id && departmentIds.Contains(id)).Select(u => u.Id));
+            }
+
+            var owner = ApprovalOwner.Of(project, requestId) with { Pending = true };
+            var (_, holders) = await NextSignerHoldersAsync(owner);
+            var signers = holders.Select(u => u.Id).ToHashSet();
+            recipients.UnionWith(signers);
+
+            var now = DateTime.Now;
+            var projectLabel = $"{project.Code} — {project.Name}";
+            return recipients.Select(id =>
+            {
+                var needsSignature = signers.Contains(id);
+                return new Notification
+                {
+                    UserId = id,
+                    Title = "أُعيد تفعيل مشروع دراسات",
+                    Message = needsSignature ? $"{projectLabel} — عاد اعتماد الإنجاز إلى قائمة انتظار توقيعك" : projectLabel,
+                    Type = NotificationType.StudyProjectReactivated,
+                    RelatedEntityType = needsSignature ? "StudyProjectApproval" : RelatedType(StudyEntityType.Project),
+                    RelatedEntityId = project.Id,
+                    CreatedAt = now
+                };
+            }).ToList();
+        }
+
         /// <summary>المستند التالي بعد مستند معتمد: صلاحية من يصدره وحدّه، وبيانات الطلب لنص الإشعار</summary>
-        private sealed record NextStepTarget(string Permission, string NextName, int BranchId, int? DepartmentId, StudyRequest Request, string Number);
+        private sealed record NextStepTarget(string Permission, string NextName, int BranchId, int? DepartmentId, StudyRequest Request, string Number,
+            string? NotificationTitle = null);
 
         private async Task<NextStepTarget?> NextStepOfAsync(StudyEntityType approvedType, int docId)
         {
@@ -202,9 +243,10 @@ namespace Application.Features.CentralStudies
                         assignment.Request, assignment.AssignmentNumber);
                 case StudyEntityType.Response:
                     var response = await _responses.GetByIdAsync(docId) ?? throw new KeyNotFoundException("الرد غير موجود");
-                    if (response.Recommendation == StudyRecommendation.NotAvailable) return null;   // لا أمر بدء بعده
-                    return new("CreateStudyStartOrder", "أمر البدء", response.Assignment.Request.BranchId, null,
-                        response.Assignment.Request, response.ResponseNumber);
+                    if (response.StartOrder != null || StudyDiwanRules.NextAction(StudyDiwanRules.StageOf(response)) is not { } action)
+                        return null;
+                    return new(action.Permission, "معاملة الديوان", response.Assignment.Request.BranchId, null,
+                        response.Assignment.Request, response.ResponseNumber, action.Title);
                 case StudyEntityType.StartOrder:
                     var order = await _startOrders.GetByIdAsync(docId) ?? throw new KeyNotFoundException("أمر البدء غير موجود");
                     return new("CreateStudyProject", "مشروع الدراسة", order.Response.Assignment.Request.BranchId, null,
@@ -214,15 +256,24 @@ namespace Application.Features.CentralStudies
             }
         }
 
-        private async Task<List<User>> IssuersOfAsync(NextStepTarget t) =>
-            t.DepartmentId is int dept
-                ? await _permissions.GetUsersWithPermissionAsync(t.Permission, departmentId: dept)
-                : await _permissions.GetUsersWithPermissionAsync(t.Permission, branchId: t.BranchId);
+        private Task<List<User>> IssuersOfAsync(NextStepTarget t) =>
+            t.NotificationTitle != null ? DiwanRecipientsAsync(t.Permission, t.BranchId)
+            : t.DepartmentId is int dept
+                ? _permissions.GetUsersWithPermissionAsync(t.Permission, departmentId: dept)
+                : _permissions.GetUsersWithPermissionAsync(t.Permission, branchId: t.BranchId);
+
+        public async Task<List<User>> DiwanRecipientsAsync(string permission, int branchId)
+        {
+            var users = await _permissions.GetUsersWithPermissionAsync(permission, branchId: branchId);
+            var viewers = await _permissions.GetUsersWithPermissionAsync(StudyPermissions.ViewResponses, branchId: branchId);
+            var viewerIds = viewers.Select(u => u.Id).ToHashSet();
+            return users.Where(u => viewerIds.Contains(u.Id)).ToList();
+        }
 
         /// <summary>
         /// اعتُمد مستند: لأصحاب صلاحية إصدار المستند التالي، لأنه يُصدَر ولا يُوقَّع فلا يصل إليهم إشعار التواقيع.
         /// الطلب ← التكليف (حامل CreateStudyAssignment في الفرع)، التكليف ← الرد (حامل CreateStudyResponse في القسم المتابع)،
-        /// الرد ← أمر البدء (CreateStudyStartOrder في الفرع، إلا بتوصية «غير متاح»)، أمر البدء ← المشروع (CreateStudyProject في الفرع).
+        /// الرد ← ديوان الفرع، أمر البدء ← المشروع (CreateStudyProject في الفرع).
         /// يُستثنى من اعتمد أو سجّل الآن، ولا يُستثنى المدير العام (قرار المستخدم 2026-11-09). غير ذلك (CDA، المشروع) لا شيء.
         /// </summary>
         public async Task NotifyNextStepAsync(StudyEntityType approvedType, int docId)
@@ -238,7 +289,7 @@ namespace Application.Features.CentralStudies
             var notes = recipients.Where(u => u.Id != viewer.Id).Select(u => u.Id).Distinct().Select(id => new Notification
             {
                 UserId = id,
-                Title = $"دراسة بانتظار إصدار {target.NextName}",
+                Title = target.NotificationTitle ?? $"دراسة بانتظار إصدار {target.NextName}",
                 Message = message,
                 Type = NotificationType.StudyNextStepReady,
                 RelatedEntityType = RelatedType(approvedType),

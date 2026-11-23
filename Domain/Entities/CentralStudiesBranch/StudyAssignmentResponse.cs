@@ -47,6 +47,7 @@ namespace Domain.Entities.CentralStudiesBranch
         public List<ResponseLogisticItem> LogisticItems { get; set; } = [];
 
         public StudyStartOrder? StartOrder { get; set; }
+        public StudyDiwanCase? DiwanCase { get; set; }
     }
 
     /// <summary>بيانات المباني: سطر لكل نوع بناء (المفتاح الرد + النوع ⇒ سطران كحد أقصى)</summary>
