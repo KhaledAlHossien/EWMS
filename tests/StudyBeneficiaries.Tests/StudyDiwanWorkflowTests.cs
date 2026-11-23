@@ -1,0 +1,196 @@
+using System.Security.Claims;
+using System.Text;
+using Application.DTOs.Request;
+using Application.Features.CentralStudies;
+using Application.Features.CentralStudies.Responses;
+using Application.Features.CentralStudies.StartOrders;
+using Application.Features.CentralStudies.StartOrders.Commands.Create;
+using Application.Helper.Profiles;
+using Application.Interfaces;
+using AutoMapper;
+using Domain.Entities;
+using Domain.Entities.CentralStudiesBranch;
+using Infrastructure.Files;
+using Infrastructure.Persistence.Data;
+using Infrastructure.Persistence.Repositories;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
+using Xunit;
+
+namespace StudyBeneficiaries.Tests;
+
+public sealed class StudyDiwanWorkflowTests : IDisposable
+{
+    private const int Clerk = 11;
+    private const int Head = 12;
+    private const int ProjectOffice = 13;
+    private const int OtherBranch = 14;
+    private static readonly DateOnly Date = new(2026, 11, 19);
+    private static readonly byte[] Version = [1, 0, 0, 0, 0, 0, 0, 0];
+    private static readonly string EncodedVersion = Convert.ToBase64String(Version);
+    private readonly string _filesRoot = Path.Combine(Path.GetTempPath(), "ewms-diwan-test-" + Guid.NewGuid());
+    private readonly DataContext _db = new(new DbContextOptionsBuilder<DataContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+    private readonly IMapper _mapper = new MapperConfiguration(c => c.AddProfile<CentralStudiesProfile>(), NullLoggerFactory.Instance).CreateMapper();
+    private readonly SilentPusher _pusher = new();
+
+    [Theory]
+    [InlineData(StudyRecommendation.Modify, StudyDiwanDecision.Approved, StudyDiwanStage.Referred, true)]
+    [InlineData(StudyRecommendation.Accept, StudyDiwanDecision.Rejected, StudyDiwanStage.Rejected, false)]
+    [InlineData(StudyRecommendation.NotAvailable, StudyDiwanDecision.Approved, StudyDiwanStage.ClosedWithoutStart, false)]
+    public async Task Requires_a_scanned_reply_and_a_branch_head_action_before_creating_an_order(
+        StudyRecommendation recommendation, StudyDiwanDecision decision, StudyDiwanStage finalStage, bool allowed)
+    {
+        await SeedAsync(recommendation);
+        var (approvalKit, _) = Viewer(Head);
+        await approvalKit.NotifyNextStepAsync(StudyEntityType.Response, 1);
+        Assert.Equal(Clerk, (await _db.Notifications.SingleAsync()).UserId);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Diwan(OtherBranch).Handle(
+            new RegisterStudyDiwanDispatch(1, "0004", Date, EncodedVersion), default));
+        var sent = await Diwan(Clerk).Handle(new RegisterStudyDiwanDispatch(1, "0004", Date, EncodedVersion), default);
+        Assert.Equal((int)StudyDiwanStage.AwaitingReply, sent.DiwanStage);
+        Assert.Equal("0004", sent.DiwanCase!.DispatchNumber);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Diwan(Clerk).Handle(
+            new RegisterStudyDiwanReply(1, "0007", Date, decision, EncodedVersion, new PaperScan(false)), default));
+        Assert.Empty(_db.StudyDiwanReplies);
+        _db.ChangeTracker.Clear();
+
+        var received = await Diwan(Clerk).Handle(new RegisterStudyDiwanReply(1, "0007", Date, decision,
+            EncodedVersion, new PaperScan(true)), default);
+        Assert.Equal((int)StudyDiwanStage.AwaitingBranchHead, received.DiwanStage);
+        var reply = Assert.Single(received.DiwanCase!.Replies);
+        Assert.Contains(_db.Notifications, note => note.UserId == Head);
+        Assert.DoesNotContain(_db.Notifications, note => note.UserId == ProjectOffice);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => CreateOrder(reply.Id));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Diwan(Clerk).Handle(
+            new ReviewStudyDiwanReply(1, StudyDiwanReviewAction.Confirm, null, EncodedVersion), default));
+
+        var firstReplyId = reply.Id;
+        if (allowed)
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(() => Diwan(Head).Handle(
+                new ReviewStudyDiwanReply(1, StudyDiwanReviewAction.ReturnForCorrection, "", EncodedVersion), default));
+            var returned = await Diwan(Head).Handle(new ReviewStudyDiwanReply(1, StudyDiwanReviewAction.ReturnForCorrection,
+                "تحقق من رقم الكتاب", EncodedVersion), default);
+            Assert.Equal((int)StudyDiwanStage.CorrectionRequested, returned.DiwanStage);
+            received = await Diwan(Clerk).Handle(new RegisterStudyDiwanReply(1, "0008", Date, decision,
+                EncodedVersion, new PaperScan(true)), default);
+            Assert.Equal(["0008", "0007"], received.DiwanCase!.Replies.Select(book => book.Number));
+            reply = received.DiwanCase.Replies[0];
+            var evidence = await Diwan(Head).Handle(new GetStudyDiwanReplyFile(1, reply.Id), default);
+            await using var stream = evidence.Content;
+            Assert.Equal("application/pdf", evidence.ContentType);
+            Assert.True(stream.Length > 0);
+        }
+
+        var reviewed = await Diwan(Head).Handle(new ReviewStudyDiwanReply(1, StudyDiwanReviewAction.Confirm, null, EncodedVersion), default);
+        Assert.Equal((int)finalStage, reviewed.Chain!.DiwanStage);
+        Assert.Equal((int)StudyDocumentStatus.Approved, reviewed.Status);
+        Assert.Equal(allowed, _db.Notifications.Any(note => note.UserId == ProjectOffice));
+        if (!allowed)
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(() => CreateOrder(reply.Id));
+            return;
+        }
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => CreateOrder(firstReplyId));
+        var order = await CreateOrder(reply.Id);
+        Assert.Equal(reply.Id, order.DiwanReplyId);
+        Assert.Equal("0008", order.DiwanReplyNumber);
+        Assert.Equal((int)StudyDocumentStatus.Draft, order.Status);
+        Assert.False(order.CanCreateProject);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => CreateOrder(reply.Id));
+    }
+
+    private StudyDiwanCommands Diwan(int user)
+    {
+        var (kit, users) = Viewer(user);
+        var responses = new StudyResponseService(_db);
+        var support = new StudyResponseSupport(responses, users, new StudyApprovalService(_db), kit);
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            { ["FileStorage:Root"] = _filesRoot }).Build();
+        return new(responses, support, kit, _pusher, new FileStore(new FileStorageSettings(config)));
+    }
+
+    private Task<Application.DTOs.Response.StudyStartOrderDto> CreateOrder(int replyId)
+    {
+        var (kit, users) = Viewer(ProjectOffice);
+        var orders = new StudyStartOrderService(_db);
+        var support = new StudyStartOrderSupport(orders, new StudyLookupService(_db), new DepartmentService(_db), users, kit);
+        var handler = new CreateStudyStartOrderCommandHandler(orders, new StudyResponseService(_db), new FixedNumber(), kit, support);
+        return handler.Handle(new(new StudyStartOrderFormDto
+        {
+            DiwanReplyId = replyId, CompetentDepartmentId = 1, ProjectManagerUserId = ProjectOffice,
+            OrderDate = Date.ToDateTime(TimeOnly.MinValue), StudyStartDate = Date.ToDateTime(TimeOnly.MinValue),
+            StudyDeadline = Date.AddDays(7).ToDateTime(TimeOnly.MinValue)
+        }), default);
+    }
+
+    private (StudyKit Kit, UserService Users) Viewer(int id)
+    {
+        var context = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new(ClaimTypes.NameIdentifier, id.ToString())])) };
+        var users = new UserService(_db, new HttpContextAccessor { HttpContext = context });
+        return (new StudyKit(users, new UserPermissionService(_db), new StudyActivityLogService(_db),
+            new StudyApprovalService(_db), new NotificationService(_db, _pusher), new StudyRequestService(_db),
+            new StudyAssignmentService(_db), new StudyResponseService(_db), new StudyStartOrderService(_db), null!, null!, _mapper), users);
+    }
+
+    private async Task SeedAsync(StudyRecommendation recommendation)
+    {
+        _db.Branches.AddRange(new Branch { Id = 1, Name = "الدراسات" }, new Branch { Id = 2, Name = "فرع آخر" });
+        _db.Departments.Add(new Department { Id = 1, BranchId = 1, Name = "قسم إدارة المشاريع" });
+        _db.Permissions.AddRange(new Permission { Id = 1, Name = StudyPermissions.ViewResponses },
+            new Permission { Id = 2, Name = StudyPermissions.ManageDiwan },
+            new Permission { Id = 3, Name = StudyDiwanRules.HeadPermission },
+            new Permission { Id = 4, Name = "CreateStudyStartOrder" });
+        AddUser(Clerk, 1, 2);
+        AddUser(Head, 1, 3);
+        AddUser(ProjectOffice, 1, 4);
+        AddUser(OtherBranch, 2, 2);
+        _db.StudyRequests.Add(new StudyRequest { Id = 1, BranchId = 1, CreatedByUserId = Clerk, Status = StudyDocumentStatus.Approved });
+        _db.StudyAssignments.Add(new StudyAssignment { Id = 1, RequestId = 1, FollowingDepartmentId = 1, CreatedByUserId = Clerk, Status = StudyDocumentStatus.Approved });
+        _db.StudyAssignmentResponses.Add(new StudyAssignmentResponse
+        {
+            Id = 1, ResponseNumber = "RSP-26-0014", RowVersion = Version, AssignmentId = 1,
+            CreatedByUserId = Clerk, Status = StudyDocumentStatus.Approved, Recommendation = recommendation
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+    }
+
+    private void AddUser(int id, int branchId, int permission)
+    {
+        _db.Roles.Add(new Role { Id = id, Name = $"Role-{id}" });
+        _db.Users.Add(new User { Id = id, RoleId = id, BranchId = branchId, FullName = $"User {id}", Email = $"user{id}@test.invalid", PasswordHash = "test" });
+        _db.RolePermissions.AddRange(new RolePermission { RoleId = id, PermissionId = 1 },
+            new RolePermission { RoleId = id, PermissionId = permission });
+    }
+
+    public void Dispose()
+    {
+        _db.Dispose();
+        if (Directory.Exists(_filesRoot)) Directory.Delete(_filesRoot, recursive: true);
+    }
+
+    private sealed class SilentPusher : INotificationPusher
+    {
+        public Task PushAsync(IReadOnlyCollection<Notification> notifications) => Task.CompletedTask;
+    }
+
+    private sealed class FixedNumber : IStudyNumberService
+    {
+        public Task<int> NextAsync(StudyDocumentType type, int year) => Task.FromResult(1);
+    }
+
+    private sealed class PaperScan(bool includeFile) : IUploadReader
+    {
+        public async Task<string?> CopyFileToAsync(Stream destination, CancellationToken ct)
+        {
+            if (!includeFile) return null;
+            await destination.WriteAsync(Encoding.ASCII.GetBytes("%PDF-1.7\n"), ct);
+            return "reply.pdf";
+        }
+    }
+}

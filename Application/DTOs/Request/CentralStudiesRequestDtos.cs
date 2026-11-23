@@ -28,6 +28,8 @@ namespace Application.DTOs.Request
     public class StudyDocumentFilterDto
     {
         public int? Status { get; set; }
+        public int? DiwanStage { get; set; }
+        public bool DiwanOnly { get; set; }
         public string? Search { get; set; }
         public int? BranchId { get; set; }
         public DateTime? From { get; set; }
@@ -169,10 +171,10 @@ namespace Application.DTOs.Request
         public string? Note { get; set; }
     }
 
-    /// <summary>أمر بدء الدراسة (PIO) — ResponseId عند الإنشاء فقط</summary>
+    /// <summary>أمر بدء الدراسة (PIO) — معرّف كتاب الموافقة المركزي المحال عند الإنشاء فقط</summary>
     public class StudyStartOrderFormDto
     {
-        public int ResponseId { get; set; }
+        public int DiwanReplyId { get; set; }
         public int CompetentDepartmentId { get; set; }
         public int ProjectManagerUserId { get; set; }
         public DateTime OrderDate { get; set; }

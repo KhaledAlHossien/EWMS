@@ -214,7 +214,7 @@ namespace API.Controllers
         [Authorize(Policy = "ViewStudyStartOrders")]
         public async Task<ActionResult<StudyStartOrderDto>> Get(int id) => Ok(await _mediator.Send(new GetStudyStartOrderQuery(id)));
 
-        /// <summary>لرد معتمد توصيته ليست «غير متاح» (ResponseId في النموذج)</summary>
+        /// <summary>من كتاب الموافقة المركزي المحال من رئيس الفرع (DiwanReplyId في النموذج)</summary>
         [HttpPost("Create")]
         [Authorize(Policy = "CreateStudyStartOrder")]
         public async Task<ActionResult<StudyStartOrderDto>> Create([FromBody] StudyStartOrderFormDto dto)

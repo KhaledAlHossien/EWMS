@@ -92,6 +92,7 @@ namespace Domain.Entities.CentralStudiesBranch
         Cancelled = 6,
         Closed = 7,      // إغلاق مرحلة
         Deleted = 8,
-        Reopened = 9     // إعادة فتح مرحلة
+        Reopened = 9,    // إعادة فتح مرحلة
+        Reactivated = 10
     }
 }

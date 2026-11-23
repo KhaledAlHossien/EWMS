@@ -190,6 +190,8 @@ namespace Infrastructure.Persistence.Data
                 e.Property(x => x.RowVersion).IsRowVersion();
 
                 e.HasOne(x => x.Response).WithOne(r => r.StartOrder).HasForeignKey<StudyStartOrder>(x => x.ResponseId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.DiwanReply).WithMany().HasForeignKey(x => new { x.ResponseId, x.DiwanReplyId })
+                    .HasPrincipalKey(x => new { x.ResponseId, x.Id }).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.CompetentDepartment).WithMany().HasForeignKey(x => x.CompetentDepartmentId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.ProjectManager).WithMany().HasForeignKey(x => x.ProjectManagerUserId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
@@ -425,6 +427,28 @@ namespace Infrastructure.Persistence.Data
                 e.HasOne(x => x.Request).WithMany().HasForeignKey(x => x.RequestId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
                 e.HasIndex(x => new { x.RequestId, x.CreatedAt });
+            });
+
+            builder.Entity<StudyDiwanCase>(e =>
+            {
+                e.HasKey(x => x.ResponseId);
+                e.Property(x => x.DispatchNumber).HasMaxLength(50);
+                e.Property(x => x.ReviewNote).HasMaxLength(1000);
+                e.HasOne(x => x.Response).WithOne(x => x.DiwanCase)
+                    .HasForeignKey<StudyDiwanCase>(x => x.ResponseId).OnDelete(DeleteBehavior.Restrict);
+                e.HasIndex(x => x.Stage);
+                e.ToTable(t => t.HasCheckConstraint("CK_StudyDiwanCases_Stage", "[Stage] BETWEEN 2 AND 7"));
+            });
+
+            builder.Entity<StudyDiwanReply>(e =>
+            {
+                e.Property(x => x.Number).HasMaxLength(50);
+                e.Property(x => x.FileName).HasMaxLength(255);
+                e.Property(x => x.ContentType).HasMaxLength(100);
+                e.Property(x => x.StorageKey).HasMaxLength(500);
+                e.HasOne<StudyDiwanCase>().WithMany(x => x.Replies)
+                    .HasForeignKey(x => x.ResponseId).OnDelete(DeleteBehavior.Restrict);
+                e.ToTable(t => t.HasCheckConstraint("CK_StudyDiwanReplies_Decision", "[Decision] IN (1, 2)"));
             });
 
             builder.Entity<StudyNumberSequence>(e =>
