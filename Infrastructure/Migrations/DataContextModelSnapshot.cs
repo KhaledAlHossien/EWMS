@@ -1551,6 +1551,84 @@ namespace Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanCase", b =>
+                {
+                    b.Property<int>("ResponseId")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("DispatchDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("DispatchNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("Stage")
+                        .HasColumnType("int");
+
+                    b.HasKey("ResponseId");
+
+                    b.HasIndex("Stage");
+
+                    b.ToTable("StudyDiwanCases", t =>
+                        {
+                            t.HasCheckConstraint("CK_StudyDiwanCases_Stage", "[Stage] BETWEEN 2 AND 7");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanReply", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Decision")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ResponseId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("StudyDiwanReplies", t =>
+                        {
+                            t.HasCheckConstraint("CK_StudyDiwanReplies_Decision", "[Decision] IN (1, 2)");
+                        });
+                });
+
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyNumberSequence", b =>
                 {
                     b.Property<int>("DocumentType")
@@ -1842,6 +1920,9 @@ namespace Infrastructure.Migrations
                     b.Property<int>("CreatedByUserId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("DiwanReplyId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("date");
 
@@ -1887,6 +1968,8 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("ResponseId")
                         .IsUnique();
+
+                    b.HasIndex("ResponseId", "DiwanReplyId");
 
                     b.HasIndex("Status", "CreatedAt");
 
@@ -4506,6 +4589,26 @@ namespace Infrastructure.Migrations
                     b.Navigation("Version");
                 });
 
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanCase", b =>
+                {
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyAssignmentResponse", "Response")
+                        .WithOne("DiwanCase")
+                        .HasForeignKey("Domain.Entities.CentralStudiesBranch.StudyDiwanCase", "ResponseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Response");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanReply", b =>
+                {
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyDiwanCase", null)
+                        .WithMany("Replies")
+                        .HasForeignKey("ResponseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyProject", b =>
                 {
                     b.HasOne("Domain.Entities.Branch", "Branch")
@@ -4607,9 +4710,17 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyDiwanReply", "DiwanReply")
+                        .WithMany()
+                        .HasForeignKey("ResponseId", "DiwanReplyId")
+                        .HasPrincipalKey("ResponseId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("CompetentDepartment");
 
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("DiwanReply");
 
                     b.Navigation("ProjectManager");
 
@@ -5375,11 +5486,18 @@ namespace Infrastructure.Migrations
 
                     b.Navigation("CostItems");
 
+                    b.Navigation("DiwanCase");
+
                     b.Navigation("LogisticItems");
 
                     b.Navigation("StaffEstimates");
 
                     b.Navigation("StartOrder");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanCase", b =>
+                {
+                    b.Navigation("Replies");
                 });
 
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyProject", b =>

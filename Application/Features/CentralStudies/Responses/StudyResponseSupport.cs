@@ -34,8 +34,9 @@ namespace Application.Features.CentralStudies.Responses
             dto.CanCancel = inScope && viewer.Has(StudyPermissions.CancelDocuments)
                             && e.Status is not (StudyDocumentStatus.Draft or StudyDocumentStatus.Cancelled)
                             && (e.StartOrder == null || e.StartOrder.Status == StudyDocumentStatus.Cancelled);
-            dto.CanCreateStartOrder = inScope && viewer.Has("CreateStudyStartOrder") && e.Status == StudyDocumentStatus.Approved
-                                      && e.Recommendation != StudyRecommendation.NotAvailable && e.StartOrder == null;
+            dto.DiwanStage = (int?)StudyDiwanRules.StageOf(e);
+            dto.CanCreateStartOrder = inScope && viewer.Has("CreateStudyStartOrder") && e.StartOrder == null
+                                      && StudyDiwanRules.ReadyForStartOrder(e);
             return dto;
         }
 
@@ -77,6 +78,19 @@ namespace Application.Features.CentralStudies.Responses
         {
             var entity = await LoadAsync(id, viewer);
             var dto = ToDto(entity, viewer);
+            if (StudyDiwanRules.StageOf(entity) is { } stage)
+            {
+                var active = entity.Status == StudyDocumentStatus.Approved && entity.StartOrder == null;
+                var branchId = entity.Assignment.Request.BranchId;
+                var canRegister = active && StudyDiwanRules.CanAct(viewer, StudyPermissions.ManageDiwan, branchId);
+                var data = entity.DiwanCase;
+                dto.DiwanCase = new((int)stage, StudyDiwanRules.Name(stage), data?.DispatchNumber, data?.DispatchDate, data?.ReviewNote,
+                    data?.Replies.OrderByDescending(r => r.Id)
+                        .Select(r => new StudyDiwanReplyDto(r.Id, r.Number, r.Date, (int)r.Decision, r.FileName, r.RecordedAt)).ToList() ?? [],
+                    canRegister && stage == StudyDiwanStage.AwaitingDispatch,
+                    canRegister && stage is StudyDiwanStage.AwaitingReply or StudyDiwanStage.CorrectionRequested,
+                    active && stage == StudyDiwanStage.AwaitingBranchHead && StudyDiwanRules.CanAct(viewer, StudyDiwanRules.HeadPermission, branchId));
+            }
             dto.Chain = await _kit.ChainAsync(entity.Assignment.RequestId);
             dto.Approvals = await _kit.ApprovalsAsync(ApprovalOwner.Of(entity));
             await _kit.AddWhoIsNextAsync(dto, StudyEntityType.Response, entity.Id, ApprovalOwner.Of(entity));

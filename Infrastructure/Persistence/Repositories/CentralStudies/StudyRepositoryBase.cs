@@ -1,3 +1,4 @@
+using Domain.Entities.CentralStudiesBranch;
 using Infrastructure.Persistence.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -24,11 +25,18 @@ namespace Infrastructure.Persistence.Repositories
                 _context.Entry(entity).Property("RowVersion").OriginalValue = expectedRowVersion;
         }
 
-        protected async Task SaveChangesAsync()
+        // إلغاء أمر البدء وإعادة تفعيل مشروعه يأخذان القفل نفسه قبل التحقق من حالة السجل المرتبط.
+        protected Task<StudyDocumentStatus> LockStartOrderStatusAsync(int id, CancellationToken ct) =>
+            _context.StudyStartOrders
+                .FromSqlInterpolated($"SELECT * FROM [StudyStartOrders] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {id}")
+                .Select(o => o.Status)
+                .SingleAsync(ct);
+
+        protected async Task SaveChangesAsync(CancellationToken ct = default)
         {
             try
             {
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(ct);
             }
             catch (DbUpdateConcurrencyException)
             {

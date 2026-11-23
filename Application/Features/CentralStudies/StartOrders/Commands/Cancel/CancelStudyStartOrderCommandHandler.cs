@@ -24,14 +24,9 @@ namespace Application.Features.CentralStudies.StartOrders.Commands.Cancel
             var entity = await _support.LoadAsync(request.Id, viewer);
             if (entity.Status == StudyDocumentStatus.Cancelled) throw new InvalidOperationException("أمر البدء ملغى مسبقاً");
             if (entity.Status == StudyDocumentStatus.Draft) throw new InvalidOperationException("المسودة تُحذف ولا تُلغى");
-            if (entity.Project != null && entity.Project.Status != StudyProjectStatus.Cancelled)
-                throw new InvalidOperationException("لأمر البدء مشروع قائم — ألغِ المشروع أولاً");
-
-            entity.Status = StudyDocumentStatus.Cancelled;
-            entity.UpdatedAt = DateTime.Now;
-            await _service.UpdateAsync(entity);
-            await _kit.LogAsync(entity.Response.Assignment.RequestId, StudyEntityType.StartOrder, entity.Id, StudyLogAction.Cancelled,
+            var activity = StudyKit.CreateActivity(viewer, entity.Response.Assignment.RequestId, StudyEntityType.StartOrder, entity.Id, StudyLogAction.Cancelled,
                 $"ألغى أمر البدء {entity.OrderNumber}", request.Reason.Trim());
+            await _service.CancelAsync(entity, activity, ct);
             return await _support.DetailAsync(entity.Id, viewer);
         }
     }

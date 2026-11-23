@@ -1,4 +1,5 @@
 using Application.DTOs.Request;
+using Domain.Entities;
 using Domain.Entities.CentralStudiesBranch;
 
 namespace Application.Interfaces
@@ -33,6 +34,8 @@ namespace Application.Interfaces
 
         Task<StudyProject> AddAsync(StudyProject project);
         Task UpdateAsync(StudyProject project, byte[]? expectedRowVersion = null);
+        Task ReactivateAsync(StudyProject project, StudyActivityLog activity, IReadOnlyCollection<Notification> notifications, CancellationToken ct);
+        Task<(List<int> AssigneeIds, List<int> DepartmentIds)> GetOpenTaskRecipientsAsync(int projectId, CancellationToken ct);
         Task DeleteAsync(StudyProject project);
 
         /// <summary>مشاركة قسم مع المشروع وأعضائها</summary>

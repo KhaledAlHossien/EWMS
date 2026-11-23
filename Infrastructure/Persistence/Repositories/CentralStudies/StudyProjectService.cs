@@ -3,6 +3,7 @@ using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using Application.Features.CentralStudies;
+using Domain.Entities;
 using Domain.Entities.CentralStudiesBranch;
 using Infrastructure.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
@@ -119,6 +120,7 @@ namespace Infrastructure.Persistence.Repositories
                     ActualStartDate = p.ActualStartDate,
                     ActualEndDate = p.ActualEndDate,
                     Status = (int)p.Status,
+                    CanReactivate = p.StartOrder.Status == StudyDocumentStatus.Approved,
                     CreatedByName = p.CreatedBy.FullName,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
@@ -201,6 +203,37 @@ namespace Infrastructure.Persistence.Repositories
         {
             ExpectVersion(project, expectedRowVersion);
             await SaveChangesAsync();
+        }
+
+        public async Task ReactivateAsync(StudyProject project, StudyActivityLog activity, IReadOnlyCollection<Notification> notifications, CancellationToken ct)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+            if (await LockStartOrderStatusAsync(project.StartOrderId, ct) != StudyDocumentStatus.Approved)
+                throw new InvalidOperationException("إعادة تفعيل المشروع تتطلب أمر بدء معتمداً");
+
+            project.Status = StudyProjectStatus.Running;
+            project.UpdatedAt = DateTime.Now;
+            _context.StudyActivityLogs.Add(activity);
+            _context.Notifications.AddRange(notifications);
+            await SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+        }
+
+        public async Task<(List<int> AssigneeIds, List<int> DepartmentIds)> GetOpenTaskRecipientsAsync(int projectId, CancellationToken ct)
+        {
+            var openTasks = _context.StageTasks.Where(t => t.Stage.ProjectId == projectId
+                && t.Stage.Status != StudyStageStatus.Closed && t.Status != StudyTaskStatus.Done);
+
+            var assignees = await openTasks.Where(t => t.TargetType == StudyTaskTarget.User && t.Assignee != null
+                    && t.Assignee.IsActive && t.Assignee.BranchId == t.Stage.Project.BranchId)
+                .Select(t => t.AssigneeUserId!.Value).Distinct().ToListAsync(ct);
+
+            var departments = await _context.ProjectDepartments.Where(d => d.ProjectId == projectId
+                    && openTasks.Any(t => (t.TargetType == StudyTaskTarget.Department && t.DepartmentId == d.DepartmentId)
+                        || (t.TargetType == StudyTaskTarget.Office && t.Office != null && t.Office.DepartmentId == d.DepartmentId)))
+                .Select(d => d.DepartmentId).ToListAsync(ct);
+
+            return (assignees, departments);
         }
 
         public async Task DeleteAsync(StudyProject project)
