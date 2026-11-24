@@ -81,13 +81,7 @@
             new("HandleUnitTasks",        "تولّي المهام المسندة لوحدته (تغيير حالتها وتفويضها)"),
             new("ViewTaskStats",          "عرض إحصائيات المهام ضمن نطاقه (الإنجاز في الموعد والمتأخرات لكل جهة)"),
 
-            new("ViewMyWorkTasks", "عرض مهام العمل المسندة إليه وصفحاتها"),
-            new("ViewWorkTasks",  "عرض مهام العمل وإسنادها"),
-
             new("ViewNotifications", "عرض الإشعارات واستلامها (الجرس والتنبيهات اللحظية)"),
-            new("CreateWorkTask", "إضافة مهمة عمل"),
-            new("EditWorkTask",   "تعديل مهمة عمل وإسنادها"),
-            new("DeleteWorkTask", "حذف مهمة عمل"),
 
             // المواقع (2026-10-11): سجل مشترك فريد بين كل الفروع، تُبنى عليه خرائط الفروع — الحد: كل المواقع
             new("ViewSites",  "عرض سجل المواقع المشترك (كل المواقع)"),
@@ -287,7 +281,6 @@
             ["AnyVacationStats"] = ["ViewDepartmentVacations", "ViewBranchVacations"],
             ["AnyMaintenanceAssign"] = ["AssignMaintenanceRequest", "AssignMaintenanceTask"],
             ["AnyMaintenanceRequestWrite"] = ["CreateMaintenanceRequest", "EditMaintenanceRequest"],
-            ["AnyWorkTaskView"] = ["ViewMyWorkTasks", "ViewWorkTasks", "ViewBranchDashboard", "ViewDepartmentDashboard", "ViewOfficeDashboard"],
             // توثيق الأجهزة: من يضيف أو يعدّل أو يحذف يرى ما يعمل عليه
             ["AnyDeviceView"] = ["ViewDevices", "ViewBranchDevices", "CreateDevice", "EditDevice", "DeleteDevice"],
             // قراءة سجل المواقع: لمن يدير المواقع، ولمن يوثّق الأجهزة أو يسجّل معلومات الطبقات (يختار الموقع في النموذج)
@@ -307,6 +300,7 @@
             ["AnyStudyView"] = ["ViewStudyRequests", "ViewStudyAssignments", "ViewStudyResponses", "ViewStudyStartOrders",
                 "ViewStudyProjects", "ViewStudyDrawings", "ViewStudyActivityLog"],
             ["AnyStudyTaskView"] = ["ViewStudyProjects", "UpdateStudyTaskProgress"],
+            ["AnyStudyAssignmentWrite"] = ["CreateStudyAssignment", "EditStudyAssignment"],
             ["AnyStudyBeneficiaryPick"] = ["ViewStudyLookups", "CreateStudyLookup", "EditStudyLookup", "DeleteStudyLookup",
                 "CreateStudyRequest", "EditStudyRequest"],
             // قائمة موظفي فرع الدراسة (بلا بيانات حساسة): لمن يختار مدير المشروع أو المهندسين أو أعضاء الفريق
@@ -344,10 +338,8 @@
         public const string ChangeMaintenanceStatus = "ChangeMaintenanceStatus";
         public const string ViewMaintenanceStats = "ViewMaintenanceStats";
         public const string ToggleUserActive = "ToggleUserActive";
-        public const string ViewWorkTasks = "ViewWorkTasks";
         public const string ViewOrganizationDashboard = "ViewOrganizationDashboard";
         public const string ViewMyDashboard = "ViewMyDashboard";
-        public const string ViewMyWorkTasks = "ViewMyWorkTasks";
         public const string ViewNotifications = "ViewNotifications";
         public const string SignMaintenanceReceipt = "SignMaintenanceReceipt";
         public const string IssueSparePart = "IssueSparePart";

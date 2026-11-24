@@ -1,7 +1,7 @@
 namespace Application.DTOs.Response
 {
     // ════════════════════════════════════════════════════════════════════
-    // لوحات المتابعة = إحصائيات عامة للمؤسسة (الهيكل، الكادر، مهام العمل، النشاط).
+    // لوحات المتابعة = إحصائيات عامة للمؤسسة (الهيكل، الكادر، النشاط).
     // إحصائيات الإجازات لها صفحة مستقلة للرؤساء (VacationStatsDto) — قرار المستخدم 2026-09-28:
     // التطبيق منصة عامة لمؤسسة متعددة الفروع والمهام، والإجازات ميزة واحدة منه.
     // ════════════════════════════════════════════════════════════════════
@@ -15,25 +15,16 @@ namespace Application.DTOs.Response
     }
 
     /// <summary>
-    /// "آخر الإجراءات" العامة في النطاق: انضمام موظف، إضافة مهمة عمل، إسناد مهمة.
-    /// لا يوجد سجل تدقيق منفصل — تُستنتج من تواريخ الإنشاء والإسناد.
+    /// "آخر الإجراءات" العامة في النطاق: انضمام الموظفين.
+    /// لا يوجد سجل تدقيق منفصل — تُستنتج من تاريخ إنشاء الحساب.
     /// </summary>
     public class DashboardActivityDto
     {
-        public string Type { get; set; } = string.Empty; // UserJoined | TaskCreated | TaskAssigned
+        public string Type { get; set; } = string.Empty; // UserJoined
         public string Icon { get; set; } = string.Empty;
         public string Text { get; set; } = string.Empty;
         public string Scope { get; set; } = string.Empty; // الفرع / القسم / المكتب المعني
         public DateTime Date { get; set; }
-    }
-
-    /// <summary>توزيع مهام العمل على موظفي النطاق</summary>
-    public class WorkTaskDistributionDto
-    {
-        public int TaskId { get; set; }
-        public string TaskName { get; set; } = string.Empty;
-        public string Icon { get; set; } = string.Empty;
-        public List<string> AssigneeNames { get; set; } = [];
     }
 
     // ════════════════════ مدير النظام: المؤسسة ════════════════════
@@ -44,8 +35,6 @@ namespace Application.DTOs.Response
         public int DepartmentsCount { get; set; }
         public int OfficesCount { get; set; }
         public int EmployeesCount { get; set; }
-        public int WorkTasksCount { get; set; }
-        public int EmployeesWithTasks { get; set; }
 
         public List<BranchSummaryDto> Branches { get; set; } = [];
         public List<DashboardCountItemDto> EmployeesByRole { get; set; } = [];
@@ -60,7 +49,6 @@ namespace Application.DTOs.Response
         public int DepartmentsCount { get; set; }
         public int OfficesCount { get; set; }
         public int EmployeesCount { get; set; }
-        public int TasksCount { get; set; }
     }
 
     // ════════════════════ رئيس الفرع ════════════════════
@@ -74,12 +62,8 @@ namespace Application.DTOs.Response
         public int DepartmentsCount { get; set; }
         public int OfficesCount { get; set; }
         public int EmployeesCount { get; set; }
-        public int TasksCount { get; set; }
-        public int EmployeesWithTasks { get; set; }
 
-        public List<WorkTaskCardDto> Tasks { get; set; } = [];
         public List<DepartmentSummaryDto> Departments { get; set; } = [];
-        public List<WorkTaskDistributionDto> TaskDistribution { get; set; } = [];
         public List<DashboardCountItemDto> EmployeesByRole { get; set; } = [];
         public List<DashboardActivityDto> RecentActivity { get; set; } = [];
     }
@@ -91,7 +75,6 @@ namespace Application.DTOs.Response
         public string ManagerNames { get; set; } = string.Empty;
         public int OfficesCount { get; set; }
         public int EmployeesCount { get; set; }
-        public int EmployeesWithTasks { get; set; }
     }
 
     // ════════════════════ رئيس القسم ════════════════════
@@ -106,11 +89,8 @@ namespace Application.DTOs.Response
 
         public int OfficesCount { get; set; }
         public int EmployeesCount { get; set; }
-        public int TasksCount { get; set; }            // مهام العمل المسنَدة لموظفي القسم (بدون تكرار)
-        public int EmployeesWithoutTasks { get; set; }
 
         public List<OfficeSummaryDto> Offices { get; set; } = [];
-        public List<WorkTaskDistributionDto> TaskDistribution { get; set; } = [];
         public List<DashboardActivityDto> RecentActivity { get; set; } = [];
     }
 
@@ -120,7 +100,6 @@ namespace Application.DTOs.Response
         public string Name { get; set; } = string.Empty;
         public string ManagerNames { get; set; } = string.Empty;
         public int EmployeesCount { get; set; }
-        public int EmployeesWithTasks { get; set; }
     }
 
     // ════════════════════ رئيس المكتب ════════════════════
@@ -136,12 +115,8 @@ namespace Application.DTOs.Response
         public string ManagerNames { get; set; } = string.Empty;
 
         public int EmployeesCount { get; set; }
-        public int TasksCount { get; set; }
-        public int EmployeesWithTasks { get; set; }
-        public int EmployeesWithoutTasks { get; set; }
 
         public List<OfficeMemberDto> Members { get; set; } = [];
-        public List<WorkTaskDistributionDto> TaskDistribution { get; set; } = [];
         public List<DashboardActivityDto> RecentActivity { get; set; } = [];
     }
 
@@ -151,7 +126,6 @@ namespace Application.DTOs.Response
         public string FullName { get; set; } = string.Empty;
         public string RoleName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        public List<string> TaskNames { get; set; } = [];
         public DateTime JoinedAt { get; set; }
     }
 

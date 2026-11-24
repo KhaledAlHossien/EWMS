@@ -281,6 +281,15 @@ namespace Application.DTOs.Response
         public bool CanCreateStartOrder { get; set; }
         public int? DiwanStage { get; set; }
         public StudyDiwanCaseDto? DiwanCase { get; set; }
+        /// <summary>الجهة المستفيدة من الطلب (لقائمة الديوان)</summary>
+        public string MainBeneficiary { get; set; } = string.Empty;
+        public string? DiwanDispatchNumber { get; set; }
+        public DateOnly? DiwanDispatchDate { get; set; }
+        /// <summary>بداية انتظار المرحلة الحالية للمعاملة المفتوحة (آخر إجراء على الرد)؛ null للمغلقة</summary>
+        public DateTime? DiwanSince { get; set; }
+        public bool CanRegisterDiwanDispatch { get; set; }
+        public bool CanRegisterDiwanReply { get; set; }
+        public bool CanReviewDiwan { get; set; }
     }
 
     public class StartOrderEngineerDto
@@ -373,6 +382,8 @@ namespace Application.DTOs.Response
         public string Name { get; set; } = string.Empty;
         public int StartOrderId { get; set; }
         public string StartOrderNumber { get; set; } = string.Empty;
+        /// <summary>حالة أمر البدء (إعادة تفعيل المشروع الملغى تتطلب أمراً معتمداً)</summary>
+        public int StartOrderStatus { get; set; }
         public int BranchId { get; set; }
         public string BranchName { get; set; } = string.Empty;
         /// <summary>موقع المشروع في سجل المواقع (منسوخ من الطلب، قد يكون فارغاً) — منه تظهر مشاريع الفرع على الخريطة</summary>

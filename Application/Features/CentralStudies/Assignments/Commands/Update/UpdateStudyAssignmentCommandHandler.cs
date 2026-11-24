@@ -24,8 +24,11 @@ namespace Application.Features.CentralStudies.Assignments.Commands.Update
             var entity = await _support.LoadAsync(request.Id, viewer);
             StudyRules.EnsureEditable(entity.Status);
             await _support.EnsureDepartmentAsync(request.Dto.FollowingDepartmentId, entity.Request.BranchId);
+            // قبل Apply: الكود الحالي يُقرأ بتاريخ التكليف المحفوظ، ثم يُولَّد بالتاريخ الجديد.
+            var projectCode = await _support.RefreshProjectCodeAsync(entity, request.Dto.AssignmentDate, request.Dto.AdminArchiveNumber);
 
             StudyAssignmentSupport.Apply(request.Dto, entity);
+            entity.ProjectCode = projectCode;
             entity.Status = StudyDocumentStatus.Draft;
             entity.UpdatedAt = DateTime.Now;
             await _service.UpdateAsync(entity, request.Dto.RowVersion);

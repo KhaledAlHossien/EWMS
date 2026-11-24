@@ -68,10 +68,5 @@ namespace Infrastructure.Persistence.Repositories
         {
             return await _context.Users.AnyAsync(u => u.BranchId == branchId);
         }
-
-        public async Task<bool> HasWorkTasksAsync(int branchId)
-        {
-            return await _context.WorkTasks.AnyAsync(t => t.BranchId == branchId);
-        }
     }
 }

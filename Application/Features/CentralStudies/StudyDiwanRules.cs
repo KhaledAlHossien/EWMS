@@ -7,9 +7,24 @@ public static class StudyDiwanRules
 {
     public const string HeadPermission = "SignStudyAsBranchHead";
 
-    public static StudyDiwanStage? StageOf(StudyAssignmentResponse response) =>
-        response.DiwanCase?.Stage ?? (response.Status == StudyDocumentStatus.Approved && response.StartOrder == null
-            ? StudyDiwanStage.AwaitingDispatch : null);
+    /// <summary>
+    /// مرحلة المعاملة. بعد الرفض المركزي يعود الرد إلى القسم المتابع (المرحلة «رُفضت» ما دام الرد قيد التعديل)،
+    /// وحين يُعتمد الرد المعدّل من جديد تصبح «بانتظار تسجيل الصادر» لإرساله مرة أخرى.
+    /// </summary>
+    public static StudyDiwanStage? StageOf(StudyAssignmentResponse response)
+    {
+        var awaitingDispatch = response.Status == StudyDocumentStatus.Approved && response.StartOrder == null;
+        return response.DiwanCase?.Stage switch
+        {
+            null => awaitingDispatch ? StudyDiwanStage.AwaitingDispatch : null,
+            StudyDiwanStage.Rejected when awaitingDispatch => StudyDiwanStage.AwaitingDispatch,
+            var stage => stage
+        };
+    }
+
+    /// <summary>مرحلة تنتظر إجراءً (الصادر، الرد المركزي، رئيس الفرع، التصحيح)؛ الإحالة والإغلاق خارج قائمة العمل</summary>
+    public static bool IsOpen(StudyDiwanStage? stage) => stage is StudyDiwanStage.AwaitingDispatch or StudyDiwanStage.AwaitingReply
+        or StudyDiwanStage.AwaitingBranchHead or StudyDiwanStage.CorrectionRequested;
 
     public static bool CanAct(Viewer viewer, string permission, int branchId) =>
         OrganizationRole.InBranch(viewer.User, branchId) && viewer.Has(permission) && viewer.Has(StudyPermissions.ViewResponses);
@@ -38,7 +53,7 @@ public static class StudyDiwanRules
         StudyDiwanStage.AwaitingBranchHead => "بانتظار إجراء رئيس الفرع",
         StudyDiwanStage.CorrectionRequested => "أُعيدت إلى ديوان الدراسات للتصحيح",
         StudyDiwanStage.Referred => "أُحيلت إلى إدارة المشاريع",
-        StudyDiwanStage.Rejected => "أُغلقت بسبب الرفض المركزي",
+        StudyDiwanStage.Rejected => "رُفضت مركزياً وأُعيدت إلى القسم المتابع للتعديل",
         StudyDiwanStage.ClosedWithoutStart => "أُغلقت بتوصية فنية غير متاح",
         _ => throw new ArgumentOutOfRangeException(nameof(stage))
     };

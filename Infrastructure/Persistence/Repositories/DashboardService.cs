@@ -33,11 +33,6 @@ namespace Infrastructure.Persistence.Repositories
         private IQueryable<User> ActiveUsers => _context.Users.AsNoTracking().Where(u => u.IsActive);
         private IQueryable<Vacation> Vacations => _context.Vacation.AsNoTracking();
 
-        /// <summary>موظف "لديه مهام": مسنَد لمهمة فعّالة من فرعه الحالي</summary>
-        private IQueryable<User> WithTasks(IQueryable<User> users) =>
-            users.Where(u => _context.UserWorkTasks.Any(a =>
-                a.UserId == u.Id && a.WorkTask.IsActive && a.WorkTask.BranchId == u.BranchId));
-
         // ════════════════════ مدير النظام: المؤسسة ════════════════════
 
         public async Task<OverviewDashboardDto> GetOverviewAsync()
@@ -51,8 +46,6 @@ namespace Infrastructure.Persistence.Repositories
                 .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count);
             var usersPerBranch = await staff.GroupBy(u => u.BranchId!.Value)
                 .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count);
-            var tasksPerBranch = await _context.WorkTasks.Where(t => t.IsActive).GroupBy(t => t.BranchId)
-                .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count);
             var branchManagers = await ManagersByAsync(staff, "branch", u => u.BranchId!.Value);
 
             return new OverviewDashboardDto
@@ -61,8 +54,6 @@ namespace Infrastructure.Persistence.Repositories
                 DepartmentsCount = deptsPerBranch.Values.Sum(),
                 OfficesCount = officesPerBranch.Values.Sum(),
                 EmployeesCount = usersPerBranch.Values.Sum(),
-                WorkTasksCount = tasksPerBranch.Values.Sum(),
-                EmployeesWithTasks = await WithTasks(staff).CountAsync(),
                 Branches = branches.Select(b => new BranchSummaryDto
                 {
                     Id = b.Id,
@@ -70,11 +61,10 @@ namespace Infrastructure.Persistence.Repositories
                     ManagerNames = branchManagers.GetValueOrDefault(b.Id, ""),
                     DepartmentsCount = deptsPerBranch.GetValueOrDefault(b.Id),
                     OfficesCount = officesPerBranch.GetValueOrDefault(b.Id),
-                    EmployeesCount = usersPerBranch.GetValueOrDefault(b.Id),
-                    TasksCount = tasksPerBranch.GetValueOrDefault(b.Id)
+                    EmployeesCount = usersPerBranch.GetValueOrDefault(b.Id)
                 }).ToList(),
                 EmployeesByRole = await EmployeesByRoleAsync(staff),
-                RecentActivity = await RecentActivityAsync(u => u.BranchId != null, branchId: null, includeTaskCreation: true)
+                RecentActivity = await RecentActivityAsync(u => u.BranchId != null)
             };
         }
 
@@ -94,22 +84,7 @@ namespace Infrastructure.Persistence.Repositories
                 .ToDictionaryAsync(x => x.Key, x => x.Count);
             var usersPerDept = await users.Where(u => u.DepartmentId != null).GroupBy(u => u.DepartmentId!.Value)
                 .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count);
-            var withTasksPerDept = await WithTasks(users).Where(u => u.DepartmentId != null).GroupBy(u => u.DepartmentId!.Value)
-                .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count);
             var deptManagers = await ManagersByAsync(users.Where(u => u.DepartmentId != null), "department", u => u.DepartmentId!.Value);
-
-            var tasks = await _context.WorkTasks.AsNoTracking()
-                .Where(t => t.BranchId == branchId && t.IsActive)
-                .OrderBy(t => t.Name)
-                .Select(t => new WorkTaskCardDto
-                {
-                    Id = t.Id,
-                    Name = t.Name,
-                    Description = t.Description,
-                    Icon = t.Icon,
-                    BranchName = t.Branch.Name,
-                    AssigneesCount = t.Assignments.Count
-                }).ToListAsync();
 
             return new BranchDashboardDto
             {
@@ -119,21 +94,16 @@ namespace Infrastructure.Persistence.Repositories
                 DepartmentsCount = departments.Count,
                 OfficesCount = officesPerDept.Values.Sum(),
                 EmployeesCount = await users.CountAsync(),
-                TasksCount = tasks.Count,
-                EmployeesWithTasks = await WithTasks(users).CountAsync(),
-                Tasks = tasks,
                 Departments = departments.Select(d => new DepartmentSummaryDto
                 {
                     Id = d.Id,
                     Name = d.Name,
                     ManagerNames = deptManagers.GetValueOrDefault(d.Id, ""),
                     OfficesCount = officesPerDept.GetValueOrDefault(d.Id),
-                    EmployeesCount = usersPerDept.GetValueOrDefault(d.Id),
-                    EmployeesWithTasks = withTasksPerDept.GetValueOrDefault(d.Id)
+                    EmployeesCount = usersPerDept.GetValueOrDefault(d.Id)
                 }).ToList(),
-                TaskDistribution = await TaskDistributionAsync(branchId, u => u.BranchId == branchId),
                 EmployeesByRole = await EmployeesByRoleAsync(users),
-                RecentActivity = await RecentActivityAsync(u => u.BranchId == branchId, branchId, includeTaskCreation: true)
+                RecentActivity = await RecentActivityAsync(u => u.BranchId == branchId)
             };
         }
 
@@ -151,12 +121,7 @@ namespace Infrastructure.Persistence.Repositories
                 .Where(o => o.DepartmentId == departmentId).OrderBy(o => o.Name).ToListAsync();
             var usersPerOffice = await users.Where(u => u.OfficeId != null).GroupBy(u => u.OfficeId!.Value)
                 .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count);
-            var withTasksPerOffice = await WithTasks(users).Where(u => u.OfficeId != null).GroupBy(u => u.OfficeId!.Value)
-                .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count);
             var officeManagers = await ManagersByAsync(users.Where(u => u.OfficeId != null), "office", u => u.OfficeId!.Value);
-
-            var distribution = await TaskDistributionAsync(department.BranchId, u => u.DepartmentId == departmentId);
-            var employeesCount = await users.CountAsync();
 
             return new DepartmentDashboardDto
             {
@@ -166,19 +131,15 @@ namespace Infrastructure.Persistence.Repositories
                 BranchName = department.Branch?.Name ?? "",
                 ManagerNames = await ManagerNamesAsync(users, "department"),
                 OfficesCount = offices.Count,
-                EmployeesCount = employeesCount,
-                TasksCount = distribution.Count,
-                EmployeesWithoutTasks = employeesCount - await WithTasks(users).CountAsync(),
+                EmployeesCount = await users.CountAsync(),
                 Offices = offices.Select(o => new OfficeSummaryDto
                 {
                     Id = o.Id,
                     Name = o.Name,
                     ManagerNames = officeManagers.GetValueOrDefault(o.Id, ""),
-                    EmployeesCount = usersPerOffice.GetValueOrDefault(o.Id),
-                    EmployeesWithTasks = withTasksPerOffice.GetValueOrDefault(o.Id)
+                    EmployeesCount = usersPerOffice.GetValueOrDefault(o.Id)
                 }).ToList(),
-                TaskDistribution = distribution,
-                RecentActivity = await RecentActivityAsync(u => u.DepartmentId == departmentId, department.BranchId, includeTaskCreation: false)
+                RecentActivity = await RecentActivityAsync(u => u.DepartmentId == departmentId)
             };
         }
 
@@ -197,14 +158,6 @@ namespace Infrastructure.Persistence.Repositories
             var members = await users.OrderBy(u => u.FullName)
                 .Select(u => new { u.Id, u.FullName, u.Email, RoleName = u.Role.Name, u.CreatedAt })
                 .ToListAsync();
-            var memberIds = members.Select(m => m.Id).ToList();
-            var assignments = await _context.UserWorkTasks.AsNoTracking()
-                .Where(a => memberIds.Contains(a.UserId) && a.WorkTask.IsActive && a.WorkTask.BranchId == branchId)
-                .Select(a => new { a.UserId, a.WorkTask.Name })
-                .ToListAsync();
-
-            var distribution = await TaskDistributionAsync(branchId, u => u.OfficeId == officeId);
-            var withTasks = assignments.Select(a => a.UserId).Distinct().Count();
 
             return new OfficeDashboardDto
             {
@@ -216,20 +169,15 @@ namespace Infrastructure.Persistence.Repositories
                 BranchName = office.Department?.Branch?.Name ?? "",
                 ManagerNames = await ManagerNamesAsync(users, "office"),
                 EmployeesCount = members.Count,
-                TasksCount = distribution.Count,
-                EmployeesWithTasks = withTasks,
-                EmployeesWithoutTasks = members.Count - withTasks,
                 Members = members.Select(m => new OfficeMemberDto
                 {
                     UserId = m.Id,
                     FullName = m.FullName,
                     Email = m.Email,
                     RoleName = m.RoleName,
-                    JoinedAt = m.CreatedAt,
-                    TaskNames = assignments.Where(a => a.UserId == m.Id).Select(a => a.Name).OrderBy(n => n).ToList()
+                    JoinedAt = m.CreatedAt
                 }).ToList(),
-                TaskDistribution = distribution,
-                RecentActivity = await RecentActivityAsync(u => u.OfficeId == officeId, branchId, includeTaskCreation: false)
+                RecentActivity = await RecentActivityAsync(u => u.OfficeId == officeId)
             };
         }
 
@@ -347,10 +295,9 @@ namespace Infrastructure.Persistence.Repositories
         }
 
         /// <summary>
-        /// آخر الإجراءات العامة: انضمام موظفين، إسناد مهام، وإضافة مهام (لنطاق الفرع/المؤسسة).
+        /// آخر الإجراءات العامة في النطاق: انضمام الموظفين (لا يوجد سجل تدقيق منفصل).
         /// </summary>
-        private async Task<List<DashboardActivityDto>> RecentActivityAsync(
-            Expression<Func<User, bool>> inScope, int? branchId, bool includeTaskCreation)
+        private async Task<List<DashboardActivityDto>> RecentActivityAsync(Expression<Func<User, bool>> inScope)
         {
             var joined = await _context.Users.AsNoTracking().Where(inScope)
                 .OrderByDescending(u => u.CreatedAt).Take(ListSize)
@@ -361,70 +308,14 @@ namespace Infrastructure.Persistence.Repositories
                     Place = u.Office != null ? u.Office.Name : u.Department != null ? u.Department.Name : u.Branch != null ? u.Branch.Name : ""
                 }).ToListAsync();
 
-            var scopedUserIds = _context.Users.Where(inScope).Select(u => u.Id);
-            var assigned = await _context.UserWorkTasks.AsNoTracking()
-                .Where(a => scopedUserIds.Contains(a.UserId))
-                .OrderByDescending(a => a.AssignedAt).Take(ListSize)
-                .Select(a => new { a.User.FullName, TaskName = a.WorkTask.Name, a.WorkTask.Icon, a.AssignedAt, BranchName = a.WorkTask.Branch.Name })
-                .ToListAsync();
-
-            var activity = joined.Select(j => new DashboardActivityDto
+            return joined.Select(j => new DashboardActivityDto
             {
                 Type = "UserJoined",
                 Icon = "👤",
                 Text = $"انضم {j.FullName} إلى النظام",
                 Scope = j.Place,
                 Date = j.CreatedAt
-            }).Concat(assigned.Select(a => new DashboardActivityDto
-            {
-                Type = "TaskAssigned",
-                Icon = string.IsNullOrEmpty(a.Icon) ? "📋" : a.Icon,
-                Text = $"أُسندت مهمة «{a.TaskName}» إلى {a.FullName}",
-                Scope = a.BranchName,
-                Date = a.AssignedAt
-            }));
-
-            if (includeTaskCreation)
-            {
-                var created = await _context.WorkTasks.AsNoTracking()
-                    .Where(t => branchId == null || t.BranchId == branchId)
-                    .OrderByDescending(t => t.CreatedAt).Take(ListSize)
-                    .Select(t => new { t.Name, t.Icon, t.CreatedAt, BranchName = t.Branch.Name })
-                    .ToListAsync();
-
-                activity = activity.Concat(created.Select(t => new DashboardActivityDto
-                {
-                    Type = "TaskCreated",
-                    Icon = string.IsNullOrEmpty(t.Icon) ? "📋" : t.Icon,
-                    Text = $"أُضيفت مهمة عمل «{t.Name}»",
-                    Scope = t.BranchName,
-                    Date = t.CreatedAt
-                }));
-            }
-
-            return activity.OrderByDescending(a => a.Date).Take(ListSize).ToList();
-        }
-
-        /// <summary>مهام الفرع الفعّالة المسنَدة لموظفين ضمن النطاق</summary>
-        private async Task<List<WorkTaskDistributionDto>> TaskDistributionAsync(
-            int branchId, Expression<Func<User, bool>> inScope)
-        {
-            var scopedUserIds = ActiveUsers.Where(inScope).Select(u => u.Id);
-
-            var rows = await _context.UserWorkTasks.AsNoTracking()
-                .Where(a => a.WorkTask.BranchId == branchId && a.WorkTask.IsActive && scopedUserIds.Contains(a.UserId))
-                .Select(a => new { a.WorkTaskId, a.WorkTask.Name, a.WorkTask.Icon, a.User.FullName })
-                .ToListAsync();
-
-            return rows.GroupBy(r => new { r.WorkTaskId, r.Name, r.Icon })
-                .OrderBy(g => g.Key.Name)
-                .Select(g => new WorkTaskDistributionDto
-                {
-                    TaskId = g.Key.WorkTaskId,
-                    TaskName = g.Key.Name,
-                    Icon = g.Key.Icon,
-                    AssigneeNames = g.Select(r => r.FullName).OrderBy(n => n).ToList()
-                }).ToList();
+            }).ToList();
         }
 
         private async Task<string> ManagerNamesAsync(IQueryable<User> users, string unit)

@@ -30,6 +30,8 @@ namespace Application.DTOs.Request
         public int? Status { get; set; }
         public int? DiwanStage { get; set; }
         public bool DiwanOnly { get; set; }
+        /// <summary>المعاملات المفتوحة فقط (تنتظر إجراءً)، الأقدم انتظاراً أولاً</summary>
+        public bool DiwanOpen { get; set; }
         public string? Search { get; set; }
         public int? BranchId { get; set; }
         public DateTime? From { get; set; }

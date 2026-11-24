@@ -120,7 +120,7 @@ namespace Infrastructure.Persistence.Repositories
                     ActualStartDate = p.ActualStartDate,
                     ActualEndDate = p.ActualEndDate,
                     Status = (int)p.Status,
-                    CanReactivate = p.StartOrder.Status == StudyDocumentStatus.Approved,
+                    StartOrderStatus = (int)p.StartOrder.Status,
                     CreatedByName = p.CreatedBy.FullName,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,

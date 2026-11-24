@@ -108,9 +108,11 @@ namespace API.Controllers
         public async Task<ActionResult<StudyAssignmentDto>> Get(int id) => Ok(await _mediator.Send(new GetStudyAssignmentQuery(id)));
 
         [HttpGet("ProjectCode/{requestId}")]
-        [Authorize(Policy = "CreateStudyAssignment")]
-        public async Task<ActionResult> PreviewProjectCode(int requestId, [FromQuery] DateTime assignmentDate, [FromQuery] string? adminArchiveNumber)
-            => Ok(new { projectCode = await _mediator.Send(new PreviewStudyProjectCodeQuery(requestId, assignmentDate, adminArchiveNumber), HttpContext.RequestAborted) });
+        [Authorize(Policy = "AnyStudyAssignmentWrite")]
+        public async Task<ActionResult> PreviewProjectCode(int requestId, [FromQuery] DateTime assignmentDate, [FromQuery] string? adminArchiveNumber,
+            [FromQuery] int? assignmentId)
+            => Ok(new { projectCode = await _mediator.Send(
+                new PreviewStudyProjectCodeQuery(requestId, assignmentDate, adminArchiveNumber, assignmentId), HttpContext.RequestAborted) });
 
         /// <summary>لطلب معتمد بلا تكليف (RequestId في النموذج)</summary>
         [HttpPost("Create")]

@@ -9,7 +9,7 @@
         VacationApprovedFinal = 5,            // اعتماد نهائي من رئيس الفرع
         VacationRejectedByBranchManager = 6,  // رفض نهائي من رئيس الفرع
         VacationCancelled = 7,                // ألغى الموظف طلبه بنفسه
-        WorkTaskAssigned = 8,                 // أُسندت للموظف مهمة عمل
+        // 8 محجوزة: كانت WorkTaskAssigned (أُزيلت ميزة مهام العمل 2026-11-24) — لا تُعِد استعمالها
         TaskAssigned = 9,                     // مهمة جديدة على لوحة المهام (للجهة المُسندة إليها)
         TaskStatusChanged = 10,               // تغيّرت حالة مهمة أسندتُها
         TaskCommented = 11,                   // تعليق جديد على مهمة

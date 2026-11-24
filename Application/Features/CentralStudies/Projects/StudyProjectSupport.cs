@@ -23,7 +23,6 @@ namespace Application.Features.CentralStudies.Projects
         public StudyProjectDto ToDto(StudyProject e, Viewer viewer)
         {
             var dto = _kit.Mapper.Map<StudyProjectDto>(e);
-            dto.CanReactivate = e.StartOrder.Status == StudyDocumentStatus.Approved;
             ApplyFlags(dto, viewer);
             ProjectScope.For(viewer, e).Stamp(dto);
             return dto;
@@ -52,8 +51,9 @@ namespace Application.Features.CentralStudies.Projects
                             && dto.Stages.All(s => s.TasksTotal == 0);
             var canCancelDocuments = inScope && viewer.Has(StudyPermissions.CancelDocuments);
             dto.CanCancel = canCancelDocuments && open;
-            // تبدأ قيمة CanReactivate من حالة أمر البدء في التحويل أو إسقاط القائمة.
-            dto.CanReactivate = dto.CanReactivate && canCancelDocuments && status == StudyProjectStatus.Cancelled;
+            // من يملك الإلغاء يعيد التفعيل، للمشروع الملغى الذي أمر بدئه ما زال معتمداً
+            dto.CanReactivate = canCancelDocuments && status == StudyProjectStatus.Cancelled
+                                && dto.StartOrderStatus == (int)StudyDocumentStatus.Approved;
             dto.CanRequestCompletion = dto.CanEdit && status == StudyProjectStatus.Running && dto.Stages.Count > 0
                                        && dto.Stages.All(s => s.Status == (int)StudyStageStatus.Closed);
             // إضافة مهمة: القسم المسؤول عن المرحلة فقط — القاعدة نفسها في StudyStageSupport.StageDto

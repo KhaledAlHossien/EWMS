@@ -36,7 +36,7 @@ namespace Application.Features.CentralStudies.Requests.Commands.Create
             entity.EntityCode = beneficiary.Code;
             StudyRequestSupport.Normalize(entity);
             if (await _service.NumberExistsAsync(entity.RequestNumber))
-                throw new InvalidOperationException("رقم طلب الدراسة مستخدم في طلب آخر");
+                throw new InvalidOperationException($"رقم طلب الدراسة «{entity.RequestNumber}» مستخدم في طلب آخر — تحقق من الرقم الوارد من الديوان المركزي");
             entity.BranchId = branchId;
             entity.CreatedByUserId = viewer.Id;
             entity.Status = StudyDocumentStatus.Draft;
