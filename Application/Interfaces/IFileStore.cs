@@ -35,6 +35,11 @@ namespace Application.Interfaces
         Stream OpenRead();
         /// <summary>يجعله الملف النهائي — بعدها لا يُحذف بالتخلص منه</summary>
         Task CommitAsync();
+        /// <summary>
+        /// يحذف الملف حتى بعد اعتماده: يُستدعى إن فشل حفظ السجل الذي يشير إليه، فلا يبقى ملف بلا سجل
+        /// (الترتيب: اعتماد الملف ثم حفظ السجل، وعند فشل الحفظ RevertAsync).
+        /// </summary>
+        Task RevertAsync();
     }
 
     /// <summary>مصدر ملف مرفوع يُقرأ تدفقاً (يوفّره الـ controller من جسم الطلب) — لا يُحمَّل الملف في الذاكرة</summary>

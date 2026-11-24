@@ -79,9 +79,10 @@ namespace Infrastructure.Persistence.Repositories
                     ResponseId = r.Assignment == null || r.Assignment.Response == null ? null : r.Assignment.Response.Id,
                     ResponseStatus = r.Assignment == null || r.Assignment.Response == null ? null : (int)r.Assignment.Response.Status,
                     DiwanStage = r.Assignment == null || r.Assignment.Response == null ? null
-                        : r.Assignment.Response.DiwanCase != null ? (int)r.Assignment.Response.DiwanCase.Stage
                         : r.Assignment.Response.Status == StudyDocumentStatus.Approved && r.Assignment.Response.StartOrder == null
-                            ? (int)StudyDiwanStage.AwaitingDispatch : null,
+                          && (r.Assignment.Response.DiwanCase == null || r.Assignment.Response.DiwanCase.Stage == StudyDiwanStage.Rejected)
+                            ? (int)StudyDiwanStage.AwaitingDispatch
+                        : r.Assignment.Response.DiwanCase != null ? (int)r.Assignment.Response.DiwanCase.Stage : null,
                     StartOrderId = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.StartOrder == null
                         ? null : r.Assignment.Response.StartOrder.Id,
                     StartOrderNumber = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.StartOrder == null
@@ -199,12 +200,18 @@ namespace Infrastructure.Persistence.Repositories
             if (filter.Status is int status) query = query.Where(r => (int)r.Status == status);
             if (filter.DiwanOnly)
                 query = query.Where(r => r.DiwanCase != null || (r.Status == StudyDocumentStatus.Approved && r.StartOrder == null));
+            // يطابق StudyDiwanRules.StageOf: الرد المعدّل بعد رفض مركزي واعتماده من جديد ينتظر صادراً جديداً،
+            // و«رُفضت» تشمل الرد العائد للقسم المتابع للتعديل (ليس معتمداً الآن)
             if (filter.DiwanStage is int diwanStage)
             {
-                query = query.Where(r => r.Status == StudyDocumentStatus.Approved);
-                query = diwanStage == (int)StudyDiwanStage.AwaitingDispatch
-                    ? query.Where(r => r.DiwanCase == null && r.StartOrder == null)
-                    : query.Where(r => r.DiwanCase != null && (int)r.DiwanCase.Stage == diwanStage);
+                query = diwanStage switch
+                {
+                    (int)StudyDiwanStage.AwaitingDispatch => query.Where(r => r.Status == StudyDocumentStatus.Approved && r.StartOrder == null
+                        && (r.DiwanCase == null || r.DiwanCase.Stage == StudyDiwanStage.Rejected)),
+                    (int)StudyDiwanStage.Rejected => query.Where(r => r.DiwanCase != null && r.DiwanCase.Stage == StudyDiwanStage.Rejected
+                        && r.Status != StudyDocumentStatus.Approved),
+                    _ => query.Where(r => r.Status == StudyDocumentStatus.Approved && r.DiwanCase != null && (int)r.DiwanCase.Stage == diwanStage)
+                };
             }
             if (filter.From is DateTime from) query = query.Where(r => r.ResponseDate >= from.Date);
             if (filter.To is DateTime to) query = query.Where(r => r.ResponseDate <= to.Date);
@@ -218,9 +225,17 @@ namespace Infrastructure.Persistence.Repositories
                                              || r.DiwanCase.Replies.Any(reply => reply.Number.Contains(text)))));
             }
 
+            if (filter.DiwanOpen)
+                query = query.Where(r => r.Status == StudyDocumentStatus.Approved && r.StartOrder == null
+                    && (r.DiwanCase == null || r.DiwanCase.Stage == StudyDiwanStage.AwaitingReply
+                        || r.DiwanCase.Stage == StudyDiwanStage.AwaitingBranchHead || r.DiwanCase.Stage == StudyDiwanStage.CorrectionRequested
+                        || r.DiwanCase.Stage == StudyDiwanStage.Rejected));
+
             var total = await query.CountAsync();
-            var ids = await query.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id)
-                .Skip((page - 1) * pageSize).Take(pageSize).Select(r => r.Id).ToListAsync();
+            var ordered = filter.DiwanOpen
+                ? query.OrderBy(r => r.UpdatedAt ?? r.CreatedAt).ThenBy(r => r.Id)   // الأطول انتظاراً أولاً
+                : query.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id);
+            var ids = await ordered.Skip((page - 1) * pageSize).Take(pageSize).Select(r => r.Id).ToListAsync();
             var items = await WithDetails().Where(r => ids.Contains(r.Id)).AsNoTracking().ToListAsync();
             return (items.OrderBy(r => ids.IndexOf(r.Id)).ToList(), total);
         }

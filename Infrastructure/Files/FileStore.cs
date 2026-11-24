@@ -161,6 +161,13 @@ namespace Infrastructure.Files
                 return Task.CompletedTask;
             }
 
+            public Task RevertAsync()
+            {
+                TryDelete(_committed ? _path : _temp);
+                _committed = false;
+                return Task.CompletedTask;
+            }
+
             public ValueTask DisposeAsync()
             {
                 if (!_committed) TryDelete(_temp);

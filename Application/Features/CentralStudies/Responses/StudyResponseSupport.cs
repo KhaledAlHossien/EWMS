@@ -34,9 +34,21 @@ namespace Application.Features.CentralStudies.Responses
             dto.CanCancel = inScope && viewer.Has(StudyPermissions.CancelDocuments)
                             && e.Status is not (StudyDocumentStatus.Draft or StudyDocumentStatus.Cancelled)
                             && (e.StartOrder == null || e.StartOrder.Status == StudyDocumentStatus.Cancelled);
-            dto.DiwanStage = (int?)StudyDiwanRules.StageOf(e);
+            var stage = StudyDiwanRules.StageOf(e);
+            dto.DiwanStage = (int?)stage;
             dto.CanCreateStartOrder = inScope && viewer.Has("CreateStudyStartOrder") && e.StartOrder == null
                                       && StudyDiwanRules.ReadyForStartOrder(e);
+
+            // إجراءات الديوان (للقائمة والتفاصيل معاً)
+            var active = e.Status == StudyDocumentStatus.Approved && e.StartOrder == null;
+            var branchId = e.Assignment.Request.BranchId;
+            var canRegister = active && StudyDiwanRules.CanAct(viewer, StudyPermissions.ManageDiwan, branchId);
+            dto.CanRegisterDiwanDispatch = canRegister && stage == StudyDiwanStage.AwaitingDispatch;
+            dto.CanRegisterDiwanReply = canRegister && stage is StudyDiwanStage.AwaitingReply or StudyDiwanStage.CorrectionRequested;
+            dto.CanReviewDiwan = active && stage == StudyDiwanStage.AwaitingBranchHead
+                                 && StudyDiwanRules.CanAct(viewer, StudyDiwanRules.HeadPermission, branchId);
+            // كل خطوة ديوان وكل اعتماد تحدّث UpdatedAt للرد، فهو بداية انتظار المرحلة الحالية
+            dto.DiwanSince = active && StudyDiwanRules.IsOpen(stage) ? e.UpdatedAt ?? e.CreatedAt : null;
             return dto;
         }
 
@@ -80,16 +92,11 @@ namespace Application.Features.CentralStudies.Responses
             var dto = ToDto(entity, viewer);
             if (StudyDiwanRules.StageOf(entity) is { } stage)
             {
-                var active = entity.Status == StudyDocumentStatus.Approved && entity.StartOrder == null;
-                var branchId = entity.Assignment.Request.BranchId;
-                var canRegister = active && StudyDiwanRules.CanAct(viewer, StudyPermissions.ManageDiwan, branchId);
                 var data = entity.DiwanCase;
                 dto.DiwanCase = new((int)stage, StudyDiwanRules.Name(stage), data?.DispatchNumber, data?.DispatchDate, data?.ReviewNote,
                     data?.Replies.OrderByDescending(r => r.Id)
                         .Select(r => new StudyDiwanReplyDto(r.Id, r.Number, r.Date, (int)r.Decision, r.FileName, r.RecordedAt)).ToList() ?? [],
-                    canRegister && stage == StudyDiwanStage.AwaitingDispatch,
-                    canRegister && stage is StudyDiwanStage.AwaitingReply or StudyDiwanStage.CorrectionRequested,
-                    active && stage == StudyDiwanStage.AwaitingBranchHead && StudyDiwanRules.CanAct(viewer, StudyDiwanRules.HeadPermission, branchId));
+                    dto.CanRegisterDiwanDispatch, dto.CanRegisterDiwanReply, dto.CanReviewDiwan);
             }
             dto.Chain = await _kit.ChainAsync(entity.Assignment.RequestId);
             dto.Approvals = await _kit.ApprovalsAsync(ApprovalOwner.Of(entity));

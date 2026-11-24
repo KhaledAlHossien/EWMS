@@ -42,14 +42,29 @@ namespace Infrastructure.Persistence.Repositories
             {
                 throw new InvalidOperationException("عدّل مستخدم آخر هذا السجل بعد أن فتحته — أعد تحميله ثم أعد المحاولة");
             }
-            catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
+            catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 } sql)
             {
-                throw new InvalidOperationException("القيمة مستخدمة في سجل آخر (رقم أو كود أو اسم مكرر) — راجع البيانات وأعد المحاولة");
+                throw new InvalidOperationException(DuplicateMessage(sql.Message));
             }
             catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 547 })
             {
                 throw new InvalidOperationException("لا يمكن الحفظ: السجل مرتبط بسجلات أخرى أو يخالف قيود البيانات");
             }
+        }
+
+        /// <summary>
+        /// رسالة القيمة المكررة بحسب الفهرس الفريد الذي رفضها، مع القيمة نفسها.
+        /// الفحص قبل الحفظ يغطي الحالة العادية؛ هذا لحفظين متزامنين بالقيمة نفسها.
+        /// </summary>
+        public static string DuplicateMessage(string sqlMessage)
+        {
+            var value = System.Text.RegularExpressions.Regex.Match(sqlMessage, @"duplicate key value is \((.*)\)\.?") is { Success: true } m
+                ? $" «{m.Groups[1].Value}»" : string.Empty;
+            if (sqlMessage.Contains("IX_StudyRequests_RequestNumber"))
+                return $"رقم طلب الدراسة{value} مستخدم في طلب آخر — تحقق من الرقم الوارد من الديوان المركزي";
+            if (sqlMessage.Contains("IX_StudyAssignments_ProjectCode") || sqlMessage.Contains("IX_StudyProjects_Code"))
+                return $"كود المشروع{value} مستخدم في تكليف أو مشروع آخر — تحقق من رقم أرشيف ديوان الإدارة وتاريخ التكليف";
+            return "القيمة مستخدمة في سجل آخر (رقم أو كود أو اسم مكرر) — راجع البيانات وأعد المحاولة";
         }
     }
 }

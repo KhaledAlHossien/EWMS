@@ -3566,24 +3566,6 @@ namespace Infrastructure.Migrations
                     b.ToTable("UserTokens");
                 });
 
-            modelBuilder.Entity("Domain.Entities.UserWorkTask", b =>
-                {
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("WorkTaskId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("AssignedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("UserId", "WorkTaskId");
-
-                    b.HasIndex("WorkTaskId");
-
-                    b.ToTable("UserWorkTasks");
-                });
-
             modelBuilder.Entity("Domain.Entities.Vacation", b =>
                 {
                     b.Property<int>("Id")
@@ -3830,46 +3812,6 @@ namespace Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("VacationType");
-                });
-
-            modelBuilder.Entity("Domain.Entities.WorkTask", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BranchId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Icon")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BranchId", "Name")
-                        .IsUnique();
-
-                    b.ToTable("WorkTasks");
                 });
 
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ArchitecturalDrawing", b =>
@@ -5294,25 +5236,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Domain.Entities.UserWorkTask", b =>
-                {
-                    b.HasOne("Domain.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Domain.Entities.WorkTask", "WorkTask")
-                        .WithMany("Assignments")
-                        .HasForeignKey("WorkTaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-
-                    b.Navigation("WorkTask");
-                });
-
             modelBuilder.Entity("Domain.Entities.Vacation", b =>
                 {
                     b.HasOne("Domain.Entities.Branch", "Branch")
@@ -5419,17 +5342,6 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Vacation");
-                });
-
-            modelBuilder.Entity("Domain.Entities.WorkTask", b =>
-                {
-                    b.HasOne("Domain.Entities.Branch", "Branch")
-                        .WithMany()
-                        .HasForeignKey("BranchId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Branch");
                 });
 
             modelBuilder.Entity("Domain.Entities.AssignedTask", b =>
@@ -5558,11 +5470,6 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Entities.VacationAttachment", b =>
                 {
                     b.Navigation("Content");
-                });
-
-            modelBuilder.Entity("Domain.Entities.WorkTask", b =>
-                {
-                    b.Navigation("Assignments");
                 });
 
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.ArchitecturalDrawing", b =>

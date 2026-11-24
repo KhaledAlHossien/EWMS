@@ -40,8 +40,6 @@ namespace Infrastructure.Persistence.Data
         public DbSet<MapEntryFileContent> MapEntryFileContents { get; set; }
         public DbSet<DeviceInventoryLog> DeviceInventoryLogs { get; set; }
         public DbSet<ReportExportLog> ReportExportLogs { get; set; }
-        public DbSet<WorkTask> WorkTasks { get; set; }
-        public DbSet<UserWorkTask> UserWorkTasks { get; set; }
         public DbSet<AssignedTask> AssignedTasks { get; set; }
         public DbSet<AssignedTaskActivity> AssignedTaskActivities { get; set; }
         public DbSet<AssignedTaskAttachment> AssignedTaskAttachments { get; set; }
@@ -380,39 +378,6 @@ namespace Infrastructure.Persistence.Data
 
                 entity.HasIndex(n => new { n.UserId, n.IsRead });
                 entity.HasIndex(n => new { n.UserId, n.CreatedAt });
-            });
-
-            // ==================== تكوين WorkTask (مهام العمل) ====================
-            builder.Entity<WorkTask>(entity =>
-            {
-                entity.Property(t => t.Name).HasMaxLength(100).IsRequired();
-                entity.Property(t => t.Description).HasMaxLength(500);
-                entity.Property(t => t.Icon).HasMaxLength(16);
-
-                // اسم المهمة فريد داخل الفرع (فروع مختلفة قد يكون لها مهام بنفس الاسم)
-                entity.HasIndex(t => new { t.BranchId, t.Name }).IsUnique();
-
-                // لا يُحذف فرع له مهام (DeleteBranchCommandHandler يتحقق برسالة واضحة)
-                entity.HasOne(t => t.Branch)
-                    .WithMany()
-                    .HasForeignKey(t => t.BranchId)
-                    .OnDelete(DeleteBehavior.Restrict);
-            });
-
-            builder.Entity<UserWorkTask>(entity =>
-            {
-                entity.HasKey(a => new { a.UserId, a.WorkTaskId });
-
-                // الإسناد جدول ربط: يُحذف مع المهمة أو مع الموظف
-                entity.HasOne(a => a.WorkTask)
-                    .WithMany(t => t.Assignments)
-                    .HasForeignKey(a => a.WorkTaskId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(a => a.User)
-                    .WithMany()
-                    .HasForeignKey(a => a.UserId)
-                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // ==================== تكوين AssignedTask (لوحة المهام) ====================

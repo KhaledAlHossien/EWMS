@@ -262,6 +262,10 @@ namespace Application.Features.CentralStudies
                 ? _permissions.GetUsersWithPermissionAsync(t.Permission, departmentId: dept)
                 : _permissions.GetUsersWithPermissionAsync(t.Permission, branchId: t.BranchId);
 
+        /// <summary>حاملو صلاحية في قسم واحد (مثل موظفي القسم المتابع الذين يعدّلون الرد)</summary>
+        public Task<List<User>> DepartmentHoldersAsync(string permission, int departmentId) =>
+            _permissions.GetUsersWithPermissionAsync(permission, departmentId: departmentId);
+
         public async Task<List<User>> DiwanRecipientsAsync(string permission, int branchId)
         {
             var users = await _permissions.GetUsersWithPermissionAsync(permission, branchId: branchId);
