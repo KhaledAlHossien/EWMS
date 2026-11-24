@@ -87,7 +87,8 @@ public sealed class StudyDiwanWorkflowTests : IDisposable
 
         var reviewed = await Diwan(Head).Handle(new ReviewStudyDiwanReply(1, StudyDiwanReviewAction.Confirm, null, EncodedVersion), default);
         Assert.Equal((int)finalStage, reviewed.Chain!.DiwanStage);
-        Assert.Equal((int)StudyDocumentStatus.Approved, reviewed.Status);
+        // الرفض المركزي يعيد الرد إلى القسم المتابع للتعديل؛ غيره يبقى الرد معتمداً
+        Assert.Equal((int)(finalStage == StudyDiwanStage.Rejected ? StudyDocumentStatus.Rejected : StudyDocumentStatus.Approved), reviewed.Status);
         Assert.Equal(allowed, _db.Notifications.Any(note => note.UserId == ProjectOffice));
         if (!allowed)
         {
@@ -103,6 +104,65 @@ public sealed class StudyDiwanWorkflowTests : IDisposable
         Assert.False(order.CanCreateProject);
         await Assert.ThrowsAsync<InvalidOperationException>(() => CreateOrder(reply.Id));
     }
+
+    [Fact]
+    public async Task A_centrally_rejected_response_returns_for_amendment_and_is_sent_again_with_a_new_dispatch()
+    {
+        await SeedAsync(StudyRecommendation.Accept);
+        await Diwan(Clerk).Handle(new RegisterStudyDiwanDispatch(1, "0004", Date, EncodedVersion), default);
+        var rejected = await Diwan(Clerk).Handle(new RegisterStudyDiwanReply(1, "0007", Date, StudyDiwanDecision.Rejected,
+            EncodedVersion, new PaperScan(true)), default);
+        var firstReply = Assert.Single(rejected.DiwanCase!.Replies);
+        var returned = await Diwan(Head).Handle(new ReviewStudyDiwanReply(1, StudyDiwanReviewAction.Confirm, "تخفيض الكلفة", EncodedVersion), default);
+
+        Assert.Equal((int)StudyDocumentStatus.Rejected, returned.Status);
+        Assert.Equal((int)StudyDiwanStage.Rejected, returned.DiwanStage);
+        Assert.False(returned.CanRegisterDiwanDispatch);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Diwan(Clerk).Handle(
+            new RegisterStudyDiwanDispatch(1, "0005", Date, EncodedVersion), default));
+
+        // القسم المتابع عدّل الرد وأعاد اعتماده (التواقيع خارج هذا الاختبار)
+        _db.ChangeTracker.Clear();
+        var response = await _db.StudyAssignmentResponses.SingleAsync();
+        response.Status = StudyDocumentStatus.Approved;
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var again = await Diwan(Clerk).Handle(new RegisterStudyDiwanDispatch(1, "0005", Date.AddDays(10), EncodedVersion), default);
+        Assert.Equal((int)StudyDiwanStage.AwaitingReply, again.DiwanStage);
+        Assert.Equal("0005", again.DiwanCase!.DispatchNumber);
+        Assert.Null(again.DiwanCase.ReviewNote);
+        Assert.Equal(firstReply.Id, Assert.Single(again.DiwanCase.Replies).Id);
+
+        var approved = await Diwan(Clerk).Handle(new RegisterStudyDiwanReply(1, "0009", Date.AddDays(15), StudyDiwanDecision.Approved,
+            EncodedVersion, new PaperScan(true)), default);
+        Assert.Equal(["0009", "0007"], approved.DiwanCase!.Replies.Select(book => book.Number));
+        await Diwan(Head).Handle(new ReviewStudyDiwanReply(1, StudyDiwanReviewAction.Confirm, null, EncodedVersion), default);
+        var order = await CreateOrder(approved.DiwanCase.Replies[0].Id);
+        Assert.Equal("0009", order.DiwanReplyNumber);
+    }
+
+    [Fact]
+    public async Task A_committed_letter_is_removed_when_its_record_is_not_saved()
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            { ["FileStorage:Root"] = _filesRoot }).Build();
+        var store = new FileStore(new FileStorageSettings(config));
+        await using var staged = await store.StageAsync(FileAreas.Studies, "documents/1",
+            (stream, ct) => stream.WriteAsync("%PDF-1.7\n"u8.ToArray(), ct).AsTask());
+        await staged.CommitAsync();
+        await using (var read = store.OpenRead(staged.Key)) Assert.True(read.Length > 0);
+
+        await staged.RevertAsync();
+        Assert.Throws<KeyNotFoundException>(() => { store.OpenRead(staged.Key).Dispose(); });
+    }
+
+    [Theory]
+    [InlineData("Cannot insert duplicate key row in object 'dbo.StudyRequests' with unique index 'IX_StudyRequests_RequestNumber'. The duplicate key value is (301/د/2026).", "رقم طلب الدراسة «301/د/2026»")]
+    [InlineData("Cannot insert duplicate key row in object 'dbo.StudyAssignments' with unique index 'IX_StudyAssignments_ProjectCode'. The duplicate key value is (1-26-N-12-9).", "كود المشروع «1-26-N-12-9»")]
+    [InlineData("Violation of UNIQUE KEY constraint 'IX_Other'.", "القيمة مستخدمة في سجل آخر")]
+    public void A_concurrent_duplicate_names_the_field_and_the_value(string sql, string expected) =>
+        Assert.StartsWith(expected, StudyRepositoryBase.DuplicateMessage(sql));
 
     private StudyDiwanCommands Diwan(int user)
     {

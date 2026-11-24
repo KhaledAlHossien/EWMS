@@ -28,7 +28,11 @@ public class StudyProjectReactivationTests
         var user = new User { BranchId = viewerBranchId, FullName = "Test user", Email = "test@example.invalid", PasswordHash = "test", RoleId = 1 };
         var viewer = new Viewer(user,
             hasPermission ? new HashSet<string> { StudyPermissions.CancelDocuments } : new HashSet<string>());
-        var dto = new StudyProjectDto { Status = (int)status, BranchId = 1, CanReactivate = approvedOrder };
+        var dto = new StudyProjectDto
+        {
+            Status = (int)status, BranchId = 1,
+            StartOrderStatus = (int)(approvedOrder ? StudyDocumentStatus.Approved : StudyDocumentStatus.Cancelled)
+        };
 
         StudyProjectSupport.ApplyFlags(dto, viewer);
 

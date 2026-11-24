@@ -48,7 +48,7 @@ namespace Application.Features.CentralStudies.Attachments.Commands.Upload
             if (detected == null || !detected.Kinds.Any(k => StudyAttachmentRules.AllowedKinds.Contains(k)))
                 throw new InvalidOperationException("صيغة الملف غير مسموحة — المسموح: صور، PDF، مستندات Office، مخططات DWG/DXF، نصوص، أرشيف مضغوط");
 
-            // الملف أولاً ثم السجل: إن فشل حفظ السجل بقي ملف يتيم يحذفه المنظّف الدوري
+            // الملف أولاً ثم السجل: إن فشل حفظ السجل يُحذف الملف فوراً (RevertAsync أدناه)
             await staged.CommitAsync();
             var attachment = new StudyAttachment
             {
@@ -61,7 +61,15 @@ namespace Application.Features.CentralStudies.Attachments.Commands.Upload
                 UploadedAt = DateTime.Now
             };
             SetOwner(attachment, owner.Type, owner.Id);
-            await _service.AddAsync(attachment);
+            try
+            {
+                await _service.AddAsync(attachment);
+            }
+            catch
+            {
+                await staged.RevertAsync();
+                throw;
+            }
             await _kit.LogAsync(owner.RequestId, StudyEntityType.Attachment, attachment.Id, StudyLogAction.Created,
                 $"أرفق «{name}» ({type.Name}) بـ{StudyRules.Name(owner.Type)}");
 

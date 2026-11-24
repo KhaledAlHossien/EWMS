@@ -32,14 +32,15 @@ public sealed class StudyDiwanCommands(
             throw new InvalidOperationException("سُجّل الصادر لهذه المعاملة مسبقاً");
 
         var number = ValidateReference(request.Number, request.Date);
-        response.DiwanCase = new StudyDiwanCase
-        {
-            ResponseId = response.Id,
-            Stage = StudyDiwanStage.AwaitingReply,
-            DispatchNumber = number,
-            DispatchDate = request.Date
-        };
-        return await SaveStepAsync(response, viewer, version, StudyLogAction.Submitted, $"سُجّل الصادر إلى الديوان المركزي بالرقم {number}",
+        // بعد رفض مركزي وتعديل الرد واعتماده من جديد: صادر جديد للمعاملة نفسها، وكتب الرد السابقة تبقى في سجلها
+        var resend = response.DiwanCase != null;
+        response.DiwanCase ??= new StudyDiwanCase { ResponseId = response.Id };
+        response.DiwanCase.Stage = StudyDiwanStage.AwaitingReply;
+        response.DiwanCase.DispatchNumber = number;
+        response.DiwanCase.DispatchDate = request.Date;
+        response.DiwanCase.ReviewNote = null;
+        return await SaveStepAsync(response, viewer, version, StudyLogAction.Submitted,
+            resend ? $"أُعيد إرسال الرد المعدّل إلى الديوان المركزي بالصادر {number}" : $"سُجّل الصادر إلى الديوان المركزي بالرقم {number}",
             $"تاريخ الصادر {request.Date:yyyy-MM-dd}");
     }
 
@@ -79,7 +80,7 @@ public sealed class StudyDiwanCommands(
         diwan.ReviewNote = null;
         var decision = request.Decision == StudyDiwanDecision.Approved ? "موافقة" : "رفض";
         return await SaveStepAsync(response, viewer, version, StudyLogAction.Submitted, $"سُجّل الرد المركزي بالرقم {number} وأُحيل إلى رئيس الفرع",
-            $"{decision} بموجب كتاب مؤرّخ {request.Date:yyyy-MM-dd}", notifyNext: true);
+            $"{decision} بموجب كتاب مؤرّخ {request.Date:yyyy-MM-dd}", notifyNext: true, file: staged);
     }
 
     public async Task<StudyResponseDto> Handle(ReviewStudyDiwanReply request, CancellationToken ct)
@@ -105,10 +106,16 @@ public sealed class StudyDiwanCommands(
                 : StudyDiwanStage.Referred;
         }
         diwan.ReviewNote = note;
+        if (diwan.Stage == StudyDiwanStage.Rejected)
+        {
+            // الرفض المركزي ليس نهائياً: يعود الرد إلى القسم المتابع ليعدّله، ثم يمر بالتواقيع ويُرسل بصادر جديد
+            response.Status = StudyDocumentStatus.Rejected;
+        }
         var action = diwan.Stage switch
         {
             StudyDiwanStage.CorrectionRequested => StudyLogAction.Edited,
             StudyDiwanStage.Referred => StudyLogAction.Approved,
+            StudyDiwanStage.Rejected => StudyLogAction.Rejected,
             _ => StudyLogAction.Closed
         };
         return await SaveStepAsync(response, viewer, version, action,
@@ -151,10 +158,11 @@ public sealed class StudyDiwanCommands(
     }
 
     private async Task<StudyResponseDto> SaveStepAsync(StudyAssignmentResponse response, Viewer viewer, byte[] version,
-        StudyLogAction action, string title, string? details, bool notifyNext = false)
+        StudyLogAction action, string title, string? details, bool notifyNext = false, IStagedFile? file = null)
     {
         var study = response.Assignment.Request;
         var now = DateTime.Now;
+        var stage = response.DiwanCase?.Stage;
         var activity = new StudyActivityLog
         {
             RequestId = study.Id,
@@ -167,13 +175,18 @@ public sealed class StudyDiwanCommands(
             CreatedAt = now
         };
         var notifications = new List<Notification>();
-        if (notifyNext && StudyDiwanRules.NextAction(response.DiwanCase?.Stage) is { } next)
+        (IEnumerable<User> Users, string Title)? next = null;
+        if (notifyNext && stage == StudyDiwanStage.Rejected)
+            next = (await kit.DepartmentHoldersAsync(StudyPermissions.EditResponse, response.Assignment.FollowingDepartmentId),
+                "رفض الديوان المركزي الدراسة — عدّل إشعار الرد وأعد إرساله");
+        else if (notifyNext && StudyDiwanRules.NextAction(stage) is { } nextAction)
+            next = (await kit.DiwanRecipientsAsync(nextAction.Permission, study.BranchId), nextAction.Title);
+        if (next is { } target)
         {
-            var holders = await kit.DiwanRecipientsAsync(next.Permission, study.BranchId);
-            notifications.AddRange(holders.Where(user => user.Id != viewer.Id).Select(user => new Notification
+            notifications.AddRange(target.Users.Where(user => user.Id != viewer.Id).Select(user => new Notification
             {
                 UserId = user.Id,
-                Title = next.Title,
+                Title = target.Title,
                 Message = $"{response.ResponseNumber} — {study.MainBeneficiary}",
                 Type = NotificationType.StudyNextStepReady,
                 RelatedEntityType = "StudyResponse",
@@ -184,7 +197,16 @@ public sealed class StudyDiwanCommands(
 
         // تحديث نسخة إشعار الرد يسلسل انتقالات المعاملة مع الإلغاء وأي تعديل متزامن.
         response.UpdatedAt = now;
-        await responses.SaveDiwanStepAsync(response, version, activity, notifications);
+        try
+        {
+            await responses.SaveDiwanStepAsync(response, version, activity, notifications);
+        }
+        catch
+        {
+            // لم يُحفظ السجل: يُحذف ملف الكتاب المعتمد كي لا يبقى ملف بلا سجل
+            if (file != null) await file.RevertAsync();
+            throw;
+        }
         if (notifications.Count > 0) await pusher.PushAsync(notifications);
         return await support.DetailAsync(response.Id, viewer);
     }
