@@ -16,6 +16,9 @@ namespace Application.Features.Reports
         public const int MaxExcelRows = 50_000;
         public const int MaxPrintRows = 2_000;
 
+        /// <summary>تصدير لا يمرّ بالمركز لكنه يُسجَّل في السجل نفسه</summary>
+        public const string TasksKey = "tasks", TasksTitle = "مهام لوحة المهام";
+
         /// <summary>
         /// حدّ صفحة سجل السحب (ViewReportLog): سحوبات موظفي فرعي، وكل المؤسسة لنظرة المؤسسة — كحدّ عرض الهيكل.
         /// null = الكل، 0 = لا فرع له فلا نتائج.

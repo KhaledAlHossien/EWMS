@@ -3,6 +3,10 @@ using System.Text;
 using Application.DTOs.Request;
 using Application.Features.CentralStudies;
 using Application.Features.CentralStudies.Responses;
+using Application.Features.CentralStudies.Responses.Commands.RegisterDiwanDispatch;
+using Application.Features.CentralStudies.Responses.Commands.RegisterDiwanReply;
+using Application.Features.CentralStudies.Responses.Commands.ReviewDiwanReply;
+using Application.Features.CentralStudies.Responses.Queries.GetDiwanReplyFile;
 using Application.Features.CentralStudies.StartOrders;
 using Application.Features.CentralStudies.StartOrders.Commands.Create;
 using Application.Helper.Profiles;
@@ -48,16 +52,16 @@ public sealed class StudyDiwanWorkflowTests : IDisposable
         Assert.Equal(Clerk, (await _db.Notifications.SingleAsync()).UserId);
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Diwan(OtherBranch).Handle(
-            new RegisterStudyDiwanDispatch(1, "0004", Date, EncodedVersion), default));
-        var sent = await Diwan(Clerk).Handle(new RegisterStudyDiwanDispatch(1, "0004", Date, EncodedVersion), default);
+            new RegisterStudyDiwanDispatchCommand(1, "0004", Date, EncodedVersion), default));
+        var sent = await Diwan(Clerk).Handle(new RegisterStudyDiwanDispatchCommand(1, "0004", Date, EncodedVersion), default);
         Assert.Equal((int)StudyDiwanStage.AwaitingReply, sent.DiwanStage);
         Assert.Equal("0004", sent.DiwanCase!.DispatchNumber);
         await Assert.ThrowsAsync<InvalidOperationException>(() => Diwan(Clerk).Handle(
-            new RegisterStudyDiwanReply(1, "0007", Date, decision, EncodedVersion, new PaperScan(false)), default));
+            new RegisterStudyDiwanReplyCommand(1, "0007", Date, decision, EncodedVersion, new PaperScan(false)), default));
         Assert.Empty(_db.StudyDiwanReplies);
         _db.ChangeTracker.Clear();
 
-        var received = await Diwan(Clerk).Handle(new RegisterStudyDiwanReply(1, "0007", Date, decision,
+        var received = await Diwan(Clerk).Handle(new RegisterStudyDiwanReplyCommand(1, "0007", Date, decision,
             EncodedVersion, new PaperScan(true)), default);
         Assert.Equal((int)StudyDiwanStage.AwaitingBranchHead, received.DiwanStage);
         var reply = Assert.Single(received.DiwanCase!.Replies);
@@ -65,27 +69,27 @@ public sealed class StudyDiwanWorkflowTests : IDisposable
         Assert.DoesNotContain(_db.Notifications, note => note.UserId == ProjectOffice);
         await Assert.ThrowsAsync<InvalidOperationException>(() => CreateOrder(reply.Id));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Diwan(Clerk).Handle(
-            new ReviewStudyDiwanReply(1, StudyDiwanReviewAction.Confirm, null, EncodedVersion), default));
+            new ReviewStudyDiwanReplyCommand(1, StudyDiwanReviewAction.Confirm, null, EncodedVersion), default));
 
         var firstReplyId = reply.Id;
         if (allowed)
         {
             await Assert.ThrowsAsync<InvalidOperationException>(() => Diwan(Head).Handle(
-                new ReviewStudyDiwanReply(1, StudyDiwanReviewAction.ReturnForCorrection, "", EncodedVersion), default));
-            var returned = await Diwan(Head).Handle(new ReviewStudyDiwanReply(1, StudyDiwanReviewAction.ReturnForCorrection,
+                new ReviewStudyDiwanReplyCommand(1, StudyDiwanReviewAction.ReturnForCorrection, "", EncodedVersion), default));
+            var returned = await Diwan(Head).Handle(new ReviewStudyDiwanReplyCommand(1, StudyDiwanReviewAction.ReturnForCorrection,
                 "تحقق من رقم الكتاب", EncodedVersion), default);
             Assert.Equal((int)StudyDiwanStage.CorrectionRequested, returned.DiwanStage);
-            received = await Diwan(Clerk).Handle(new RegisterStudyDiwanReply(1, "0008", Date, decision,
+            received = await Diwan(Clerk).Handle(new RegisterStudyDiwanReplyCommand(1, "0008", Date, decision,
                 EncodedVersion, new PaperScan(true)), default);
             Assert.Equal(["0008", "0007"], received.DiwanCase!.Replies.Select(book => book.Number));
             reply = received.DiwanCase.Replies[0];
-            var evidence = await Diwan(Head).Handle(new GetStudyDiwanReplyFile(1, reply.Id), default);
+            var evidence = await Diwan(Head).Handle(new GetStudyDiwanReplyFileQuery(1, reply.Id), default);
             await using var stream = evidence.Content;
             Assert.Equal("application/pdf", evidence.ContentType);
             Assert.True(stream.Length > 0);
         }
 
-        var reviewed = await Diwan(Head).Handle(new ReviewStudyDiwanReply(1, StudyDiwanReviewAction.Confirm, null, EncodedVersion), default);
+        var reviewed = await Diwan(Head).Handle(new ReviewStudyDiwanReplyCommand(1, StudyDiwanReviewAction.Confirm, null, EncodedVersion), default);
         Assert.Equal((int)finalStage, reviewed.Chain!.DiwanStage);
         // الرفض المركزي يعيد الرد إلى القسم المتابع للتعديل؛ غيره يبقى الرد معتمداً
         Assert.Equal((int)(finalStage == StudyDiwanStage.Rejected ? StudyDocumentStatus.Rejected : StudyDocumentStatus.Approved), reviewed.Status);
@@ -109,17 +113,17 @@ public sealed class StudyDiwanWorkflowTests : IDisposable
     public async Task A_centrally_rejected_response_returns_for_amendment_and_is_sent_again_with_a_new_dispatch()
     {
         await SeedAsync(StudyRecommendation.Accept);
-        await Diwan(Clerk).Handle(new RegisterStudyDiwanDispatch(1, "0004", Date, EncodedVersion), default);
-        var rejected = await Diwan(Clerk).Handle(new RegisterStudyDiwanReply(1, "0007", Date, StudyDiwanDecision.Rejected,
+        await Diwan(Clerk).Handle(new RegisterStudyDiwanDispatchCommand(1, "0004", Date, EncodedVersion), default);
+        var rejected = await Diwan(Clerk).Handle(new RegisterStudyDiwanReplyCommand(1, "0007", Date, StudyDiwanDecision.Rejected,
             EncodedVersion, new PaperScan(true)), default);
         var firstReply = Assert.Single(rejected.DiwanCase!.Replies);
-        var returned = await Diwan(Head).Handle(new ReviewStudyDiwanReply(1, StudyDiwanReviewAction.Confirm, "تخفيض الكلفة", EncodedVersion), default);
+        var returned = await Diwan(Head).Handle(new ReviewStudyDiwanReplyCommand(1, StudyDiwanReviewAction.Confirm, "تخفيض الكلفة", EncodedVersion), default);
 
         Assert.Equal((int)StudyDocumentStatus.Rejected, returned.Status);
         Assert.Equal((int)StudyDiwanStage.Rejected, returned.DiwanStage);
         Assert.False(returned.CanRegisterDiwanDispatch);
         await Assert.ThrowsAsync<InvalidOperationException>(() => Diwan(Clerk).Handle(
-            new RegisterStudyDiwanDispatch(1, "0005", Date, EncodedVersion), default));
+            new RegisterStudyDiwanDispatchCommand(1, "0005", Date, EncodedVersion), default));
 
         // القسم المتابع عدّل الرد وأعاد اعتماده (التواقيع خارج هذا الاختبار)
         _db.ChangeTracker.Clear();
@@ -128,16 +132,16 @@ public sealed class StudyDiwanWorkflowTests : IDisposable
         await _db.SaveChangesAsync();
         _db.ChangeTracker.Clear();
 
-        var again = await Diwan(Clerk).Handle(new RegisterStudyDiwanDispatch(1, "0005", Date.AddDays(10), EncodedVersion), default);
+        var again = await Diwan(Clerk).Handle(new RegisterStudyDiwanDispatchCommand(1, "0005", Date.AddDays(10), EncodedVersion), default);
         Assert.Equal((int)StudyDiwanStage.AwaitingReply, again.DiwanStage);
         Assert.Equal("0005", again.DiwanCase!.DispatchNumber);
         Assert.Null(again.DiwanCase.ReviewNote);
         Assert.Equal(firstReply.Id, Assert.Single(again.DiwanCase.Replies).Id);
 
-        var approved = await Diwan(Clerk).Handle(new RegisterStudyDiwanReply(1, "0009", Date.AddDays(15), StudyDiwanDecision.Approved,
+        var approved = await Diwan(Clerk).Handle(new RegisterStudyDiwanReplyCommand(1, "0009", Date.AddDays(15), StudyDiwanDecision.Approved,
             EncodedVersion, new PaperScan(true)), default);
         Assert.Equal(["0009", "0007"], approved.DiwanCase!.Replies.Select(book => book.Number));
-        await Diwan(Head).Handle(new ReviewStudyDiwanReply(1, StudyDiwanReviewAction.Confirm, null, EncodedVersion), default);
+        await Diwan(Head).Handle(new ReviewStudyDiwanReplyCommand(1, StudyDiwanReviewAction.Confirm, null, EncodedVersion), default);
         var order = await CreateOrder(approved.DiwanCase.Replies[0].Id);
         Assert.Equal("0009", order.DiwanReplyNumber);
     }
@@ -164,14 +168,31 @@ public sealed class StudyDiwanWorkflowTests : IDisposable
     public void A_concurrent_duplicate_names_the_field_and_the_value(string sql, string expected) =>
         Assert.StartsWith(expected, StudyRepositoryBase.DuplicateMessage(sql));
 
-    private StudyDiwanCommands Diwan(int user)
+    private DiwanHandlers Diwan(int user)
     {
         var (kit, users) = Viewer(user);
         var responses = new StudyResponseService(_db);
         var support = new StudyResponseSupport(responses, users, new StudyApprovalService(_db), kit);
         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
             { ["FileStorage:Root"] = _filesRoot }).Build();
-        return new(responses, support, kit, _pusher, new FileStore(new FileStorageSettings(config)));
+        var files = new FileStore(new FileStorageSettings(config));
+        return new(new StudyDiwanSupport(responses, support, kit, _pusher), support, kit, files);
+    }
+
+    /// <summary>معالجات معاملة الديوان الأربعة بالاعتماديات نفسها، لاستدعائها في الاختبار كما يستدعيها MediatR</summary>
+    private sealed class DiwanHandlers(StudyDiwanSupport diwan, StudyResponseSupport support, StudyKit kit, IFileStore files)
+    {
+        public Task<Application.DTOs.Response.StudyResponseDto> Handle(RegisterStudyDiwanDispatchCommand request, CancellationToken ct) =>
+            new RegisterStudyDiwanDispatchCommandHandler(diwan).Handle(request, ct);
+
+        public Task<Application.DTOs.Response.StudyResponseDto> Handle(RegisterStudyDiwanReplyCommand request, CancellationToken ct) =>
+            new RegisterStudyDiwanReplyCommandHandler(files, diwan).Handle(request, ct);
+
+        public Task<Application.DTOs.Response.StudyResponseDto> Handle(ReviewStudyDiwanReplyCommand request, CancellationToken ct) =>
+            new ReviewStudyDiwanReplyCommandHandler(diwan).Handle(request, ct);
+
+        public Task<Application.DTOs.Response.StudyAttachmentContentDto> Handle(GetStudyDiwanReplyFileQuery request, CancellationToken ct) =>
+            new GetStudyDiwanReplyFileQueryHandler(support, kit, files).Handle(request, ct);
     }
 
     private Task<Application.DTOs.Response.StudyStartOrderDto> CreateOrder(int replyId)

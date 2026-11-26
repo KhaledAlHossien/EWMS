@@ -1,8 +1,6 @@
 ﻿using Application.Common.Behaviors;
 using FluentValidation;
-using MediatR;
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
 
 namespace Application
 {
@@ -45,6 +43,27 @@ namespace Application
             services.AddScoped<Application.Features.CentralStudies.Responses.StudyResponseSupport>();
             services.AddScoped<Application.Features.CentralStudies.Stages.StudyStageSupport>();
             services.AddScoped<Application.Features.CentralStudies.StartOrders.StudyStartOrderSupport>();
+            services.AddScoped<Application.Features.CentralStudies.Responses.StudyDiwanSupport>();
+
+            // بقية الميزات: الدوال المشتركة بين عملياتها — صنف «Support» لكل ميزة بالنمط نفسه
+            services.AddScoped<Application.Features.AssignedTasks.AssignedTaskExtrasSupport>();
+            services.AddScoped<Application.Features.AssignedTasks.TaskTemplatesSupport>();
+            services.AddScoped<Application.Features.AssignedTasks.TaskRecurrencesSupport>();
+            services.AddScoped<Application.Features.AssignedTasks.TaskLinksSupport>();
+            services.AddScoped<Application.Features.DeviceInventory.Installations.InstallationSupport>();
+            services.AddScoped<Application.Features.DeviceInventory.Sites.SiteSupport>();
+            services.AddScoped<Application.Features.Maintenance.MaintenanceDevices.DeviceMaintenanceSupport>();
+            services.AddScoped<Application.Features.Maintenance.Requests.MaintenanceRequestSupport>();
+            services.AddScoped<Application.Features.Maintenance.Requests.MaintenanceRequestQuerySupport>();
+            services.AddScoped<Application.Features.Maintenance.SpareParts.SparePartSupport>();
+            services.AddScoped<Application.Features.Maintenance.Tasks.MaintenanceTaskSupport>();
+            services.AddScoped<Application.Features.Maintenance.Transfers.MaintenanceTransferSupport>();
+            services.AddScoped<Application.Features.MapLayers.Entries.MapEntrySupport>();
+            services.AddScoped<Application.Features.MapLayers.Layers.MapLayerSupport>();
+            services.AddScoped<Application.Features.Reports.ReportSupport>();
+            services.AddScoped<Application.Features.ToDoLists.ToDoListSupport>();
+            services.AddScoped<Application.Features.ToDoLists.Items.ToDoItemSupport>();
+            services.AddScoped<Application.Features.Vacations.Holidays.PublicHolidaySupport>();
 
             return services;
         }

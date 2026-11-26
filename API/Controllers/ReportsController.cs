@@ -1,6 +1,12 @@
 using Application.DTOs.Request;
 using Application.DTOs.Response;
-using Application.Features.Reports;
+using Application.Features.Reports.Queries.Export;
+using Application.Features.Reports.Queries.GetCatalog;
+using Application.Features.Reports.Queries.GetDefinition;
+using Application.Features.Reports.Queries.GetLog;
+using Application.Features.Reports.Queries.GetLogOptions;
+using Application.Features.Reports.Queries.Preview;
+using Application.Features.Reports.Queries.Print;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

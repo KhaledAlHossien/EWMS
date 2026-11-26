@@ -1,3 +1,5 @@
+using Domain.Entities.CentralStudiesBranch;
+
 namespace Application.DTOs.Request
 {
     // ════════════════════ فرع الدراسات المركزية: نماذج الإدخال ════════════════════
@@ -312,4 +314,12 @@ namespace Application.DTOs.Request
         public string? TechnicalNotes { get; set; }
         public byte[]? RowVersion { get; set; }
     }
+
+    // ==================== معاملة الديوان ====================
+
+    /// <summary>رقم كتاب الديوان وتاريخه: الصادر إلى الديوان المركزي أو الرد المركزي، مع نسخة إشعار الرد المعروضة</summary>
+    public record StudyDiwanDispatchFormDto(string Number, DateOnly Date, string RowVersion);
+
+    /// <summary>إجراء رئيس الفرع على الرد المركزي (الملاحظة إلزامية عند الإعادة للتصحيح)</summary>
+    public record StudyDiwanReviewFormDto(StudyDiwanReviewAction Action, string? Note, string RowVersion);
 }

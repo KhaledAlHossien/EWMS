@@ -13,6 +13,9 @@ public enum StudyDiwanStage
 
 public enum StudyDiwanDecision { Approved = 1, Rejected = 2 }
 
+/// <summary>إجراء رئيس الفرع على الرد المركزي: إحالة (أو إثبات اطلاع) أو إعادة إلى الديوان للتصحيح</summary>
+public enum StudyDiwanReviewAction { Confirm = 1, ReturnForCorrection = 2 }
+
 public class StudyDiwanCase
 {
     public int ResponseId { get; set; }

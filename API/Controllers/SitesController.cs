@@ -1,6 +1,12 @@
 using Application.DTOs.Request;
 using Application.DTOs.Response;
-using Application.Features.DeviceInventory;
+using Application.Features.DeviceInventory.Queries.GetHistory;
+using Application.Features.DeviceInventory.Sites.Commands.Create;
+using Application.Features.DeviceInventory.Sites.Commands.Delete;
+using Application.Features.DeviceInventory.Sites.Commands.Update;
+using Application.Features.DeviceInventory.Sites.Queries.GetAll;
+using Application.Features.DeviceInventory.Sites.Queries.GetById;
+using Application.Features.DeviceInventory.Sites.Queries.GetNearby;
 using Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
