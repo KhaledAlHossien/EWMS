@@ -1,10 +1,7 @@
 ﻿using Application.DTOs.Response;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace Application.Features.Vacations.Query.GetAll
+namespace Application.Features.Vacations.Queries.GetAll
 {
     public class GetAllVacationsQuery : IRequest<List<VacationResponseDto>> { }
 }

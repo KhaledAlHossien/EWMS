@@ -1,8 +1,8 @@
 ﻿using Application.DTOs.Request;
 using Application.DTOs.Response;
-using Application.Features.Department.Command.Create;
-using Application.Features.Department.Command.Delete;
-using Application.Features.Department.Command.Update;
+using Application.Features.Department.Commands.Create;
+using Application.Features.Department.Commands.Delete;
+using Application.Features.Department.Commands.Update;
 using Application.Features.Department.Queries.GetAll;
 using Application.Features.Department.Queries.GetById;
 using MediatR;

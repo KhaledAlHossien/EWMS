@@ -1,13 +1,8 @@
-﻿using Application.DTOs.Response;
-using Application.Features.Vacations.Query.GetAll;
+﻿using Application.Common;
+using Application.DTOs.Response;
 using Application.Interfaces;
 using AutoMapper;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-using Application.Common;
 
 namespace Application.Features.Vacations.Queries.GetAll
 {

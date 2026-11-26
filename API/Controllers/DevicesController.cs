@@ -1,6 +1,11 @@
 using Application.DTOs.Request;
 using Application.DTOs.Response;
-using Application.Features.DeviceInventory;
+using Application.Features.DeviceInventory.Devices.Commands.Create;
+using Application.Features.DeviceInventory.Devices.Commands.Delete;
+using Application.Features.DeviceInventory.Devices.Commands.Update;
+using Application.Features.DeviceInventory.Devices.Queries.GetAll;
+using Application.Features.DeviceInventory.Devices.Queries.GetById;
+using Application.Features.DeviceInventory.Queries.GetHistory;
 using Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;

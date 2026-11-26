@@ -1,6 +1,10 @@
 using Application.DTOs.Request;
 using Application.DTOs.Response;
-using Application.Features.Maintenance.DeviceTypes;
+using Application.Features.Maintenance.DeviceTypes.Commands.Create;
+using Application.Features.Maintenance.DeviceTypes.Commands.Delete;
+using Application.Features.Maintenance.DeviceTypes.Commands.Update;
+using Application.Features.Maintenance.DeviceTypes.Queries.GetAll;
+using Application.Features.Maintenance.DeviceTypes.Queries.GetById;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

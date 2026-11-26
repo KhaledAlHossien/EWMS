@@ -1,5 +1,6 @@
 using Application.DTOs.Response;
-using Application.Features.Map;
+using Application.Features.Map.Queries.GetBranchMap;
+using Application.Features.Map.Queries.GetBranches;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

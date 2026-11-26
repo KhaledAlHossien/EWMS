@@ -594,4 +594,11 @@ namespace Application.DTOs.Response
         public DesignApprovalDto? DesignApproval { get; set; }
         public List<StudyPrintSignatureDto> Signatures { get; set; } = [];
     }
+
+    // ==================== معاملة الديوان ====================
+
+    public record StudyDiwanReplyDto(int Id, string Number, DateOnly Date, int Decision, string FileName, DateTime RecordedAt);
+
+    public record StudyDiwanCaseDto(int Stage, string StageName, string? DispatchNumber, DateOnly? DispatchDate, string? ReviewNote,
+        IReadOnlyList<StudyDiwanReplyDto> Replies, bool CanRegisterDispatch, bool CanRegisterReply, bool CanReview);
 }
