@@ -1,15 +1,16 @@
-﻿using Application.DTOs.Request;
+﻿using Application.Common;
+using Application.DTOs.Request;
 using Application.DTOs.Response;
+using Application.Features.Users.Commands.ChangeMyPassword;
+using Application.Features.Users.Commands.SetMySignature;
 using Application.Features.Users.Queries.GetMe;
 using Application.Features.Users.Queries.GetMyPermissions;
-using Application.Features.Users.Signature;
+using Application.Features.Users.Queries.GetMySignature;
 using Application.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Application.Common;
-using Application.Features.Users.Password;
 
 namespace API.Controllers
 {

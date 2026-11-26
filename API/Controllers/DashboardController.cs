@@ -1,5 +1,10 @@
 using Application.DTOs.Response;
-using Application.Features.Dashboard;
+using Application.Features.Dashboard.Queries.GetBranch;
+using Application.Features.Dashboard.Queries.GetDepartment;
+using Application.Features.Dashboard.Queries.GetMy;
+using Application.Features.Dashboard.Queries.GetOffice;
+using Application.Features.Dashboard.Queries.GetOverview;
+using Application.Features.Dashboard.Queries.GetVacationStats;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

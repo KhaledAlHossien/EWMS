@@ -1,10 +1,7 @@
 ﻿using Application.DTOs.Response;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace Application.Features.Vacations.Query.GetPendingForMe
+namespace Application.Features.Vacations.Queries.GetPendingForMe
 {
     public class GetPendingVacationsForMeQuery
         : IRequest<List<VacationResponseDto>>

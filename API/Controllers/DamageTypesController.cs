@@ -1,6 +1,10 @@
 using Application.DTOs.Request;
 using Application.DTOs.Response;
-using Application.Features.Maintenance.DamageTypes;
+using Application.Features.Maintenance.DamageTypes.Commands.Create;
+using Application.Features.Maintenance.DamageTypes.Commands.Delete;
+using Application.Features.Maintenance.DamageTypes.Commands.Update;
+using Application.Features.Maintenance.DamageTypes.Queries.GetAll;
+using Application.Features.Maintenance.DamageTypes.Queries.GetById;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

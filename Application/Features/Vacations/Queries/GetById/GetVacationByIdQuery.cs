@@ -1,10 +1,7 @@
 ﻿using Application.DTOs.Response;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace Application.Features.Vacations.Query.GetById
+namespace Application.Features.Vacations.Queries.GetById
 {
     public class GetVacationByIdQuery : IRequest<VacationResponseDto>
     {

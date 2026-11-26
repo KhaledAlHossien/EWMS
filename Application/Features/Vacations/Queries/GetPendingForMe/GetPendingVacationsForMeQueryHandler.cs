@@ -1,11 +1,9 @@
-﻿using Application.DTOs.Response;
-using Application.Features.Vacations.Query.GetPendingForMe;
+﻿using Application.Common;
+using Application.DTOs.Response;
 using Application.Interfaces;
 using AutoMapper;
 using Domain.Enums;
 using MediatR;
-
-using Application.Common;
 
 namespace Application.Features.Vacations.Queries.GetPendingForMe
 {

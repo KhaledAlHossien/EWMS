@@ -1,6 +1,11 @@
 using Application.DTOs.Request;
 using Application.DTOs.Response;
-using Application.Features.Maintenance.Tasks;
+using Application.Features.Maintenance.Tasks.Commands.Assign;
+using Application.Features.Maintenance.Tasks.Commands.Create;
+using Application.Features.Maintenance.Tasks.Commands.Delete;
+using Application.Features.Maintenance.Tasks.Commands.Update;
+using Application.Features.Maintenance.Tasks.Queries.GetAll;
+using Application.Features.Maintenance.Tasks.Queries.GetById;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
