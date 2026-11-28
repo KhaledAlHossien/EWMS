@@ -55,8 +55,15 @@ namespace Domain.Entities.CentralStudiesBranch
         SendingDepartment = 5,        // القسم المرسل (قسم المخطط المعماري)
         DesignManagement = 6,         // إدارة التصميم
         QualityControl = 7,           // ضبط الجودة
-        ProjectManagement = 8         // إدارة المشاريع
+        ProjectManagement = 8,        // إدارة المشاريع
+        Coordination = 9              // التنسيق والارتباط (إنجاز دراسات الأفرع الجغرافية)
     }
+
+    /// <summary>
+    /// مسار فرع الدراسة: المركزية تسير بالدورة الكاملة (التكليف ← الرد ← الديوان ← أمر البدء ← المشروع)،
+    /// والأفرع الجغرافية بالتنسيق والمتابعة (الطلب ← إحالة إلى الفرع = مشروع يتابعه التنسيق والارتباط).
+    /// </summary>
+    public enum StudyTrack { Full = 1, Coordination = 2 }
 
     /// <summary>نوع المرحلة المرتبط بمستند: تُنشأ مغلقة تلقائياً مع المشروع وتواريخها من المستند</summary>
     public enum StudyLinkedDocument { None = 0, Request = 1, Assignment = 2, Response = 3, StartOrder = 4 }

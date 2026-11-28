@@ -26,14 +26,11 @@ namespace Application.Features.CentralStudies.Requests.Commands.Cancel
                 throw new InvalidOperationException("الطلب ملغى مسبقاً");
             if (entity.Status == StudyDocumentStatus.Draft)
                 throw new InvalidOperationException("المسودة تُحذف ولا تُلغى");
-            if (entity.Assignment != null && entity.Assignment.Status != StudyDocumentStatus.Cancelled)
-                throw new InvalidOperationException("للطلب تكليف قائم — ألغِ التكليف أولاً");
 
-            entity.Status = StudyDocumentStatus.Cancelled;
-            entity.UpdatedAt = DateTime.Now;
-            await _service.UpdateAsync(entity);
-            await _kit.LogAsync(entity.Id, StudyEntityType.Request, entity.Id, StudyLogAction.Cancelled,
+            // التكليف أو المشروع القائم يُفحص بقفل سطر الطلب (القفل نفسه في إعادة تفعيل مشروع الفرع الجغرافي)
+            var activity = StudyKit.CreateActivity(viewer, entity.Id, StudyEntityType.Request, entity.Id, StudyLogAction.Cancelled,
                 $"ألغى الطلب {entity.RequestNumber}", request.Reason.Trim());
+            await _service.CancelAsync(entity, activity, ct);
             return await _support.DetailAsync(entity.Id, viewer);
         }
     }

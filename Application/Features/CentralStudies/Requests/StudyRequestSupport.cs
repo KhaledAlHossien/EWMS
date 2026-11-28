@@ -30,10 +30,28 @@ namespace Application.Features.CentralStudies.Requests
             dto.CanDelete = inScope && viewer.Has("DeleteStudyRequest") && entity.Status == StudyDocumentStatus.Draft;
             dto.CanCancel = inScope && viewer.Has(StudyPermissions.CancelDocuments)
                             && entity.Status != StudyDocumentStatus.Cancelled && entity.Status != StudyDocumentStatus.Draft
-                            && (entity.Assignment == null || entity.Assignment.Status == StudyDocumentStatus.Cancelled);
-            dto.CanCreateAssignment = inScope && viewer.Has("CreateStudyAssignment")
-                                      && entity.Status == StudyDocumentStatus.Approved && entity.Assignment == null;
+                            && (entity.Assignment == null || entity.Assignment.Status == StudyDocumentStatus.Cancelled)
+                            && (entity.Project == null || entity.Project.Status == StudyProjectStatus.Cancelled);
+            // الخطوة التالية بحسب مسار فرع الدراسة: تكليف داخلي للمركزية، أو إحالة إلى الفرع الجغرافي
+            var track = StudyRules.TrackOf(entity);
+            var approved = inScope && entity.Status == StudyDocumentStatus.Approved;
+            dto.CanCreateAssignment = approved && track == StudyTrack.Full && viewer.Has("CreateStudyAssignment") && entity.Assignment == null;
+            dto.CanCreateRegionalProject = approved && track == StudyTrack.Coordination && viewer.Has(StudyPermissions.CreateRegionalProject)
+                                           && entity.Project == null;
             return dto;
+        }
+
+        /// <summary>
+        /// فرع الدراسة المختار في الطلب: ضمن حدود المستخدم (منه فرع الطلب في النظام)، وفعّال ما لم يكن هو المحفوظ في الطلب.
+        /// </summary>
+        public async Task<StudyBranch> StudyBranchAsync(int studyBranchId, Viewer viewer, StudyRequest? current = null)
+        {
+            var studyBranch = await _lookups.GetStudyBranchAsync(studyBranchId)
+                ?? throw new KeyNotFoundException("فرع الدراسة غير موجود");
+            StudyRules.EnsureInScope(viewer, studyBranch.BranchId);
+            if (current?.StudyBranchId != studyBranch.Id && !studyBranch.IsActive)
+                throw new InvalidOperationException("فرع الدراسة معطّل — اختر فرعاً فعّالاً");
+            return studyBranch;
         }
 
         public async Task EnsureSiteAsync(int? siteId)

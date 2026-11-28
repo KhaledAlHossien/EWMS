@@ -19,7 +19,26 @@ namespace Application.DTOs.Response
         public decimal DefaultWeight { get; set; }
         public int LinkedDocument { get; set; }
         public string LinkedDocumentName { get; set; } = string.Empty;
+        /// <summary>1 دورة كاملة (مشاريع المركزية)، 2 تنسيق ومتابعة (مشاريع الأفرع الجغرافية)</summary>
+        public int Track { get; set; }
+        public string TrackName { get; set; } = string.Empty;
         public bool IsActive { get; set; }
+    }
+
+    /// <summary>فرع دراسة: المركزية أو فرع جغرافي، تحت فرع الدراسات في النظام</summary>
+    public class StudyBranchDto
+    {
+        public int Id { get; set; }
+        public int BranchId { get; set; }
+        public string BranchName { get; set; } = string.Empty;
+        public int Code { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public int Track { get; set; }
+        public string TrackName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        /// <summary>له طلبات: لا يتغير رمزه ولا مساره ولا يُحذف (يُعطَّل)</summary>
+        public bool InUse { get; set; }
+        public byte[] RowVersion { get; set; } = [];
     }
 
     /// <summary>قيمة تعداد واسمها (لقوائم الواجهة)</summary>
@@ -48,6 +67,10 @@ namespace Application.DTOs.Response
         public int RequestId { get; set; }
         public string RequestNumber { get; set; } = string.Empty;
         public int RequestStatus { get; set; }
+        /// <summary>فرع الدراسة ومساره: 1 السلسلة الكاملة، 2 تنسيق (لا تكليف ولا رد ولا ديوان ولا أمر بدء — الطلب ثم المشروع)</summary>
+        public int StudyBranchId { get; set; }
+        public string StudyBranchName { get; set; } = string.Empty;
+        public int Track { get; set; }
         public int? AssignmentId { get; set; }
         public string? AssignmentNumber { get; set; }
         public int? AssignmentStatus { get; set; }
@@ -177,8 +200,16 @@ namespace Application.DTOs.Response
         public string? SiteName { get; set; }
         public int BranchId { get; set; }
         public string BranchName { get; set; } = string.Empty;
-        /// <summary>يمكن إصدار تكليف له الآن (معتمد وبلا تكليف)</summary>
+        /// <summary>فرع الدراسة: رمزه أول كود المشروع، ومساره يحدد الخطوة التالية</summary>
+        public int StudyBranchId { get; set; }
+        public int StudyBranchCode { get; set; }
+        public string StudyBranchName { get; set; } = string.Empty;
+        public int Track { get; set; }
+        public string TrackName { get; set; } = string.Empty;
+        /// <summary>يمكن إصدار تكليف له الآن (طلب للمركزية، معتمد وبلا تكليف)</summary>
         public bool CanCreateAssignment { get; set; }
+        /// <summary>يمكن إحالته إلى فرعه الآن (طلب لفرع جغرافي، معتمد وبلا مشروع)</summary>
+        public bool CanCreateRegionalProject { get; set; }
     }
 
     public class StudyAssignmentDto : StudyDocumentDtoBase
@@ -378,12 +409,23 @@ namespace Application.DTOs.Response
         public int Id { get; set; }
         public string Code { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
-        public int StartOrderId { get; set; }
-        public string StartOrderNumber { get; set; } = string.Empty;
-        /// <summary>حالة أمر البدء (إعادة تفعيل المشروع الملغى تتطلب أمراً معتمداً)</summary>
+        /// <summary>طلب الدراسة جذر السلسلة وحالته (إعادة تفعيل مشروع فرع جغرافي تتطلب طلباً غير ملغى)</summary>
+        public int RequestId { get; set; }
+        public string RequestNumber { get; set; } = string.Empty;
+        public int RequestStatus { get; set; }
+        /// <summary>أمر البدء: لمشاريع المركزية فقط (null لمشروع فرع جغرافي)</summary>
+        public int? StartOrderId { get; set; }
+        public string? StartOrderNumber { get; set; }
+        /// <summary>حالة أمر البدء (إعادة تفعيل مشروع المركزية الملغى تتطلب أمراً معتمداً)؛ 0 بلا أمر بدء</summary>
         public int StartOrderStatus { get; set; }
         public int BranchId { get; set; }
         public string BranchName { get; set; } = string.Empty;
+        /// <summary>فرع الدراسة ومساره: 1 دورة كاملة، 2 تنسيق ومتابعة (لا مخططات، وإنجازه بتوقيع التنسيق ثم الجودة)</summary>
+        public int StudyBranchId { get; set; }
+        public int StudyBranchCode { get; set; }
+        public string StudyBranchName { get; set; } = string.Empty;
+        public int Track { get; set; }
+        public string TrackName { get; set; } = string.Empty;
         /// <summary>موقع المشروع في سجل المواقع (منسوخ من الطلب، قد يكون فارغاً) — منه تظهر مشاريع الفرع على الخريطة</summary>
         public int? SiteId { get; set; }
         public int ManagerUserId { get; set; }

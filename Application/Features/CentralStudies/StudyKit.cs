@@ -45,8 +45,8 @@ namespace Application.Features.CentralStudies
             row.Assignment != null ? Of(row.Assignment)
             : row.Response != null ? Of(row.Response)
             : row.StartOrder != null ? Of(row.StartOrder)
-            : row.DesignApproval != null ? Of(row.DesignApproval, row.DesignApproval.Version.Drawing.Project.StartOrder.Response.Assignment.RequestId)
-            : row.Project != null ? Of(row.Project, row.Project.StartOrder.Response.Assignment.RequestId)
+            : row.DesignApproval != null ? Of(row.DesignApproval, row.DesignApproval.Version.Drawing.Project.RequestId)
+            : row.Project != null ? Of(row.Project, row.Project.RequestId)
             : row.DiwanTransaction != null ? Of(row.DiwanTransaction)
             : throw new InvalidOperationException("سطر توقيع بلا مستند");
     }
@@ -152,9 +152,12 @@ namespace Application.Features.CentralStudies
             }).ToList();
         }
 
-        /// <summary>يستبدل سطور التوقيع بسطور جديدة معلّقة (يحفظها حفظ المستند التالي — السياق نفسه)</summary>
-        public Task ResetApprovalsAsync(StudyEntityType type, int ownerId) =>
-            _approvals.ReplaceForOwnerAsync(type, ownerId, StudyRules.BuildApprovalRows(type, ownerId));
+        /// <summary>
+        /// يستبدل سطور التوقيع بسطور جديدة معلّقة (يحفظها حفظ المستند التالي — السياق نفسه).
+        /// track: لإنجاز المشروع فقط (المركزية أو الفرع الجغرافي).
+        /// </summary>
+        public Task ResetApprovalsAsync(StudyEntityType type, int ownerId, StudyTrack track = StudyTrack.Full) =>
+            _approvals.ReplaceForOwnerAsync(type, ownerId, StudyRules.BuildApprovalRows(type, ownerId, track));
 
         // ════════════════════ الإشعارات ════════════════════
 
@@ -242,8 +245,12 @@ namespace Application.Features.CentralStudies
             switch (approvedType)
             {
                 case StudyEntityType.Request:
+                    // طلب المركزية ← التكليف الداخلي، وطلب الفرع الجغرافي ← الإحالة إلى فرعه (مشروع التنسيق)
                     var request = await _requests.GetByIdAsync(docId) ?? throw new KeyNotFoundException("الطلب غير موجود");
-                    return new("CreateStudyAssignment", "التكليف الداخلي", request.BranchId, null, request, request.RequestNumber);
+                    return StudyRules.TrackOf(request) == StudyTrack.Coordination
+                        ? new(StudyPermissions.CreateRegionalProject, $"الإحالة إلى فرع {request.StudyBranch.Name}", request.BranchId, null,
+                            request, request.RequestNumber)
+                        : new("CreateStudyAssignment", "التكليف الداخلي", request.BranchId, null, request, request.RequestNumber);
                 case StudyEntityType.Assignment:
                     var assignment = await _assignments.GetByIdAsync(docId) ?? throw new KeyNotFoundException("التكليف غير موجود");
                     return new("CreateStudyResponse", "إشعار الرد", assignment.Request.BranchId, assignment.FollowingDepartmentId,
@@ -364,7 +371,9 @@ namespace Application.Features.CentralStudies
             var cancelled = (int)StudyDocumentStatus.Cancelled;
             return type switch
             {
-                StudyEntityType.Request => c.AssignmentId == null || c.AssignmentStatus == cancelled,
+                StudyEntityType.Request => c.Track == (int)StudyTrack.Coordination
+                    ? c.ProjectId == null || c.ProjectStatus == (int)StudyProjectStatus.Cancelled
+                    : c.AssignmentId == null || c.AssignmentStatus == cancelled,
                 StudyEntityType.Assignment => c.ResponseId == null || c.ResponseStatus == cancelled,
                 StudyEntityType.Response => c.DiwanId == null || c.DiwanStatus == (int)StudyDocumentStatus.Rejected,
                 StudyEntityType.DiwanTransaction => c.StartOrderId == null || c.StartOrderStatus == cancelled,
@@ -478,7 +487,7 @@ namespace Application.Features.CentralStudies
                 case StudyEntityType.Project:
                 {
                     var p = await _projects.GetByIdAsync(id) ?? throw new KeyNotFoundException(missing);
-                    return new(type, id, p.StartOrder.Response.Assignment.RequestId, p.BranchId, StudyPermissions.ViewProjects, StudyPermissions.EditProject,
+                    return new(type, id, p.RequestId, p.BranchId, StudyPermissions.ViewProjects, StudyPermissions.EditProject,
                         p.Status == StudyProjectStatus.Cancelled, null, p.ManagerUserId, p.Id);
                 }
                 case StudyEntityType.Drawing:

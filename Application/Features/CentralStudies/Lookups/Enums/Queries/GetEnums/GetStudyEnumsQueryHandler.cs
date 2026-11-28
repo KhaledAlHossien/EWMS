@@ -24,6 +24,7 @@ namespace Application.Features.CentralStudies.Lookups.Enums.Queries.GetEnums
                 ["decision"] = Values<StudyDecision>(StudyRules.Name),
                 ["signerRole"] = Values<StudySignerRole>(StudyRules.Name),
                 ["linkedDocument"] = Values<StudyLinkedDocument>(StudyRules.Name),
+                ["track"] = Values<StudyTrack>(StudyRules.Name),
                 ["entityType"] = Values<StudyEntityType>(StudyRules.Name),
                 ["logAction"] = Values<StudyLogAction>(StudyRules.Name),
             });

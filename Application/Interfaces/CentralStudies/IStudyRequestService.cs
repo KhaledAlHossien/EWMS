@@ -6,7 +6,7 @@ namespace Application.Interfaces
 {
     public interface IStudyRequestService
     {
-        /// <summary>مع الفرع والموقع والمنشئ والتكليف</summary>
+        /// <summary>مع الفرع وفرع الدراسة والموقع والمنشئ والتكليف والمشروع</summary>
         Task<StudyRequest?> GetByIdAsync(int id);
 
         /// <summary>branchLimit: null = كل الفروع، 0 = لا شيء، وإلا فرع واحد</summary>
@@ -18,6 +18,8 @@ namespace Application.Interfaces
         /// <summary>expectedRowVersion: نسخة السجل التي رآها المستخدم (null = بلا فحص)</summary>
         Task UpdateAsync(StudyRequest request, byte[]? expectedRowVersion = null);
         Task DeleteAsync(StudyRequest request);
+        /// <summary>يلغي الطلب بقفل سطره: يرفض إن بقي له تكليف أو مشروع غير ملغى</summary>
+        Task CancelAsync(StudyRequest request, StudyActivityLog activity, CancellationToken ct);
 
         /// <summary>سلسلة الدراسة كاملة من الطلب إلى المشروع</summary>
         Task<StudyChainDto> GetChainAsync(int requestId);

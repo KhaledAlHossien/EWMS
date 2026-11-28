@@ -34,6 +34,7 @@ namespace Application.Features.CentralStudies
         public const string ViewFullProject = "ViewFullStudyProject";
         public const string ViewDepartmentTasks = "ViewDepartmentStudyTasks";
         public const string ViewOfficeTasks = "ViewOfficeStudyTasks";
+        public const string CreateRegionalProject = "CreateRegionalStudyProject";
     }
 
     /// <summary>
@@ -151,23 +152,86 @@ namespace Application.Features.CentralStudies
 
         public static string VersionLabel(int versionNumber) => $"Draft-{versionNumber}";
 
+        // ════════════════════ كود المشروع ════════════════════
+
+        /// <summary>
+        /// رمز فرع الدراسة-سنة التكليف أو الإحالة (رقمان)-نوع العمل (N/R/RN)-رقم الطلب-رقم أرشيف ديوان الإدارة.
+        /// يُولَّد في التكليف (المركزية) أو عند الإحالة إلى الفرع الجغرافي. رقم الأرشيف من الطلب وإلا المدخل الآن.
+        /// </summary>
+        public static string FormatProjectCode(StudyRequest request, DateTime date, string? adminArchiveNumber)
+        {
+            var prefix = ProjectCodePrefix(request, date);
+            var archiveNumber = Clean(request.AdminArchiveNumber) ?? Clean(adminArchiveNumber)
+                ?? throw new InvalidOperationException("رقم أرشيف ديوان الإدارة مطلوب لتوليد كود المشروع");
+            if (archiveNumber.Length > 50)
+                throw new InvalidOperationException("رقم أرشيف ديوان الإدارة لا يتجاوز 50 حرفاً");
+            return prefix + archiveNumber;
+        }
+
+        /// <summary>رقم الأرشيف داخل كود مولّد بالتاريخ المحفوظ؛ null إن لم يطابق الكود الصيغة</summary>
+        public static string? ArchiveNumberFromCode(StudyRequest request, DateTime savedDate, string? code)
+        {
+            if (string.IsNullOrEmpty(code) || savedDate == default || Clean(request.RequestNumber) == null
+                || !Enum.IsDefined(request.WorkType))
+                return null;
+            var prefix = ProjectCodePrefix(request, savedDate);
+            return code.StartsWith(prefix, StringComparison.Ordinal) ? Clean(code[prefix.Length..]) : null;
+        }
+
+        private static string ProjectCodePrefix(StudyRequest request, DateTime date)
+        {
+            if (date == default)
+                throw new InvalidOperationException("تاريخ التكليف أو الإحالة مطلوب لتوليد كود المشروع");
+            var branchCode = request.StudyBranch?.Code
+                ?? throw new InvalidOperationException("فرع الدراسة غير محدد في الطلب — لا يُولَّد كود المشروع");
+            var requestNumber = Clean(request.RequestNumber)
+                ?? throw new InvalidOperationException("رقم طلب الدراسة مطلوب لتوليد كود المشروع");
+            var workCode = request.WorkType switch
+            {
+                StudyWorkType.Construction => "N",
+                StudyWorkType.MaintenanceAndRestoration => "R",
+                StudyWorkType.ConstructionAndMaintenanceAndRestoration => "RN",
+                _ => throw new InvalidOperationException("نوع العمل في طلب الدراسة غير صالح لتوليد كود المشروع")
+            };
+            return string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                $"{branchCode}-{date:yy}-{workCode}-{requestNumber}-");
+        }
+
+        // ════════════════════ مسار فرع الدراسة ════════════════════
+
+        /// <summary>مسار الدراسة من فرع الدراسة في طلبها (يجب أن يكون محمَّلاً)</summary>
+        public static StudyTrack TrackOf(StudyRequest request) =>
+            request.StudyBranch?.Track ?? throw new InvalidOperationException("فرع الدراسة غير محمَّل مع الطلب");
+
+        /// <summary>التكليف الداخلي وما بعده لطلبات المركزية فقط؛ طلب الفرع الجغرافي يُحال إلى فرعه</summary>
+        public static void EnsureFullTrack(StudyRequest request)
+        {
+            if (TrackOf(request) != StudyTrack.Full)
+                throw new InvalidOperationException(
+                    $"الطلب لفرع {request.StudyBranch.Name}: لا تكليف داخلي له — يُحال إلى الفرع ويتابعه التنسيق والارتباط");
+        }
+
         // ════════════════════ التواقيع ════════════════════
 
-        /// <summary>الصفات المطلوبة بالترتيب لكل مستند يُعتمد (الطلب يُسجَّل مباشرة بلا تواقيع)</summary>
-        public static IReadOnlyList<StudySignerRole> RequiredSigners(StudyEntityType owner) => owner switch
+        /// <summary>
+        /// الصفات المطلوبة بالترتيب لكل مستند يُعتمد (الطلب يُسجَّل مباشرة بلا تواقيع).
+        /// إنجاز المشروع بحسب مساره: المركزية = إدارة المشاريع ثم رئيس الفرع، والفرع الجغرافي = التنسيق والارتباط ثم ضبط الجودة.
+        /// </summary>
+        public static IReadOnlyList<StudySignerRole> RequiredSigners(StudyEntityType owner, StudyTrack track = StudyTrack.Full) => owner switch
         {
             StudyEntityType.Assignment => [StudySignerRole.BranchHead],
             StudyEntityType.Response => [StudySignerRole.FollowingDepartment, StudySignerRole.PlanningAndProjects],
             StudyEntityType.StartOrder => [StudySignerRole.CompetentDepartmentHead, StudySignerRole.BranchHead],
             StudyEntityType.DesignApproval => [StudySignerRole.SendingDepartment, StudySignerRole.DesignManagement, StudySignerRole.QualityControl],
+            StudyEntityType.Project when track == StudyTrack.Coordination => [StudySignerRole.Coordination, StudySignerRole.QualityControl],
             StudyEntityType.Project => [StudySignerRole.ProjectManagement, StudySignerRole.BranchHead],
             StudyEntityType.DiwanTransaction => [StudySignerRole.BranchHead],
             _ => []
         };
 
         /// <summary>سطور التوقيع المعلّقة لمستند (مرتبة)</summary>
-        public static List<StudyApproval> BuildApprovalRows(StudyEntityType owner, int ownerId) =>
-            RequiredSigners(owner).Select((role, i) =>
+        public static List<StudyApproval> BuildApprovalRows(StudyEntityType owner, int ownerId, StudyTrack track = StudyTrack.Full) =>
+            RequiredSigners(owner, track).Select((role, i) =>
             {
                 var row = new StudyApproval { SignerRole = role, SortOrder = i + 1, Decision = StudyDecision.Pending };
                 switch (owner)
@@ -194,6 +258,7 @@ namespace Application.Features.CentralStudies
             StudySignerRole.DesignManagement => "SignStudyAsDesignManagement",
             StudySignerRole.QualityControl => "SignStudyAsQualityControl",
             StudySignerRole.ProjectManagement => "SignStudyAsProjectManagement",
+            StudySignerRole.Coordination => "SignStudyAsCoordination",
             _ => throw new ArgumentOutOfRangeException(nameof(role))
         };
 
@@ -329,8 +394,11 @@ namespace Application.Features.CentralStudies
             StudySignerRole.SendingDepartment => "القسم المرسل",
             StudySignerRole.DesignManagement => "إدارة التصميم",
             StudySignerRole.QualityControl => "ضبط الجودة",
+            StudySignerRole.Coordination => "التنسيق والارتباط",
             _ => "إدارة المشاريع"
         };
+
+        public static string Name(StudyTrack s) => s == StudyTrack.Coordination ? "تنسيق ومتابعة (فرع جغرافي)" : "دورة كاملة (المركزية)";
 
         public static string Name(StudyLinkedDocument s) => s switch
         {

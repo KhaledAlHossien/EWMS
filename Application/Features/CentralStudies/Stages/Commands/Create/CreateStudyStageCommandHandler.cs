@@ -27,6 +27,8 @@ namespace Application.Features.CentralStudies.Stages.Commands.Create
             StudyStageSupport.EnsureOpen(project);
             var type = await _lookups.GetStageTypeAsync(request.Dto.StageTypeId);
             if (type is not { IsActive: true }) throw new KeyNotFoundException("نوع المرحلة غير موجود أو غير فعّال");
+            if (type.Track != StudyRules.TrackOf(project.Request))
+                throw new InvalidOperationException("نوع المرحلة لمسار آخر — اختر من مراحل مسار هذا المشروع (المركزية أو التنسيق)");
             if (project.Stages.Any(s => s.StageTypeId == type.Id))
                 throw new InvalidOperationException("نوع المرحلة موجود في المشروع مسبقاً");
             await _support.EnsureResponsibleAsync(request.Dto.ResponsibleDepartmentId, project.BranchId);

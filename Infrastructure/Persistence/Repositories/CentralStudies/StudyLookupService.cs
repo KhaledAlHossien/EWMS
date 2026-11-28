@@ -24,6 +24,31 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<bool> StageTypeInUseAsync(int id) =>
             await _context.ProjectStages.AnyAsync(s => s.StageTypeId == id);
 
+        // ----- أفرع الدراسات -----
+        public async Task<List<StudyBranch>> GetStudyBranchesAsync(int? branchLimit, int? branchId, bool activeOnly) =>
+            await _context.StudyBranches.Include(x => x.Branch)
+                .Where(x => (branchLimit == null || x.BranchId == branchLimit) && (branchId == null || x.BranchId == branchId)
+                            && (!activeOnly || x.IsActive))
+                .OrderBy(x => x.Branch.Name).ThenBy(x => x.Code).AsNoTracking().ToListAsync();
+
+        public async Task<StudyBranch?> GetStudyBranchAsync(int id) =>
+            await _context.StudyBranches.Include(x => x.Branch).FirstOrDefaultAsync(x => x.Id == id);
+
+        public async Task<bool> StudyBranchCodeExistsAsync(int branchId, int code, int? excludeId = null) =>
+            await _context.StudyBranches.AnyAsync(x => x.BranchId == branchId && x.Code == code && x.Id != excludeId);
+
+        public async Task<bool> StudyBranchNameExistsAsync(int branchId, string name, int? excludeId = null) =>
+            await _context.StudyBranches.AnyAsync(x => x.BranchId == branchId && x.Name == name && x.Id != excludeId);
+
+        public async Task<HashSet<int>> StudyBranchesInUseAsync(IEnumerable<int> ids)
+        {
+            var list = ids.Distinct().ToList();
+            if (list.Count == 0) return [];
+            var used = await _context.StudyRequests.Where(r => list.Contains(r.StudyBranchId))
+                .Select(r => r.StudyBranchId).Distinct().ToListAsync();
+            return used.ToHashSet();
+        }
+
         // ----- أنواع المرفقات -----
         public async Task<List<StudyAttachmentType>> GetAttachmentTypesAsync(bool activeOnly) =>
             await _context.StudyAttachmentTypes.Where(x => !activeOnly || x.IsActive)

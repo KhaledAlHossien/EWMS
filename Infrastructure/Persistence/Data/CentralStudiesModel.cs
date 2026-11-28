@@ -23,9 +23,22 @@ namespace Infrastructure.Persistence.Data
                 e.Property(x => x.Name).HasMaxLength(100).IsRequired();
                 e.Property(x => x.DefaultWeight).HasPrecision(5, 2);
                 e.Property(x => x.LinkedDocument).HasConversion<int>();
+                e.Property(x => x.Track).HasConversion<int>();
                 e.Property(x => x.RowVersion).IsRowVersion();
                 e.HasIndex(x => x.Name).IsUnique();
                 e.ToTable(t => t.HasCheckConstraint("CK_StudyStageTypes_Weight", "[DefaultWeight] >= 0 AND [DefaultWeight] <= 100"));
+            });
+
+            builder.Entity<StudyBranch>(e =>
+            {
+                e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                e.Property(x => x.Track).HasConversion<int>();
+                e.Property(x => x.RowVersion).IsRowVersion();
+                e.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
+                // الرمز يدخل في كود المشروع: فريد داخل فرع الدراسات، وكذلك الاسم
+                e.HasIndex(x => new { x.BranchId, x.Code }).IsUnique();
+                e.HasIndex(x => new { x.BranchId, x.Name }).IsUnique();
+                e.ToTable(t => t.HasCheckConstraint("CK_StudyBranches_Code", "[Code] >= 0 AND [Code] <= 99"));
             });
 
             builder.Entity<StudyAttachmentType>(e =>
@@ -77,6 +90,7 @@ namespace Infrastructure.Persistence.Data
                 e.Property(x => x.RowVersion).IsRowVersion();
 
                 e.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.StudyBranch).WithMany().HasForeignKey(x => x.StudyBranchId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.Site).WithMany().HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.MainBeneficiaryEntity).WithMany().HasForeignKey(x => x.MainBeneficiaryId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
@@ -227,7 +241,10 @@ namespace Infrastructure.Persistence.Data
                 e.Property(x => x.Status).HasConversion<int>();
                 e.Property(x => x.RowVersion).IsRowVersion();
 
-                e.HasOne(x => x.StartOrder).WithOne(o => o.Project).HasForeignKey<StudyProject>(x => x.StartOrderId).OnDelete(DeleteBehavior.Restrict);
+                // مشروع واحد لكل طلب (فهرس فريد)، وأمر البدء اختياري (مسار المركزية) وفريد حين يوجد
+                e.HasOne(x => x.Request).WithOne(r => r.Project).HasForeignKey<StudyProject>(x => x.RequestId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.StartOrder).WithOne(o => o.Project).HasForeignKey<StudyProject>(x => x.StartOrderId)
+                    .IsRequired(false).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.Site).WithMany().HasForeignKey(x => x.SiteId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.Manager).WithMany().HasForeignKey(x => x.ManagerUserId).OnDelete(DeleteBehavior.Restrict);

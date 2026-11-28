@@ -31,6 +31,8 @@ namespace Application.Features.CentralStudies.Drawings.Commands.Create
             var project = await _projects.GetByIdAsync(request.Dto.ProjectId) ?? throw new KeyNotFoundException("المشروع غير موجود");
             StudyRules.EnsureInScope(viewer, project.BranchId);
             StudyDrawingSupport.EnsureOpen(project);
+            if (StudyRules.TrackOf(project.Request) == StudyTrack.Coordination)
+                throw new InvalidOperationException("المخططات تُعدّ في مشاريع المركزية — أرفق ما يرد من الفرع الجغرافي كمرفقات للمشروع");
 
             var departmentId = viewer.IsOrganizationWide && request.Dto.DepartmentId is int chosen ? chosen
                 : viewer.User.DepartmentId ?? throw new InvalidOperationException("حسابك غير مرتبط بقسم — المخطط يصدر باسم قسم");

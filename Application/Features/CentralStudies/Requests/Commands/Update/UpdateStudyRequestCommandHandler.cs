@@ -28,7 +28,12 @@ namespace Application.Features.CentralStudies.Requests.Commands.Update
                 throw new InvalidOperationException($"رقم طلب الدراسة «{request.Dto.RequestNumber.Trim()}» مستخدم في طلب آخر — تحقق من الرقم الوارد من الديوان المركزي");
 
             var beneficiary = await _support.BeneficiaryAsync(request.Dto.MainBeneficiaryId, entity);
+            // فرع الدراسة يتغير في المسودة (لا مستند بعدها بعد)، ومعه فرع الطلب في النظام
+            var studyBranch = await _support.StudyBranchAsync(request.Dto.StudyBranchId, viewer, entity);
             _kit.Mapper.Map(request.Dto, entity);
+            entity.StudyBranchId = studyBranch.Id;
+            entity.StudyBranch = studyBranch;
+            entity.BranchId = studyBranch.BranchId;
             entity.MainBeneficiary = beneficiary.Name;
             entity.EntityCode = beneficiary.Code;
             StudyRequestSupport.Normalize(entity);

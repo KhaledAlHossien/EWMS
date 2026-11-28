@@ -10,8 +10,22 @@ namespace Application.DTOs.Request
         public string Name { get; set; } = string.Empty;
         public int DefaultOrder { get; set; }
         public decimal DefaultWeight { get; set; }
-        /// <summary>0 لا شيء، 1 الطلب، 2 التكليف، 3 الرد، 4 أمر البدء</summary>
+        /// <summary>0 لا شيء، 1 الطلب، 2 التكليف، 3 الرد، 4 أمر البدء (مسار التنسيق: لا شيء أو الطلب فقط)</summary>
         public int LinkedDocument { get; set; }
+        /// <summary>1 دورة كاملة (مشاريع المركزية)، 2 تنسيق ومتابعة (مشاريع الأفرع الجغرافية)</summary>
+        public int Track { get; set; } = 1;
+        public bool IsActive { get; set; } = true;
+    }
+
+    /// <summary>فرع دراسة (المركزية أو فرع جغرافي) — BranchId عند الإنشاء ولنظرة المؤسسة فقط (غيرهم فرعه)</summary>
+    public class StudyBranchFormDto
+    {
+        public int? BranchId { get; set; }
+        /// <summary>الرقم الذي يبدأ به كود المشروع: المركزية 0، الشمالية 1، الجنوبية 2، الوسطى 3، الغربية 4، الشرقية 5</summary>
+        public int Code { get; set; }
+        public string Name { get; set; } = string.Empty;
+        /// <summary>1 دورة كاملة، 2 تنسيق ومتابعة</summary>
+        public int Track { get; set; }
         public bool IsActive { get; set; } = true;
     }
 
@@ -34,6 +48,8 @@ namespace Application.DTOs.Request
         public DateTime? To { get; set; }
         /// <summary>المشاريع فقط: مشاريع موقع واحد من سجل المواقع (تتجاهله بقية المستندات)</summary>
         public int? SiteId { get; set; }
+        /// <summary>الطلبات والمشاريع فقط: فرع دراسة واحد (المركزية أو فرع جغرافي)</summary>
+        public int? StudyBranchId { get; set; }
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 20;
     }
@@ -76,8 +92,11 @@ namespace Application.DTOs.Request
         public string? Notes { get; set; }
         /// <summary>اختياري: الموقع من سجل المواقع المشترك</summary>
         public int? SiteId { get; set; }
-        /// <summary>عند الإنشاء ولنظرة المؤسسة فقط: فرع الطلب (غيرهم يُسجَّل طلبه في فرعه)</summary>
-        public int? BranchId { get; set; }
+        /// <summary>
+        /// فرع الدراسة (StudyLookups/StudyBranches): المركزية أو فرع جغرافي — يحدد مسار الدراسة، ومنه فرع الطلب في النظام.
+        /// يتغير في المسودة فقط.
+        /// </summary>
+        public int StudyBranchId { get; set; }
         public byte[]? RowVersion { get; set; }
     }
 
@@ -211,6 +230,21 @@ namespace Application.DTOs.Request
         /// <summary>عند التعديل فقط: 1 جارٍ أو 2 معلّق (الإكمال بالاعتماد والإلغاء بـ Cancel)</summary>
         public int? Status { get; set; }
         public byte[]? RowVersion { get; set; }
+    }
+
+    /// <summary>إحالة طلب معتمد لفرع جغرافي إلى فرعه: ينشئ مشروع التنسيق والمتابعة ويولّد كوده بسنة الإحالة</summary>
+    public class StudyRegionalProjectFormDto
+    {
+        public int RequestId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        /// <summary>تاريخ الإحالة إلى الفرع: سنته في كود المشروع، وهو بدء المشروع الفعلي</summary>
+        public DateTime ReferralDate { get; set; }
+        public DateTime PlannedStartDate { get; set; }
+        public DateTime PlannedEndDate { get; set; }
+        /// <summary>اختياري: مدير المشروع من موظفي فرع الدراسات النشطين (الافتراضي من يحيل)</summary>
+        public int? ManagerUserId { get; set; }
+        /// <summary>رقم أرشيف ديوان الإدارة إن خلا منه الطلب (مطلوب لتوليد الكود)</summary>
+        public string? AdminArchiveNumber { get; set; }
     }
 
     public class ProjectDepartmentFormDto

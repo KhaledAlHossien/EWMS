@@ -12,6 +12,14 @@ namespace Application.Interfaces
         /// <summary>حراسة الحذف: نوع مستخدم في مراحل مشاريع</summary>
         Task<bool> StageTypeInUseAsync(int id);
 
+        /// <summary>أفرع الدراسات مع فرعها في النظام — branchLimit: حدّ المستخدم (null = كل الفروع)، branchId: تصفية اختيارية</summary>
+        Task<List<StudyBranch>> GetStudyBranchesAsync(int? branchLimit, int? branchId, bool activeOnly);
+        Task<StudyBranch?> GetStudyBranchAsync(int id);
+        Task<bool> StudyBranchCodeExistsAsync(int branchId, int code, int? excludeId = null);
+        Task<bool> StudyBranchNameExistsAsync(int branchId, string name, int? excludeId = null);
+        /// <summary>أفرع الدراسات المستعملة في طلبات (لا يتغير رمزها ولا مسارها ولا تُحذف)</summary>
+        Task<HashSet<int>> StudyBranchesInUseAsync(IEnumerable<int> ids);
+
         Task<List<StudyAttachmentType>> GetAttachmentTypesAsync(bool activeOnly);
         Task<StudyAttachmentType?> GetAttachmentTypeAsync(int id);
         Task<bool> AttachmentTypeNameExistsAsync(string name, int? excludeId = null);

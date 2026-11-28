@@ -12,7 +12,8 @@ namespace Domain.Entities.CentralStudiesBranch
 
     /// <summary>
     /// طلب تجهيز دراسة تكاليف — جذر السلسلة: الطلب ← التكليف (IPA) ← الرد ← أمر البدء (PIO) ← المشروع، كلها 1:1.
-    /// السجل يتبع فرع منشئه (BranchId نسخة لحظة الإنشاء)، وحدّ صلاحيات الدراسات = فرع الطلب.
+    /// السجل يتبع فرع الدراسات في النظام (BranchId = فرع «فرع الدراسة» المختار)، وحدّ صلاحيات الدراسات = فرع الطلب.
+    /// فرع الدراسة (المركزية أو فرع جغرافي) يحدد المسار: المركزية بالسلسلة الكاملة، والجغرافي بالإحالة مباشرة إلى مشروع تنسيق.
     /// </summary>
     public class StudyRequest : IStudyDocument
     {
@@ -20,6 +21,9 @@ namespace Domain.Entities.CentralStudiesBranch
 
         public int BranchId { get; set; }
         public Branch Branch { get; set; } = null!;
+
+        public int StudyBranchId { get; set; }
+        public StudyBranch StudyBranch { get; set; } = null!;
 
         /// <summary>الموقع في سجل المواقع المشترك (تظهر الدراسة على خريطة الفرع)</summary>
         public int? SiteId { get; set; }
@@ -64,7 +68,10 @@ namespace Domain.Entities.CentralStudiesBranch
         public DateTime? UpdatedAt { get; set; }
         public byte[] RowVersion { get; set; } = [];
 
-        /// <summary>التكليف الداخلي (واحد على الأكثر)</summary>
+        /// <summary>التكليف الداخلي (واحد على الأكثر) — مسار المركزية فقط</summary>
         public StudyAssignment? Assignment { get; set; }
+
+        /// <summary>مشروع الدراسة (واحد على الأكثر): من أمر البدء في المركزية، أو من الإحالة إلى فرع جغرافي</summary>
+        public StudyProject? Project { get; set; }
     }
 }

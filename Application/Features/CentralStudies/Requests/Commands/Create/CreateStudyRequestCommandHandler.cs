@@ -8,14 +8,12 @@ namespace Application.Features.CentralStudies.Requests.Commands.Create
     public class CreateStudyRequestCommandHandler : IRequestHandler<CreateStudyRequestCommand, StudyRequestDto>
     {
         private readonly IStudyRequestService _service;
-        private readonly IBranchService _branches;
         private readonly StudyKit _kit;
         private readonly StudyRequestSupport _support;
 
-        public CreateStudyRequestCommandHandler(IStudyRequestService service, IBranchService branches, StudyKit kit, StudyRequestSupport support)
+        public CreateStudyRequestCommandHandler(IStudyRequestService service, StudyKit kit, StudyRequestSupport support)
         {
             _service = service;
-            _branches = branches;
             _kit = kit;
             _support = support;
         }
@@ -23,11 +21,8 @@ namespace Application.Features.CentralStudies.Requests.Commands.Create
         public async Task<StudyRequestDto> Handle(CreateStudyRequestCommand request, CancellationToken ct)
         {
             var viewer = await _kit.ViewerAsync();
-            // الطلب يتبع فرع منشئه؛ نظرة المؤسسة تختار الفرع
-            var branchId = viewer.IsOrganizationWide && request.Dto.BranchId is int chosen ? chosen : viewer.User.BranchId
-                ?? throw new InvalidOperationException("حسابك غير مرتبط بفرع — لا يمكنك تسجيل طلبات دراسة");
-            if (viewer.IsOrganizationWide && !await _branches.ExistsAsync(branchId))
-                throw new KeyNotFoundException("الفرع المحدد غير موجود");
+            // فرع الدراسة المختار (المركزية أو فرع جغرافي) يحدد المسار، وفرعه في النظام هو فرع الطلب (حدّ الصلاحيات)
+            var studyBranch = await _support.StudyBranchAsync(request.Dto.StudyBranchId, viewer);
             await _support.EnsureSiteAsync(request.Dto.SiteId);
 
             var entity = _kit.Mapper.Map<StudyRequest>(request.Dto);
@@ -37,14 +32,15 @@ namespace Application.Features.CentralStudies.Requests.Commands.Create
             StudyRequestSupport.Normalize(entity);
             if (await _service.NumberExistsAsync(entity.RequestNumber))
                 throw new InvalidOperationException($"رقم طلب الدراسة «{entity.RequestNumber}» مستخدم في طلب آخر — تحقق من الرقم الوارد من الديوان المركزي");
-            entity.BranchId = branchId;
+            entity.StudyBranchId = studyBranch.Id;
+            entity.BranchId = studyBranch.BranchId;
             entity.CreatedByUserId = viewer.Id;
             entity.Status = StudyDocumentStatus.Draft;
             entity.CreatedAt = DateTime.Now;
 
             await _service.AddAsync(entity);
             await _kit.LogAsync(entity.Id, StudyEntityType.Request, entity.Id, StudyLogAction.Created,
-                $"سجّل طلب تجهيز الدراسة {entity.RequestNumber}", entity.MainBeneficiary);
+                $"سجّل طلب تجهيز الدراسة {entity.RequestNumber}", $"{entity.MainBeneficiary} — فرع الدراسة: {studyBranch.Name}");
             return await _support.DetailAsync(entity.Id, viewer);
         }
     }

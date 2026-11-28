@@ -1563,6 +1563,51 @@ namespace Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyBranch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BranchId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Code")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Track")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId", "Code")
+                        .IsUnique();
+
+                    b.HasIndex("BranchId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("StudyBranches", t =>
+                        {
+                            t.HasCheckConstraint("CK_StudyBranches_Code", "[Code] >= 0 AND [Code] <= 99");
+                        });
+                });
+
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanTransaction", b =>
                 {
                     b.Property<int>("Id")
@@ -1695,6 +1740,9 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("PlannedStartDate")
                         .HasColumnType("date");
 
+                    b.Property<int>("RequestId")
+                        .HasColumnType("int");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -1704,7 +1752,7 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("SiteId")
                         .HasColumnType("int");
 
-                    b.Property<int>("StartOrderId")
+                    b.Property<int?>("StartOrderId")
                         .HasColumnType("int");
 
                     b.Property<int>("Status")
@@ -1722,10 +1770,14 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("ManagerUserId");
 
+                    b.HasIndex("RequestId")
+                        .IsUnique();
+
                     b.HasIndex("SiteId");
 
                     b.HasIndex("StartOrderId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[StartOrderId] IS NOT NULL");
 
                     b.HasIndex("BranchId", "SiteId");
 
@@ -1837,6 +1889,9 @@ namespace Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<int>("StudyBranchId")
+                        .HasColumnType("int");
+
                     b.Property<string>("SubBeneficiary")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -1862,6 +1917,8 @@ namespace Infrastructure.Migrations
                         .IsUnique();
 
                     b.HasIndex("SiteId");
+
+                    b.HasIndex("StudyBranchId");
 
                     b.HasIndex("BranchId", "Status", "CreatedAt");
 
@@ -1899,6 +1956,9 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<int>("Track")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -4556,6 +4616,17 @@ namespace Infrastructure.Migrations
                     b.Navigation("Version");
                 });
 
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyBranch", b =>
+                {
+                    b.HasOne("Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+                });
+
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanTransaction", b =>
                 {
                     b.HasOne("Domain.Entities.User", "CreatedBy")
@@ -4595,6 +4666,12 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyRequest", "Request")
+                        .WithOne("Project")
+                        .HasForeignKey("Domain.Entities.CentralStudiesBranch.StudyProject", "RequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Domain.Entities.Site", "Site")
                         .WithMany()
                         .HasForeignKey("SiteId")
@@ -4603,14 +4680,15 @@ namespace Infrastructure.Migrations
                     b.HasOne("Domain.Entities.CentralStudiesBranch.StudyStartOrder", "StartOrder")
                         .WithOne("Project")
                         .HasForeignKey("Domain.Entities.CentralStudiesBranch.StudyProject", "StartOrderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Branch");
 
                     b.Navigation("CreatedBy");
 
                     b.Navigation("Manager");
+
+                    b.Navigation("Request");
 
                     b.Navigation("Site");
 
@@ -4641,6 +4719,12 @@ namespace Infrastructure.Migrations
                         .HasForeignKey("SiteId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyBranch", "StudyBranch")
+                        .WithMany()
+                        .HasForeignKey("StudyBranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Branch");
 
                     b.Navigation("CreatedBy");
@@ -4648,6 +4732,8 @@ namespace Infrastructure.Migrations
                     b.Navigation("MainBeneficiaryEntity");
 
                     b.Navigation("Site");
+
+                    b.Navigation("StudyBranch");
                 });
 
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyStartOrder", b =>
@@ -5440,6 +5526,8 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyRequest", b =>
                 {
                     b.Navigation("Assignment");
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyStartOrder", b =>
