@@ -25,11 +25,10 @@ namespace Application.Features.CentralStudies.Responses
             RuleForEach(x => x.Buildings).ChildRules(b =>
             {
                 b.RuleFor(x => x.BuildingType).Must(v => Enum.IsDefined(typeof(StudyBuildingType), v)).WithMessage("نوع البناء غير صالح");
-                b.RuleFor(x => x.BuildingCount).GreaterThanOrEqualTo(0).WithMessage("عدد المباني لا يكون سالباً");
+                b.RuleFor(x => x.BuildingCount).InclusiveBetween(1, MaxItems).WithMessage("عدد المباني لكل نوع بين 1 و200");
                 b.RuleFor(x => x.BuildingsArea).InclusiveBetween(0, MaxBuildingArea).WithMessage("المساحة الإجمالية للمباني خارج النطاق");
-                b.RuleFor(x => x.Details).Must((building, rows) => rows != null &&
-                        (rows.Count == 0 || (rows.Count == building.BuildingCount && rows.Count <= MaxItems)))
-                    .WithMessage("يجب أن يطابق عدد صفوف التفاصيل عدد المباني (حتى 200 مبنى لكل نوع)");
+                b.RuleFor(x => x.Details).Must((building, rows) => rows != null && rows.Count == building.BuildingCount)
+                    .WithMessage("يجب أن يطابق عدد صفوف التفاصيل عدد المباني: أدخل الرمز والوظيفة والمساحة لكل مبنى");
                 b.RuleForEach(x => x.Details).NotNull().WithMessage("تفاصيل المبنى مطلوبة").ChildRules(d =>
                 {
                     d.RuleFor(x => x.Code).NotEmpty().WithMessage("رمز المبنى مطلوب")
@@ -48,6 +47,13 @@ namespace Application.Features.CentralStudies.Responses
                 c.RuleFor(x => x.Unit).NotEmpty().WithMessage("وحدة البند مطلوبة").MaximumLength(30).WithMessage("الوحدة لا تتجاوز 30 حرفاً");
                 c.RuleFor(x => x.Quantity).GreaterThanOrEqualTo(0).WithMessage("الكمية لا تكون سالبة");
                 c.RuleFor(x => x.UnitPrice).GreaterThanOrEqualTo(0).WithMessage("سعر الوحدة لا يكون سالباً");
+            });
+
+            // الشكل الموحّد: بند تكلفة لكل مبنى بالترتيب (StudyResponseBuildings)
+            RuleFor(x => x).Custom((dto, ctx) =>
+            {
+                if (dto.Buildings.All(b => b.Details != null) && StudyResponseBuildings.Problem(dto) is { } problem)
+                    ctx.AddFailure(nameof(StudyResponseFormDto.CostItems), problem);
             });
 
         }

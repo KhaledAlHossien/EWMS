@@ -14,7 +14,10 @@ namespace Application.Features.CentralStudies
         public const string EditAssignment = "EditStudyAssignment";
         public const string ViewResponses = "ViewStudyResponses";
         public const string EditResponse = "EditStudyResponse";
-        public const string ManageDiwan = "ManageStudyDiwanCorrespondence";
+        public const string ViewDiwan = "ViewStudyDiwanTransactions";
+        public const string CreateDiwan = "CreateStudyDiwanTransaction";
+        public const string EditDiwan = "EditStudyDiwanTransaction";
+        public const string DeleteDiwan = "DeleteStudyDiwanTransaction";
         public const string ViewStartOrders = "ViewStudyStartOrders";
         public const string EditStartOrder = "EditStudyStartOrder";
         public const string CancelDocuments = "CancelStudyDocuments";
@@ -130,6 +133,7 @@ namespace Application.Features.CentralStudies
             StudyDocumentType.Response => ResponseNumberPrefix,
             StudyDocumentType.StartOrder => "PIO",
             StudyDocumentType.DesignApproval => "CDA",
+            StudyDocumentType.Diwan => "DWN",
             _ => "DOC"
         };
 
@@ -157,6 +161,7 @@ namespace Application.Features.CentralStudies
             StudyEntityType.StartOrder => [StudySignerRole.CompetentDepartmentHead, StudySignerRole.BranchHead],
             StudyEntityType.DesignApproval => [StudySignerRole.SendingDepartment, StudySignerRole.DesignManagement, StudySignerRole.QualityControl],
             StudyEntityType.Project => [StudySignerRole.ProjectManagement, StudySignerRole.BranchHead],
+            StudyEntityType.DiwanTransaction => [StudySignerRole.BranchHead],
             _ => []
         };
 
@@ -172,6 +177,7 @@ namespace Application.Features.CentralStudies
                     case StudyEntityType.StartOrder: row.StartOrderId = ownerId; break;
                     case StudyEntityType.DesignApproval: row.DesignApprovalId = ownerId; break;
                     case StudyEntityType.Project: row.ProjectId = ownerId; break;
+                    case StudyEntityType.DiwanTransaction: row.DiwanTransactionId = ownerId; break;
                     default: throw new ArgumentException("هذا السجل لا يُعتمد بالتواقيع", nameof(owner));
                 }
                 return row;
@@ -229,6 +235,8 @@ namespace Application.Features.CentralStudies
             StudyDocumentStatus.Cancelled => "ملغى",
             _ => s.ToString()
         };
+
+        public static string Name(StudyDiwanDecision s) => s == StudyDiwanDecision.Approved ? "موافقة" : "رفض";
 
         public static string Name(StudyUrgency s) => s == StudyUrgency.Urgent ? "مستعجل" : "عادي";
 
@@ -348,6 +356,7 @@ namespace Application.Features.CentralStudies
             StudyEntityType.Attachment => "مرفق",
             StudyEntityType.ProjectDepartment => "قسم مشارك",
             StudyEntityType.ProjectMember => "عضو فريق",
+            StudyEntityType.DiwanTransaction => "معاملة ديوان",
             _ => s.ToString()
         };
 

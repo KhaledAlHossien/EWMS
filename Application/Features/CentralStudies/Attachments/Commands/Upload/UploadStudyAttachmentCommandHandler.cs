@@ -89,6 +89,7 @@ namespace Application.Features.CentralStudies.Attachments.Commands.Upload
                 case StudyEntityType.Project: a.ProjectId = id; break;
                 case StudyEntityType.Drawing: a.DrawingId = id; break;
                 case StudyEntityType.Version: a.VersionId = id; break;
+                case StudyEntityType.DiwanTransaction: a.DiwanTransactionId = id; break;
                 default: throw new ArgumentException("صاحب المرفق غير مدعوم");
             }
         }

@@ -51,7 +51,14 @@ namespace Application.Features.CentralStudies.Approvals.Commands.Decide
             var verb = decision == StudyDecision.Rejected ? StudyLogAction.Rejected : StudyLogAction.Approved;
             await _kit.LogAsync(owner.RequestId, owner.Type, owner.Id, verb,
                 $"{StudyRules.Name(decision)} بصفة {StudyRules.Name(row.SignerRole)} على {StudyRules.Name(owner.Type)} {owner.Number}", row.Note);
-            if (final is bool done)
+            // معاملة ديوان اعتمدها رئيس الفرع بقرار رفض مركزي: تُرفض ويعود الرد إلى القسم المتابع (ApplyFinal)
+            if (final == true && row.DiwanTransaction is { CentralDecision: StudyDiwanDecision.Rejected } rejected)
+            {
+                await _kit.LogAsync(owner.RequestId, StudyEntityType.Response, rejected.ResponseId, StudyLogAction.Rejected,
+                    $"رفض الديوان المركزي الدراسة بالكتاب {rejected.ReplyNumber} — أُعيد الرد إلى القسم المتابع للتعديل");
+                await _kit.NotifyCentralRejectionAsync(rejected);
+            }
+            else if (final is bool done)
             {
                 if (done)
                 {
@@ -89,6 +96,19 @@ namespace Application.Features.CentralStudies.Approvals.Commands.Decide
                 if (approved || cda.Version.Drawing.Status != DrawingStatus.Approved)
                     cda.Version.Drawing.Status = cda.Version.Status;
                 cda.Version.Drawing.UpdatedAt = now;
+            }
+            else if (row.DiwanTransaction is { } diwan)
+            {
+                // موافقة رئيس الفرع تُثبت قرار الديوان المركزي: موافقة = معتمدة (يصدر أمر البدء ما لم تكن التوصية «غير متاح»)،
+                // ورفض مركزي = مرفوضة ويعود الرد إلى القسم المتابع ليعدّله، ثم تُحدَّث المعاملة نفسها بصادر ورد جديدين
+                var centralRejection = approved && diwan.CentralDecision == StudyDiwanDecision.Rejected;
+                diwan.Status = approved && !centralRejection ? StudyDocumentStatus.Approved : StudyDocumentStatus.Rejected;
+                diwan.UpdatedAt = now;
+                if (centralRejection)
+                {
+                    diwan.Response.Status = StudyDocumentStatus.Rejected;
+                    diwan.Response.UpdatedAt = now;
+                }
             }
             else if (row.Project is { } project && approved)
             {

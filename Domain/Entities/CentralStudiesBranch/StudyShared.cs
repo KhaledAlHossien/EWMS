@@ -18,6 +18,8 @@ namespace Domain.Entities.CentralStudiesBranch
         public DesignApproval? DesignApproval { get; set; }
         public int? ProjectId { get; set; }
         public StudyProject? Project { get; set; }
+        public int? DiwanTransactionId { get; set; }
+        public StudyDiwanTransaction? DiwanTransaction { get; set; }
 
         public int? SignerUserId { get; set; }
         public User? Signer { get; set; }
@@ -36,7 +38,7 @@ namespace Domain.Entities.CentralStudiesBranch
     }
 
     /// <summary>
-    /// مرفق في فرع الدراسات — جدول واحد لكل المرفقات، مالك واحد فقط (قيد CHECK على الأعمدة السبعة).
+    /// مرفق في فرع الدراسات — جدول واحد لكل المرفقات، مالك واحد فقط (قيد CHECK على أعمدة المالك الثمانية).
     /// المحتوى في مجلد المرفقات على الخادم **دائماً** (StorageKey)، أيّاً كان FileStorage:Mode — ملفات المخططات قد تبلغ جيجابايت،
     /// فلا تُحفظ في القاعدة ولا سقف لحجمها (قرار المستخدم 2026-11-05).
     /// </summary>
@@ -58,6 +60,8 @@ namespace Domain.Entities.CentralStudiesBranch
         public ProjectDrawing? Drawing { get; set; }
         public int? VersionId { get; set; }
         public ArchitecturalVersion? Version { get; set; }
+        public int? DiwanTransactionId { get; set; }
+        public StudyDiwanTransaction? DiwanTransaction { get; set; }
 
         public int AttachmentTypeId { get; set; }
         public StudyAttachmentType AttachmentType { get; set; } = null!;

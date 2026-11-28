@@ -106,15 +106,8 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.RecommendationName, o => o.MapFrom(s => StudyRules.Name(s.Recommendation)))
                 .ForMember(d => d.CanEditFollowingPart, o => o.Ignore())
                 .ForMember(d => d.CanEditPlanningPart, o => o.Ignore())
-                .ForMember(d => d.DiwanCase, o => o.Ignore())
-                .ForMember(d => d.DiwanStage, o => o.Ignore())
                 .ForMember(d => d.MainBeneficiary, o => o.MapFrom(s => s.Assignment.Request.MainBeneficiary))
-                .ForMember(d => d.DiwanDispatchNumber, o => o.MapFrom(s => s.DiwanCase != null ? s.DiwanCase.DispatchNumber : null))
-                .ForMember(d => d.DiwanDispatchDate, o => o.MapFrom(s => s.DiwanCase != null ? s.DiwanCase.DispatchDate : (DateOnly?)null))
-                .ForMember(d => d.DiwanSince, o => o.Ignore())
-                .ForMember(d => d.CanRegisterDiwanDispatch, o => o.Ignore())
-                .ForMember(d => d.CanRegisterDiwanReply, o => o.Ignore())
-                .ForMember(d => d.CanReviewDiwan, o => o.Ignore())
+                .ForMember(d => d.CanCreateDiwanTransaction, o => o.Ignore())
                 .ForMember(d => d.TotalCost, o => o.MapFrom(s => Math.Round(s.CostItems.Sum(c => c.Quantity * c.UnitPrice), 2)))
                 .ForMember(d => d.Buildings, o => o.MapFrom(s => s.Buildings.OrderBy(b => b.BuildingType)))
                 .ForMember(d => d.CostItems, o => o.MapFrom(s => s.CostItems.OrderBy(c => c.SortOrder).ThenBy(c => c.Id)))
@@ -129,7 +122,7 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.DisciplineName, o => o.MapFrom(s => s.Discipline != null ? s.Discipline.Name : string.Empty));
             CreateMap<StartOrderResource, StudyItemDto>();
             CreateMap<StudyStartOrder, StudyStartOrderDto>()
-                .ForMember(d => d.DiwanReplyNumber, o => o.MapFrom(s => s.DiwanReply != null ? s.DiwanReply.Number : null))
+                .ForMember(d => d.DiwanTransactionNumber, o => o.MapFrom(s => s.DiwanTransaction != null ? s.DiwanTransaction.TransactionNumber : null))
                 .ForMember(d => d.Status, o => o.MapFrom(s => (int)s.Status))
                 .ForMember(d => d.StatusName, o => o.MapFrom(s => StudyRules.Name(s.Status)))
                 .ForMember(d => d.CreatedByName, o => o.MapFrom(s => s.CreatedBy != null ? s.CreatedBy.FullName : string.Empty))
@@ -142,6 +135,28 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.CompetentDepartmentName, o => o.MapFrom(s => s.CompetentDepartment != null ? s.CompetentDepartment.Name : string.Empty))
                 .ForMember(d => d.ProjectManagerName, o => o.MapFrom(s => s.ProjectManager != null ? s.ProjectManager.FullName : string.Empty))
                 .ForMember(d => d.Resources, o => o.MapFrom(s => s.Resources.OrderBy(x => x.Id)))
+                .ForMember(d => d.Chain, o => o.Ignore())
+                .ForMember(d => d.Approvals, o => o.Ignore());
+
+            // ----- معاملة الديوان -----
+            CreateMap<StudyDiwanTransaction, StudyDiwanTransactionDto>()
+                .ForMember(d => d.Status, o => o.MapFrom(s => (int)s.Status))
+                .ForMember(d => d.StatusName, o => o.MapFrom(s => StudyRules.Name(s.Status)))
+                .ForMember(d => d.CreatedByName, o => o.MapFrom(s => s.CreatedBy != null ? s.CreatedBy.FullName : string.Empty))
+                .ForMember(d => d.ResponseNumber, o => o.MapFrom(s => s.Response.ResponseNumber))
+                .ForMember(d => d.ResponseStatus, o => o.MapFrom(s => (int)s.Response.Status))
+                .ForMember(d => d.AssignmentId, o => o.MapFrom(s => s.Response.AssignmentId))
+                .ForMember(d => d.AssignmentNumber, o => o.MapFrom(s => s.Response.Assignment.AssignmentNumber))
+                .ForMember(d => d.ProjectCode, o => o.MapFrom(s => s.Response.Assignment.ProjectCode))
+                .ForMember(d => d.RequestId, o => o.MapFrom(s => s.Response.Assignment.RequestId))
+                .ForMember(d => d.BranchId, o => o.MapFrom(s => s.Response.Assignment.Request.BranchId))
+                .ForMember(d => d.BranchName, o => o.MapFrom(s => s.Response.Assignment.Request.Branch != null ? s.Response.Assignment.Request.Branch.Name : string.Empty))
+                .ForMember(d => d.MainBeneficiary, o => o.MapFrom(s => s.Response.Assignment.Request.MainBeneficiary))
+                .ForMember(d => d.Recommendation, o => o.MapFrom(s => (int)s.Response.Recommendation))
+                .ForMember(d => d.RecommendationName, o => o.MapFrom(s => StudyRules.Name(s.Response.Recommendation)))
+                .ForMember(d => d.CentralDecision, o => o.MapFrom(s => (int?)s.CentralDecision))
+                .ForMember(d => d.CentralDecisionName, o => o.MapFrom(s => s.CentralDecision != null ? StudyRules.Name(s.CentralDecision.Value) : null))
+                .ForMember(d => d.CanCreateStartOrder, o => o.Ignore())
                 .ForMember(d => d.Chain, o => o.Ignore())
                 .ForMember(d => d.Approvals, o => o.Ignore());
 
@@ -241,9 +256,10 @@ namespace Application.Helper.Profiles
                     : s.StartOrderId != null ? (int)StudyEntityType.StartOrder
                     : s.ProjectId != null ? (int)StudyEntityType.Project
                     : s.DrawingId != null ? (int)StudyEntityType.Drawing
-                    : (int)StudyEntityType.Version))
+                    : s.VersionId != null ? (int)StudyEntityType.Version
+                    : (int)StudyEntityType.DiwanTransaction))
                 .ForMember(d => d.OwnerId, o => o.MapFrom(s =>
-                    s.RequestId ?? s.AssignmentId ?? s.ResponseId ?? s.StartOrderId ?? s.ProjectId ?? s.DrawingId ?? s.VersionId ?? 0))
+                    s.RequestId ?? s.AssignmentId ?? s.ResponseId ?? s.StartOrderId ?? s.ProjectId ?? s.DrawingId ?? s.VersionId ?? s.DiwanTransactionId ?? 0))
                 .ForMember(d => d.AttachmentTypeName, o => o.MapFrom(s => s.AttachmentType != null ? s.AttachmentType.Name : string.Empty))
                 .ForMember(d => d.Previewable, o => o.MapFrom(s => Features.MapLayers.MapFileRules.IsPreviewable(s.ContentType)))
                 .ForMember(d => d.UploadedByName, o => o.MapFrom(s => s.UploadedBy != null ? s.UploadedBy.FullName : string.Empty))

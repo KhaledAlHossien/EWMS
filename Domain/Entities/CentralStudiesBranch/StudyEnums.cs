@@ -62,7 +62,7 @@ namespace Domain.Entities.CentralStudiesBranch
     public enum StudyLinkedDocument { None = 0, Request = 1, Assignment = 2, Response = 3, StartOrder = 4 }
 
     /// <summary>عدّاد الترقيم: رقم متسلسل لكل نوع وسنة</summary>
-    public enum StudyDocumentType { Request = 1, Assignment = 2, StartOrder = 3, DesignApproval = 4, Response = 5 }
+    public enum StudyDocumentType { Request = 1, Assignment = 2, StartOrder = 3, DesignApproval = 4, Response = 5, Diwan = 6 }
 
     /// <summary>نوع السجل المتأثر في سجل الدراسة، ومالك المرفق</summary>
     public enum StudyEntityType
@@ -79,7 +79,8 @@ namespace Domain.Entities.CentralStudiesBranch
         DesignApproval = 10,
         Attachment = 11,
         ProjectDepartment = 12,
-        ProjectMember = 13
+        ProjectMember = 13,
+        DiwanTransaction = 14
     }
 
     public enum StudyLogAction

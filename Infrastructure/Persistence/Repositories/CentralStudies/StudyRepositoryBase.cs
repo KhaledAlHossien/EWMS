@@ -64,6 +64,8 @@ namespace Infrastructure.Persistence.Repositories
                 return $"رقم طلب الدراسة{value} مستخدم في طلب آخر — تحقق من الرقم الوارد من الديوان المركزي";
             if (sqlMessage.Contains("IX_StudyAssignments_ProjectCode") || sqlMessage.Contains("IX_StudyProjects_Code"))
                 return $"كود المشروع{value} مستخدم في تكليف أو مشروع آخر — تحقق من رقم أرشيف ديوان الإدارة وتاريخ التكليف";
+            if (sqlMessage.Contains("IX_StudyDiwanTransactions_ResponseId"))
+                return "لإشعار الرد معاملة ديوان مسبقاً — معاملة واحدة لكل رد";
             return "القيمة مستخدمة في سجل آخر (رقم أو كود أو اسم مكرر) — راجع البيانات وأعد المحاولة";
         }
     }

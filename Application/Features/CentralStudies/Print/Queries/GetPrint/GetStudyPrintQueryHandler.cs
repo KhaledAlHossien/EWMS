@@ -1,6 +1,7 @@
 ﻿using Application.DTOs.Response;
 using Application.Features.CentralStudies.Assignments.Queries.GetById;
 using Application.Features.CentralStudies.DesignApprovals.Queries.GetById;
+using Application.Features.CentralStudies.DiwanTransactions.Queries.GetById;
 using Application.Features.CentralStudies.Requests.Queries.GetById;
 using Application.Features.CentralStudies.Responses.Queries.GetById;
 using Application.Features.CentralStudies.StartOrders.Queries.GetById;
@@ -56,6 +57,11 @@ namespace Application.Features.CentralStudies.Print.Queries.GetPrint
                     dto.StartOrder = o;
                     (dto.Number, dto.BranchName, dto.DocumentDate) = (o.OrderNumber, o.BranchName, o.OrderDate);
                     break;
+                case StudyEntityType.DiwanTransaction:
+                    var t = await _mediator.Send(new GetStudyDiwanTransactionQuery(request.Id), ct);
+                    dto.DiwanTransaction = t;
+                    (dto.Number, dto.BranchName, dto.DocumentDate) = (t.TransactionNumber, t.BranchName, t.ReplyDate ?? t.DispatchDate);
+                    break;
                 default:
                     var c = await _mediator.Send(new GetDesignApprovalQuery(request.Id), ct);
                     dto.DesignApproval = c;
@@ -96,6 +102,7 @@ namespace Application.Features.CentralStudies.Print.Queries.GetPrint
             StudyEntityType.Response => StudyPermissions.ViewResponses,
             StudyEntityType.StartOrder => StudyPermissions.ViewStartOrders,
             StudyEntityType.DesignApproval => StudyPermissions.ViewDrawings,
+            StudyEntityType.DiwanTransaction => StudyPermissions.ViewDiwan,
             _ => throw new ArgumentException("هذا المستند لا يُطبع بنموذج ورقي")
         };
     }

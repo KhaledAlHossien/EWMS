@@ -11,7 +11,7 @@ namespace Application.Features.CentralStudies.Attachments
         public static readonly StudyEntityType[] Owners =
         [
             StudyEntityType.Request, StudyEntityType.Assignment, StudyEntityType.Response, StudyEntityType.StartOrder,
-            StudyEntityType.Project, StudyEntityType.Drawing, StudyEntityType.Version
+            StudyEntityType.Project, StudyEntityType.Drawing, StudyEntityType.Version, StudyEntityType.DiwanTransaction
         ];
     }
 }

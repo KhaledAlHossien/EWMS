@@ -65,7 +65,6 @@ namespace Infrastructure.Files
             used.UnionWith(await _context.AssignedTaskAttachments.Where(a => a.StorageKey != null && keys.Contains(a.StorageKey)).Select(a => a.StorageKey!).ToListAsync(ct));
             used.UnionWith(await _context.MapEntryFiles.Where(f => f.StorageKey != null && keys.Contains(f.StorageKey)).Select(f => f.StorageKey!).ToListAsync(ct));
             used.UnionWith(await _context.StudyAttachments.Where(a => a.StorageKey != null && keys.Contains(a.StorageKey)).Select(a => a.StorageKey!).ToListAsync(ct));
-            used.UnionWith(await _context.StudyDiwanReplies.Where(a => keys.Contains(a.StorageKey)).Select(a => a.StorageKey).ToListAsync(ct));
 
             var removed = 0;
             foreach (var (key, path) in candidates)

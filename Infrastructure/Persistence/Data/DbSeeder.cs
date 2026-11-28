@@ -271,5 +271,28 @@ namespace Infrastructure.Persistence.Data
                 }
             }
         }
+
+        /// <summary>
+        /// مرفقات الدراسات المنقولة بالترحيل Study_Diwan_Transactions (كتب الرد المركزي) حُفظت بحجم 0 لأن الجدول القديم لم يحفظه:
+        /// يُقرأ الحجم من الملف في مجلد المرفقات عند كل إقلاع للسطور التي ما زالت 0 فقط. الملف الغائب يُترك ويُسجَّل تحذيراً.
+        /// </summary>
+        public static async Task BackfillStudyAttachmentSizesAsync(DataContext context, Application.Interfaces.IFileStore files, ILogger logger)
+        {
+            var rows = await context.StudyAttachments.Where(a => a.Size == 0).ToListAsync();
+            if (rows.Count == 0) return;
+            foreach (var row in rows)
+            {
+                try
+                {
+                    await using var stream = files.OpenRead(row.StorageKey);
+                    row.Size = stream.Length;
+                }
+                catch (Exception ex) when (ex is KeyNotFoundException or IOException or UnauthorizedAccessException or ArgumentException)
+                {
+                    logger.LogWarning("تعذّر قراءة حجم مرفق الدراسات {Id} ({Key}): {Message}", row.Id, row.StorageKey, ex.Message);
+                }
+            }
+            await context.SaveChangesAsync();
+        }
     }
 }
