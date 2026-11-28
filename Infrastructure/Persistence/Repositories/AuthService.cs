@@ -84,11 +84,11 @@ namespace Infrastructure.Persistence.Repositories
             var token = _jwtService.GenerateToken(user);
             var expiresAt = _jwtService.GetExpirationDate();
 
-            // حفظ التوكن في قاعدة البيانات (لإبطاله لاحقاً)
+            // حفظ بصمة التوكن في قاعدة البيانات (لإبطاله لاحقاً) — الرمز نفسه لا يُحفظ
             var userToken = new UserToken
             {
                 UserId = user.Id,
-                Token = token,
+                TokenHash = TokenHash.Of(token),
                 CreatedAt = DateTime.UtcNow,
                 ExpiresAt = expiresAt,
                 IsRevoked = false
@@ -170,8 +170,10 @@ namespace Infrastructure.Persistence.Repositories
 
         public async Task<bool> LogoutAsync(string token)
         {
+            if (string.IsNullOrEmpty(token)) return false;
+            var hash = TokenHash.Of(token);
             var userToken = await _context.UserTokens
-                .FirstOrDefaultAsync(t => t.Token == token);
+                .FirstOrDefaultAsync(t => t.TokenHash == hash);
 
             if (userToken == null) return false;
 

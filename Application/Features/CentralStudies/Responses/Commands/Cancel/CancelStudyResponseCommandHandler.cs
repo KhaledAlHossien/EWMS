@@ -26,6 +26,8 @@ namespace Application.Features.CentralStudies.Responses.Commands.Cancel
             if (entity.Status == StudyDocumentStatus.Draft) throw new InvalidOperationException("المسودة تُحذف ولا تُلغى");
             if (entity.StartOrder != null && entity.StartOrder.Status != StudyDocumentStatus.Cancelled)
                 throw new InvalidOperationException("للرد أمر بدء قائم — ألغِ أمر البدء أولاً");
+            if (entity.DiwanTransaction != null && entity.DiwanTransaction.Status != StudyDocumentStatus.Cancelled)
+                throw new InvalidOperationException("للرد معاملة ديوان قائمة — ألغِ المعاملة أولاً");
 
             entity.Status = StudyDocumentStatus.Cancelled;
             entity.UpdatedAt = DateTime.Now;

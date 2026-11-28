@@ -190,8 +190,7 @@ namespace Infrastructure.Persistence.Data
                 e.Property(x => x.RowVersion).IsRowVersion();
 
                 e.HasOne(x => x.Response).WithOne(r => r.StartOrder).HasForeignKey<StudyStartOrder>(x => x.ResponseId).OnDelete(DeleteBehavior.Restrict);
-                e.HasOne(x => x.DiwanReply).WithMany().HasForeignKey(x => new { x.ResponseId, x.DiwanReplyId })
-                    .HasPrincipalKey(x => new { x.ResponseId, x.Id }).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.DiwanTransaction).WithMany().HasForeignKey(x => x.DiwanTransactionId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.CompetentDepartment).WithMany().HasForeignKey(x => x.CompetentDepartmentId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.ProjectManager).WithMany().HasForeignKey(x => x.ProjectManagerUserId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
@@ -380,6 +379,7 @@ namespace Infrastructure.Persistence.Data
                 e.HasOne(x => x.StartOrder).WithMany().HasForeignKey(x => x.StartOrderId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne(x => x.DesignApproval).WithMany().HasForeignKey(x => x.DesignApprovalId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne(x => x.Project).WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(x => x.DiwanTransaction).WithMany().HasForeignKey(x => x.DiwanTransactionId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne(x => x.Signer).WithMany().HasForeignKey(x => x.SignerUserId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.Signature).WithMany().HasForeignKey(x => x.SignatureId).OnDelete(DeleteBehavior.Restrict);
 
@@ -389,10 +389,11 @@ namespace Infrastructure.Persistence.Data
                 e.HasIndex(x => new { x.StartOrderId, x.SignerRole }).IsUnique().HasFilter("[StartOrderId] IS NOT NULL");
                 e.HasIndex(x => new { x.DesignApprovalId, x.SignerRole }).IsUnique().HasFilter("[DesignApprovalId] IS NOT NULL");
                 e.HasIndex(x => new { x.ProjectId, x.SignerRole }).IsUnique().HasFilter("[ProjectId] IS NOT NULL");
+                e.HasIndex(x => new { x.DiwanTransactionId, x.SignerRole }).IsUnique().HasFilter("[DiwanTransactionId] IS NOT NULL");
                 e.HasIndex(x => new { x.SignerRole, x.Decision });
 
                 e.ToTable(t => t.HasCheckConstraint("CK_StudyApprovals_OneOwner",
-                    ExactlyOne("AssignmentId", "ResponseId", "StartOrderId", "DesignApprovalId", "ProjectId")));
+                    ExactlyOne("AssignmentId", "ResponseId", "StartOrderId", "DesignApprovalId", "ProjectId", "DiwanTransactionId")));
             });
 
             // ==================== المرفقات (مالك واحد) ====================
@@ -409,13 +410,14 @@ namespace Infrastructure.Persistence.Data
                 e.HasOne(x => x.Project).WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne(x => x.Drawing).WithMany().HasForeignKey(x => x.DrawingId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne(x => x.Version).WithMany().HasForeignKey(x => x.VersionId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(x => x.DiwanTransaction).WithMany().HasForeignKey(x => x.DiwanTransactionId).OnDelete(DeleteBehavior.Cascade);
                 e.HasOne(x => x.AttachmentType).WithMany().HasForeignKey(x => x.AttachmentTypeId).OnDelete(DeleteBehavior.Restrict);
                 e.HasOne(x => x.UploadedBy).WithMany().HasForeignKey(x => x.UploadedByUserId).OnDelete(DeleteBehavior.Restrict);
 
                 e.HasIndex(x => x.StorageKey).IsUnique();
 
                 e.ToTable(t => t.HasCheckConstraint("CK_StudyAttachments_OneOwner",
-                    ExactlyOne("RequestId", "AssignmentId", "ResponseId", "StartOrderId", "ProjectId", "DrawingId", "VersionId")));
+                    ExactlyOne("RequestId", "AssignmentId", "ResponseId", "StartOrderId", "ProjectId", "DrawingId", "VersionId", "DiwanTransactionId")));
             });
 
             // ==================== سجل الدراسة والترقيم ====================
@@ -429,26 +431,26 @@ namespace Infrastructure.Persistence.Data
                 e.HasIndex(x => new { x.RequestId, x.CreatedAt });
             });
 
-            builder.Entity<StudyDiwanCase>(e =>
+            // معاملة الديوان (DWN): واحدة لكل رد، مستند كباقي مستندات الدراسة
+            builder.Entity<StudyDiwanTransaction>(e =>
             {
-                e.HasKey(x => x.ResponseId);
-                e.Property(x => x.DispatchNumber).HasMaxLength(50);
-                e.Property(x => x.ReviewNote).HasMaxLength(1000);
-                e.HasOne(x => x.Response).WithOne(x => x.DiwanCase)
-                    .HasForeignKey<StudyDiwanCase>(x => x.ResponseId).OnDelete(DeleteBehavior.Restrict);
-                e.HasIndex(x => x.Stage);
-                e.ToTable(t => t.HasCheckConstraint("CK_StudyDiwanCases_Stage", "[Stage] BETWEEN 2 AND 7"));
-            });
+                e.Property(x => x.TransactionNumber).HasMaxLength(30).IsRequired();
+                e.Property(x => x.DispatchNumber).HasMaxLength(50).IsRequired();
+                e.Property(x => x.DispatchDate).HasColumnType("date");
+                e.Property(x => x.ReplyNumber).HasMaxLength(50);
+                e.Property(x => x.ReplyDate).HasColumnType("date");
+                e.Property(x => x.CentralDecision).HasConversion<int?>();
+                e.Property(x => x.Notes).HasMaxLength(1000);
+                e.Property(x => x.Status).HasConversion<int>();
+                e.Property(x => x.RowVersion).IsRowVersion();
 
-            builder.Entity<StudyDiwanReply>(e =>
-            {
-                e.Property(x => x.Number).HasMaxLength(50);
-                e.Property(x => x.FileName).HasMaxLength(255);
-                e.Property(x => x.ContentType).HasMaxLength(100);
-                e.Property(x => x.StorageKey).HasMaxLength(500);
-                e.HasOne<StudyDiwanCase>().WithMany(x => x.Replies)
-                    .HasForeignKey(x => x.ResponseId).OnDelete(DeleteBehavior.Restrict);
-                e.ToTable(t => t.HasCheckConstraint("CK_StudyDiwanReplies_Decision", "[Decision] IN (1, 2)"));
+                e.HasOne(x => x.Response).WithOne(r => r.DiwanTransaction)
+                    .HasForeignKey<StudyDiwanTransaction>(x => x.ResponseId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+
+                e.HasIndex(x => x.TransactionNumber).IsUnique();
+                e.HasIndex(x => new { x.Status, x.CreatedAt });
+                e.ToTable(t => t.HasCheckConstraint("CK_StudyDiwanTransactions_Decision", "[CentralDecision] IS NULL OR [CentralDecision] IN (1, 2)"));
             });
 
             builder.Entity<StudyNumberSequence>(e =>

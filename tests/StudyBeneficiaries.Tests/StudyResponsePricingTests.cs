@@ -35,7 +35,8 @@ public class StudyResponsePricingTests
         StudyResponseSupport.Apply(new StudyResponseFormDto
         {
             CostsInUsd = true, InitialCost = 10m, UsdToSypRate = 150m,
-            CostItems = [new() { Description = "بند", Unit = "م²", Quantity = 2, UnitPrice = 12.5m }]
+            Buildings = [new() { BuildingType = 1, BuildingCount = 1, Details = [new() { Code = "A", Function = "مستودع", Area = 2 }] }],
+            CostItems = [new() { Description = "إعادة تأهيل — A — مستودع", Unit = "م²", Quantity = 2, UnitPrice = 12.5m }]
         }, response);
         Assert.True(response.CostsInUsd);
         Assert.Equal(150m, response.UsdToSypRate);

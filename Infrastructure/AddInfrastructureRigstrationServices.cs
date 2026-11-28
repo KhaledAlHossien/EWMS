@@ -1,4 +1,5 @@
 ﻿using Application.Interfaces;
+using Application.Common;
 using Infrastructure.Persistence.Data;
 using Infrastructure.Persistence.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -92,6 +93,7 @@ namespace Infrastructure
             services.AddScoped<IStudyAssignmentService, StudyAssignmentService>();
             services.AddScoped<IStudyResponseService, StudyResponseService>();
             services.AddScoped<IStudyStartOrderService, StudyStartOrderService>();
+            services.AddScoped<IStudyDiwanTransactionService, StudyDiwanTransactionService>();
             services.AddScoped<IStudyProjectService, StudyProjectService>();
             services.AddScoped<IStudyStageService, StudyStageService>();
             services.AddScoped<IStudyDrawingService, StudyDrawingService>();
@@ -167,8 +169,9 @@ namespace Infrastructure
                                 return;
                             }
 
+                            var hash = TokenHash.Of(tokenString);
                             var userToken = await db.UserTokens
-                                .FirstOrDefaultAsync(t => t.Token == tokenString);
+                                .FirstOrDefaultAsync(t => t.TokenHash == hash);
 
                             if (userToken == null || userToken.IsRevoked || userToken.ExpiresAt < DateTime.UtcNow)
                             {

@@ -53,7 +53,12 @@ namespace Application.DTOs.Response
         public int? AssignmentStatus { get; set; }
         public int? ResponseId { get; set; }
         public int? ResponseStatus { get; set; }
-        public int? DiwanStage { get; set; }
+        /// <summary>معاملة الديوان (خطوة ثابتة بعد الرد): فارغة ما لم تُنشأ</summary>
+        public int? DiwanId { get; set; }
+        public string? DiwanNumber { get; set; }
+        public int? DiwanStatus { get; set; }
+        /// <summary>قرار الديوان المركزي: 1 موافقة، 2 رفض</summary>
+        public int? CentralDecision { get; set; }
         public int? StartOrderId { get; set; }
         public string? StartOrderNumber { get; set; }
         public int? StartOrderStatus { get; set; }
@@ -278,18 +283,10 @@ namespace Application.DTOs.Response
         public List<ResponseCostItemDto> CostItems { get; set; } = [];
         public List<ResponseStaffDto> StaffEstimates { get; set; } = [];
         public List<StudyItemDto> LogisticItems { get; set; } = [];
-        public bool CanCreateStartOrder { get; set; }
-        public int? DiwanStage { get; set; }
-        public StudyDiwanCaseDto? DiwanCase { get; set; }
-        /// <summary>الجهة المستفيدة من الطلب (لقائمة الديوان)</summary>
+        /// <summary>الجهة المستفيدة من الطلب</summary>
         public string MainBeneficiary { get; set; } = string.Empty;
-        public string? DiwanDispatchNumber { get; set; }
-        public DateOnly? DiwanDispatchDate { get; set; }
-        /// <summary>بداية انتظار المرحلة الحالية للمعاملة المفتوحة (آخر إجراء على الرد)؛ null للمغلقة</summary>
-        public DateTime? DiwanSince { get; set; }
-        public bool CanRegisterDiwanDispatch { get; set; }
-        public bool CanRegisterDiwanReply { get; set; }
-        public bool CanReviewDiwan { get; set; }
+        /// <summary>يُنشئ معاملة الديوان (رد معتمد بلا معاملة ولا أمر بدء)</summary>
+        public bool CanCreateDiwanTransaction { get; set; }
     }
 
     public class StartOrderEngineerDto
@@ -302,8 +299,9 @@ namespace Application.DTOs.Response
 
     public class StudyStartOrderDto : StudyDocumentDtoBase
     {
-        public int? DiwanReplyId { get; set; }
-        public string? DiwanReplyNumber { get; set; }
+        /// <summary>معاملة الديوان التي صدر منها الأمر (الأوامر الأقدم من المعاملات بلا معاملة)</summary>
+        public int? DiwanTransactionId { get; set; }
+        public string? DiwanTransactionNumber { get; set; }
         public int Id { get; set; }
         public int ResponseId { get; set; }
         public int AssignmentId { get; set; }
@@ -592,13 +590,37 @@ namespace Application.DTOs.Response
         public StudyResponseDto? Response { get; set; }
         public StudyStartOrderDto? StartOrder { get; set; }
         public DesignApprovalDto? DesignApproval { get; set; }
+        public StudyDiwanTransactionDto? DiwanTransaction { get; set; }
         public List<StudyPrintSignatureDto> Signatures { get; set; } = [];
     }
 
     // ==================== معاملة الديوان ====================
 
-    public record StudyDiwanReplyDto(int Id, string Number, DateOnly Date, int Decision, string FileName, DateTime RecordedAt);
-
-    public record StudyDiwanCaseDto(int Stage, string StageName, string? DispatchNumber, DateOnly? DispatchDate, string? ReviewNote,
-        IReadOnlyList<StudyDiwanReplyDto> Replies, bool CanRegisterDispatch, bool CanRegisterReply, bool CanReview);
+    public class StudyDiwanTransactionDto : StudyDocumentDtoBase
+    {
+        public int Id { get; set; }
+        public string TransactionNumber { get; set; } = string.Empty;
+        public int ResponseId { get; set; }
+        public string ResponseNumber { get; set; } = string.Empty;
+        public int ResponseStatus { get; set; }
+        public int AssignmentId { get; set; }
+        public string AssignmentNumber { get; set; } = string.Empty;
+        public string? ProjectCode { get; set; }
+        public int RequestId { get; set; }
+        public int BranchId { get; set; }
+        public string BranchName { get; set; } = string.Empty;
+        public string MainBeneficiary { get; set; } = string.Empty;
+        /// <summary>التوصية الفنية للرد: «غير متاح» يغلق السلسلة بلا أمر بدء</summary>
+        public int Recommendation { get; set; }
+        public string RecommendationName { get; set; } = string.Empty;
+        public string DispatchNumber { get; set; } = string.Empty;
+        public DateTime DispatchDate { get; set; }
+        public string? ReplyNumber { get; set; }
+        public DateTime? ReplyDate { get; set; }
+        public int? CentralDecision { get; set; }
+        public string? CentralDecisionName { get; set; }
+        public string? Notes { get; set; }
+        /// <summary>يصدر أمر البدء منها (معتمدة بقرار موافقة، والتوصية ليست «غير متاح»، ولا أمر بدء للرد)</summary>
+        public bool CanCreateStartOrder { get; set; }
+    }
 }

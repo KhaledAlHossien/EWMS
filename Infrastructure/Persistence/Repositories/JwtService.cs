@@ -27,6 +27,8 @@ namespace Infrastructure.Persistence.Repositories
 
             var claims = new List<Claim>
             {
+                // معرّف فريد للرمز: دخولان في الثانية نفسها يعطيان رمزين مختلفين (بصمة فريدة في UserTokens)
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Name, user.FullName),

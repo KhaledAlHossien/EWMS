@@ -62,6 +62,8 @@ namespace Application.Features.CentralStudies.Approvals.Queries.GetPending
             : row.DesignApproval != null ? ($"{row.DesignApproval.Version.Drawing.Name} — {StudyRules.VersionLabel(row.DesignApproval.Version.VersionNumber)}",
                 row.DesignApproval.Version.Drawing.Project.Branch.Name)
             : row.Project != null ? (row.Project.Name, row.Project.Branch.Name)
+            : row.DiwanTransaction != null ? (row.DiwanTransaction.Response.Assignment.Request.MainBeneficiary,
+                row.DiwanTransaction.Response.Assignment.Request.Branch.Name)
             : (string.Empty, string.Empty);
     }
 }

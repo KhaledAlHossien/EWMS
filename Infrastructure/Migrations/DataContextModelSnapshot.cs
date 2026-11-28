@@ -1162,6 +1162,9 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("DesignApprovalId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("DiwanTransactionId")
+                        .HasColumnType("int");
+
                     b.Property<string>("JobTitle")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
@@ -1211,6 +1214,10 @@ namespace Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[DesignApprovalId] IS NOT NULL");
 
+                    b.HasIndex("DiwanTransactionId", "SignerRole")
+                        .IsUnique()
+                        .HasFilter("[DiwanTransactionId] IS NOT NULL");
+
                     b.HasIndex("ProjectId", "SignerRole")
                         .IsUnique()
                         .HasFilter("[ProjectId] IS NOT NULL");
@@ -1227,7 +1234,7 @@ namespace Infrastructure.Migrations
 
                     b.ToTable("StudyApprovals", t =>
                         {
-                            t.HasCheckConstraint("CK_StudyApprovals_OneOwner", "(CASE WHEN [AssignmentId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [ResponseId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [StartOrderId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [DesignApprovalId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [ProjectId] IS NULL THEN 0 ELSE 1 END) = 1");
+                            t.HasCheckConstraint("CK_StudyApprovals_OneOwner", "(CASE WHEN [AssignmentId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [ResponseId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [StartOrderId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [DesignApprovalId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [ProjectId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [DiwanTransactionId] IS NULL THEN 0 ELSE 1 END) = 1");
                         });
                 });
 
@@ -1426,6 +1433,9 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<int?>("DiwanTransactionId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("DrawingId")
                         .HasColumnType("int");
 
@@ -1469,6 +1479,8 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("AttachmentTypeId");
 
+                    b.HasIndex("DiwanTransactionId");
+
                     b.HasIndex("DrawingId");
 
                     b.HasIndex("ProjectId");
@@ -1488,7 +1500,7 @@ namespace Infrastructure.Migrations
 
                     b.ToTable("StudyAttachments", t =>
                         {
-                            t.HasCheckConstraint("CK_StudyAttachments_OneOwner", "(CASE WHEN [RequestId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [AssignmentId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [ResponseId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [StartOrderId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [ProjectId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [DrawingId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [VersionId] IS NULL THEN 0 ELSE 1 END) = 1");
+                            t.HasCheckConstraint("CK_StudyAttachments_OneOwner", "(CASE WHEN [RequestId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [AssignmentId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [ResponseId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [StartOrderId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [ProjectId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [DrawingId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [VersionId] IS NULL THEN 0 ELSE 1 END) + (CASE WHEN [DiwanTransactionId] IS NULL THEN 0 ELSE 1 END) = 1");
                         });
                 });
 
@@ -1551,37 +1563,7 @@ namespace Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanCase", b =>
-                {
-                    b.Property<int>("ResponseId")
-                        .HasColumnType("int");
-
-                    b.Property<DateOnly>("DispatchDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("DispatchNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("ReviewNote")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int>("Stage")
-                        .HasColumnType("int");
-
-                    b.HasKey("ResponseId");
-
-                    b.HasIndex("Stage");
-
-                    b.ToTable("StudyDiwanCases", t =>
-                        {
-                            t.HasCheckConstraint("CK_StudyDiwanCases_Stage", "[Stage] BETWEEN 2 AND 7");
-                        });
-                });
-
-            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanReply", b =>
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanTransaction", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -1589,43 +1571,69 @@ namespace Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("date");
-
-                    b.Property<int>("Decision")
+                    b.Property<int?>("CentralDecision")
                         .HasColumnType("int");
 
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("Number")
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DispatchDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("DispatchNumber")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<DateTime>("RecordedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReplyDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ReplyNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("ResponseId")
                         .HasColumnType("int");
 
-                    b.Property<string>("StorageKey")
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TransactionNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.ToTable("StudyDiwanReplies", t =>
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("ResponseId")
+                        .IsUnique();
+
+                    b.HasIndex("TransactionNumber")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("StudyDiwanTransactions", t =>
                         {
-                            t.HasCheckConstraint("CK_StudyDiwanReplies_Decision", "[Decision] IN (1, 2)");
+                            t.HasCheckConstraint("CK_StudyDiwanTransactions_Decision", "[CentralDecision] IS NULL OR [CentralDecision] IN (1, 2)");
                         });
                 });
 
@@ -1920,7 +1928,7 @@ namespace Infrastructure.Migrations
                     b.Property<int>("CreatedByUserId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("DiwanReplyId")
+                    b.Property<int?>("DiwanTransactionId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("OrderDate")
@@ -1961,6 +1969,8 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("CreatedByUserId");
 
+                    b.HasIndex("DiwanTransactionId");
+
                     b.HasIndex("OrderNumber")
                         .IsUnique();
 
@@ -1968,8 +1978,6 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("ResponseId")
                         .IsUnique();
-
-                    b.HasIndex("ResponseId", "DiwanReplyId");
 
                     b.HasIndex("Status", "CreatedAt");
 
@@ -3552,14 +3560,17 @@ namespace Infrastructure.Migrations
                     b.Property<bool>("IsRevoked")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Token")
+                    b.Property<string>("TokenHash")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("char(64)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
 
                     b.HasIndex("UserId");
 
@@ -4370,6 +4381,11 @@ namespace Infrastructure.Migrations
                         .HasForeignKey("DesignApprovalId")
                         .OnDelete(DeleteBehavior.Cascade);
 
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyDiwanTransaction", "DiwanTransaction")
+                        .WithMany()
+                        .HasForeignKey("DiwanTransactionId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("Domain.Entities.CentralStudiesBranch.StudyProject", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectId")
@@ -4398,6 +4414,8 @@ namespace Infrastructure.Migrations
                     b.Navigation("Assignment");
 
                     b.Navigation("DesignApproval");
+
+                    b.Navigation("DiwanTransaction");
 
                     b.Navigation("Project");
 
@@ -4476,6 +4494,11 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyDiwanTransaction", "DiwanTransaction")
+                        .WithMany()
+                        .HasForeignKey("DiwanTransactionId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("Domain.Entities.CentralStudiesBranch.ProjectDrawing", "Drawing")
                         .WithMany()
                         .HasForeignKey("DrawingId")
@@ -4516,6 +4539,8 @@ namespace Infrastructure.Migrations
 
                     b.Navigation("AttachmentType");
 
+                    b.Navigation("DiwanTransaction");
+
                     b.Navigation("Drawing");
 
                     b.Navigation("Project");
@@ -4531,24 +4556,23 @@ namespace Infrastructure.Migrations
                     b.Navigation("Version");
                 });
 
-            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanCase", b =>
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanTransaction", b =>
                 {
-                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyAssignmentResponse", "Response")
-                        .WithOne("DiwanCase")
-                        .HasForeignKey("Domain.Entities.CentralStudiesBranch.StudyDiwanCase", "ResponseId")
+                    b.HasOne("Domain.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyAssignmentResponse", "Response")
+                        .WithOne("DiwanTransaction")
+                        .HasForeignKey("Domain.Entities.CentralStudiesBranch.StudyDiwanTransaction", "ResponseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
 
                     b.Navigation("Response");
-                });
-
-            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanReply", b =>
-                {
-                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyDiwanCase", null)
-                        .WithMany("Replies")
-                        .HasForeignKey("ResponseId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyProject", b =>
@@ -4640,6 +4664,11 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyDiwanTransaction", "DiwanTransaction")
+                        .WithMany()
+                        .HasForeignKey("DiwanTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Domain.Entities.User", "ProjectManager")
                         .WithMany()
                         .HasForeignKey("ProjectManagerUserId")
@@ -4652,17 +4681,11 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyDiwanReply", "DiwanReply")
-                        .WithMany()
-                        .HasForeignKey("ResponseId", "DiwanReplyId")
-                        .HasPrincipalKey("ResponseId", "Id")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("CompetentDepartment");
 
                     b.Navigation("CreatedBy");
 
-                    b.Navigation("DiwanReply");
+                    b.Navigation("DiwanTransaction");
 
                     b.Navigation("ProjectManager");
 
@@ -5398,18 +5421,13 @@ namespace Infrastructure.Migrations
 
                     b.Navigation("CostItems");
 
-                    b.Navigation("DiwanCase");
+                    b.Navigation("DiwanTransaction");
 
                     b.Navigation("LogisticItems");
 
                     b.Navigation("StaffEstimates");
 
                     b.Navigation("StartOrder");
-                });
-
-            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanCase", b =>
-                {
-                    b.Navigation("Replies");
                 });
 
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyProject", b =>

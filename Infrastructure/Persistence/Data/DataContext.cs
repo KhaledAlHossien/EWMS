@@ -94,8 +94,7 @@ namespace Infrastructure.Persistence.Data
         public DbSet<StudyAttachment> StudyAttachments { get; set; }
         public DbSet<StudyActivityLog> StudyActivityLogs { get; set; }
         public DbSet<StudyNumberSequence> StudyNumberSequences { get; set; }
-        public DbSet<StudyDiwanCase> StudyDiwanCases { get; set; }
-        public DbSet<StudyDiwanReply> StudyDiwanReplies { get; set; }
+        public DbSet<StudyDiwanTransaction> StudyDiwanTransactions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -337,6 +336,12 @@ namespace Infrastructure.Persistence.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             // 7. User -> UserToken
+            builder.Entity<UserToken>(e =>
+            {
+                // بصمة الرمز لا الرمز (Application.Common.TokenHash): 64 حرفاً ست عشرياً، فريدة
+                e.Property(t => t.TokenHash).HasColumnType("char(64)").IsRequired();
+                e.HasIndex(t => t.TokenHash).IsUnique();
+            });
             builder.Entity<UserToken>()
                 .HasOne(ut => ut.User)
                 .WithMany()

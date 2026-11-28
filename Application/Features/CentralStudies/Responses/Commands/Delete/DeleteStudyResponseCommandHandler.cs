@@ -23,6 +23,7 @@ namespace Application.Features.CentralStudies.Responses.Commands.Delete
             var entity = await _support.LoadAsync(request.Id, viewer);
             StudyRules.EnsureDraftForDelete(entity.Status);
             if (entity.StartOrder != null) throw new InvalidOperationException("للرد أمر بدء — لا يُحذف");
+            if (entity.DiwanTransaction != null) throw new InvalidOperationException("للرد معاملة ديوان — لا يُحذف");
             var requestId = entity.Assignment.RequestId;
             var number = entity.Assignment.AssignmentNumber;
             await _service.DeleteAsync(entity);

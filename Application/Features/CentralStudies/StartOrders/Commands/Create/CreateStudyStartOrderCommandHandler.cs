@@ -1,4 +1,5 @@
 ﻿using Application.DTOs.Response;
+using Application.Features.CentralStudies.DiwanTransactions;
 using Application.Interfaces;
 using Domain.Entities.CentralStudiesBranch;
 using MediatR;
@@ -8,15 +9,15 @@ namespace Application.Features.CentralStudies.StartOrders.Commands.Create
     public class CreateStudyStartOrderCommandHandler : IRequestHandler<CreateStudyStartOrderCommand, StudyStartOrderDto>
     {
         private readonly IStudyStartOrderService _service;
-        private readonly IStudyResponseService _responses;
+        private readonly IStudyDiwanTransactionService _diwan;
         private readonly IStudyNumberService _numbers;
         private readonly StudyKit _kit;
         private readonly StudyStartOrderSupport _support;
 
-        public CreateStudyStartOrderCommandHandler(IStudyStartOrderService service, IStudyResponseService responses, IStudyNumberService numbers, StudyKit kit, StudyStartOrderSupport support)
+        public CreateStudyStartOrderCommandHandler(IStudyStartOrderService service, IStudyDiwanTransactionService diwan, IStudyNumberService numbers, StudyKit kit, StudyStartOrderSupport support)
         {
             _service = service;
-            _responses = responses;
+            _diwan = diwan;
             _numbers = numbers;
             _kit = kit;
             _support = support;
@@ -25,15 +26,16 @@ namespace Application.Features.CentralStudies.StartOrders.Commands.Create
         public async Task<StudyStartOrderDto> Handle(CreateStudyStartOrderCommand request, CancellationToken ct)
         {
             var viewer = await _kit.ViewerAsync();
-            var response = await _responses.GetByDiwanReplyAsync(request.Dto.DiwanReplyId)
-                ?? throw new KeyNotFoundException("كتاب الرد المركزي غير موجود");
+            var diwan = await _diwan.GetByIdAsync(request.Dto.DiwanTransactionId)
+                ?? throw new KeyNotFoundException("معاملة الديوان غير موجودة");
+            var response = diwan.Response;
             var branchId = response.Assignment.Request.BranchId;
             StudyRules.EnsureInScope(viewer, branchId);
             StudyRules.EnsureApproved(response.Status, "إشعار الرد");
             if (response.Recommendation == StudyRecommendation.NotAvailable)
                 throw new InvalidOperationException("التوصية الفنية «غير متاح» — لا يصدر أمر بدء لهذه الدراسة");
-            if (!StudyDiwanRules.ReadyForStartOrder(response) || StudyDiwanRules.LatestReply(response)?.Id != request.Dto.DiwanReplyId)
-                throw new InvalidOperationException("يتطلب أمر البدء كتاب الموافقة المركزي الذي أحاله رئيس الفرع");
+            if (!StudyDiwanTransactionSupport.ReadyForStartOrder(diwan))
+                throw new InvalidOperationException("يتطلب أمر البدء معاملة ديوان معتمدة بقرار موافقة مركزي");
             if (await _service.ExistsForResponseAsync(response.Id))
                 throw new InvalidOperationException("للرد أمر بدء مسبقاً — أمر واحد لكل رد");
             await _support.ValidateAsync(request.Dto, branchId);
@@ -41,7 +43,7 @@ namespace Application.Features.CentralStudies.StartOrders.Commands.Create
             var entity = new StudyStartOrder
             {
                 ResponseId = response.Id,
-                DiwanReplyId = request.Dto.DiwanReplyId,
+                DiwanTransactionId = diwan.Id,
                 CreatedByUserId = viewer.Id,
                 Status = StudyDocumentStatus.Draft,
                 CreatedAt = DateTime.Now
