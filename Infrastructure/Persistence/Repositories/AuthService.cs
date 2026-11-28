@@ -18,13 +18,16 @@ namespace Infrastructure.Persistence.Repositories
         private readonly IJwtService _jwtService;
         private readonly ICurrentUserService _currentUserService;
         private readonly INotificationService _notifications;
+        private readonly ILiveSessions _liveSessions;
 
         public AuthService(
             DataContext context,
             IJwtService jwtService,
             ICurrentUserService currentUserService,
-            INotificationService notifications)
+            INotificationService notifications,
+            ILiveSessions liveSessions)
         {
+            _liveSessions = liveSessions;
             _notifications = notifications;
             _context = context;
             _jwtService = jwtService;
@@ -178,7 +181,9 @@ namespace Infrastructure.Persistence.Repositories
             if (userToken == null) return false;
 
             userToken.IsRevoked = true;
-            return (await _context.SaveChangesAsync()) > 0;
+            var saved = (await _context.SaveChangesAsync()) > 0;
+            _liveSessions.CloseToken(hash);
+            return saved;
         }
     }
 }

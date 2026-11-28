@@ -226,12 +226,18 @@ public sealed class StudyDiwanWorkflowTests : IDisposable
         _db.ChangeTracker.Clear();
     }
 
+    private sealed class NoLiveSessions : ILiveSessions
+    {
+        public void CloseUser(int userId) { }
+        public void CloseToken(string tokenHash) { }
+    }
+
     private static StudyDiwanTransactionSupport Support(IStudyDiwanTransactionService service, StudyKit kit) => new(service, kit);
 
     private (StudyKit Kit, UserService Users) Viewer(int id)
     {
         var context = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new(ClaimTypes.NameIdentifier, id.ToString())])) };
-        var users = new UserService(_db, new HttpContextAccessor { HttpContext = context });
+        var users = new UserService(_db, new HttpContextAccessor { HttpContext = context }, new NoLiveSessions());
         return (new StudyKit(users, new UserPermissionService(_db), new StudyActivityLogService(_db),
             new StudyApprovalService(_db), new NotificationService(_db, _pusher), new StudyRequestService(_db),
             new StudyAssignmentService(_db), new StudyResponseService(_db), new StudyStartOrderService(_db),

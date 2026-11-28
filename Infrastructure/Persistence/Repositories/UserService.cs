@@ -12,10 +12,13 @@ namespace Infrastructure.Persistence.Repositories
         private readonly DataContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UserService(DataContext context, IHttpContextAccessor httpContextAccessor)
+        private readonly ILiveSessions _liveSessions;
+
+        public UserService(DataContext context, IHttpContextAccessor httpContextAccessor, ILiveSessions liveSessions)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
+            _liveSessions = liveSessions;
         }
 
         // المستخدم الحالي من التوكن
@@ -32,10 +35,13 @@ namespace Infrastructure.Persistence.Repositories
             }
         }
 
-        public async Task RevokeSessionsAsync(int userId) =>
+        public async Task RevokeSessionsAsync(int userId)
+        {
             await _context.UserTokens
                 .Where(t => t.UserId == userId && !t.IsRevoked)
                 .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsRevoked, true));
+            _liveSessions.CloseUser(userId);
+        }
 
         public async Task<User?> GetByIdAsync(int id)
         {

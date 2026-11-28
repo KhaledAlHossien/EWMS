@@ -8,7 +8,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
 
 namespace Infrastructure
@@ -152,31 +154,27 @@ namespace Infrastructure
                         {
                             var db = context.HttpContext.RequestServices.GetRequiredService<DataContext>();
 
-                            var tokenString = context.HttpContext.Request.Headers["Authorization"]
-                                .ToString()
-                                .Replace("Bearer ", "");
-
-                            // اتصال SignalR: التوكن في الـ query (راجع OnMessageReceived)
-                            if (string.IsNullOrEmpty(tokenString)
-                                && context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                            // يُفحص الرمز الذي تحقّق منه المعالج نفسه (منه أُخذت الهوية)، لا ما في الترويسة أو الـ query:
+                            // قراءته من مكان آخر تسمح بهوية من رمز مُبطَل وفحص إبطال على رمز سليم.
+                            if (context.SecurityToken is not JsonWebToken jwt)
                             {
-                                tokenString = context.HttpContext.Request.Query["access_token"].ToString();
-                            }
-
-                            if (string.IsNullOrEmpty(tokenString))
-                            {
-                                context.Fail("Missing token");
+                                context.Fail("Unsupported token");
                                 return;
                             }
 
-                            var hash = TokenHash.Of(tokenString);
+                            var hash = TokenHash.Of(jwt.EncodedToken);
                             var userToken = await db.UserTokens
                                 .FirstOrDefaultAsync(t => t.TokenHash == hash);
 
                             if (userToken == null || userToken.IsRevoked || userToken.ExpiresAt < DateTime.UtcNow)
                             {
                                 context.Fail("Token revoked or expired");
+                                return;
                             }
+
+                            // يحمله اتصال SignalR كي يُقطع عند إبطال هذه الجلسة (ILiveSessions)
+                            ((ClaimsIdentity)context.Principal!.Identity!)
+                                .AddClaim(new Claim(TokenHash.ClaimType, hash));
                         }
                         catch (Exception ex)
                         {

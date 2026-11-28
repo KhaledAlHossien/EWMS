@@ -37,7 +37,8 @@ var app = builder.Build();
 // ==================== 3. Pipeline ====================
 app.UseApplicationPipeline();
 app.MapControllers();
-app.MapHub<NotificationHub>(NotificationHub.Path);
+// الاتصال المفتوح يُغلق عند انتهاء صلاحية رمزه (وعند إبطال الجلسة: ILiveSessions)
+app.MapHub<NotificationHub>(NotificationHub.Path, options => options.CloseOnAuthenticationExpiration = true);
 // فحص صحة الخدمة لأداة المراقبة أو موازن الأحمال: 200 Healthy / 503 Unhealthy، بلا تفاصيل داخلية
 app.MapHealthChecks("/health");
 
