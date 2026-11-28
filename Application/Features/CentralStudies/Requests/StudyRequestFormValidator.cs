@@ -8,6 +8,15 @@ namespace Application.Features.CentralStudies.Requests
 
     public class StudyRequestFormValidator : AbstractValidator<StudyRequestFormDto>
     {
+        public const int MaxFollowerNumber = 50;
+
+        /// <summary>
+        /// رقم المتابع نص حر من أحرف (عربية أو لاتينية) وأرقام، مع المسافة والشرطة والخط المائل فاصلاً
+        /// (طلب المستخدم 2026-11-28؛ كان رقم هاتف سورياً). فارغ = لا رقم.
+        /// </summary>
+        public static bool IsFollowerNumber(string? value) =>
+            string.IsNullOrWhiteSpace(value) || value.Trim().All(c => char.IsLetterOrDigit(c) || c is ' ' or '-' or '/');
+
         public StudyRequestFormValidator()
         {
             RuleFor(x => x.RequestNumber).NotEmpty().WithMessage("رقم طلب الدراسة من الديوان المركزي مطلوب")
@@ -27,8 +36,8 @@ namespace Application.Features.CentralStudies.Requests
             RuleFor(x => x.CityOrVillage).MaximumLength(100).WithMessage("المدينة أو القرية لا تتجاوز 100 حرف");
             RuleFor(x => x.PropertyNature).MaximumLength(100).WithMessage("طبيعة العقار لا تتجاوز 100 حرف");
             RuleFor(x => x.FollowerName).MaximumLength(150).WithMessage("اسم المتابع لا يتجاوز 150 حرفاً");
-            RuleFor(x => x.FollowerPhone).Must(p => string.IsNullOrWhiteSpace(p) || PhoneRules.IsValid(p))
-                .WithMessage("رقم تواصل المتابع غير صحيح (رقم سوري)");
+            RuleFor(x => x.FollowerPhone).MaximumLength(MaxFollowerNumber).WithMessage($"رقم المتابع لا يتجاوز {MaxFollowerNumber} حرفاً")
+                .Must(IsFollowerNumber).WithMessage("رقم المتابع يقبل الأحرف والأرقام فقط (ويُسمح بالمسافة والشرطة - والخط المائل /)");
             RuleFor(x => x.Notes).MaximumLength(2000).WithMessage("الملاحظات لا تتجاوز 2000 حرف");
             RuleFor(x => x.SiteId).GreaterThan(0).When(x => x.SiteId != null).WithMessage("الموقع غير صالح");
             RuleFor(x => x.StudyBranchId).GreaterThan(0).WithMessage("اختر فرع الدراسة (المركزية أو الفرع الجغرافي)");

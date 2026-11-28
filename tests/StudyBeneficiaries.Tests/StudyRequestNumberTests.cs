@@ -70,6 +70,37 @@ public class StudyRequestNumberTests
         Assert.False(await service.NumberExistsAsync("002/2026"));
     }
 
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("", true)]
+    [InlineData("0933123456", true)]          // الأرقام القديمة (هواتف) تبقى صالحة
+    [InlineData("AB12", true)]
+    [InlineData("م١٢٣", true)]                // حروف عربية وأرقام هندية
+    [InlineData("ق-45/2026", true)]
+    [InlineData("0933 123 456", true)]
+    [InlineData("12#4", false)]
+    [InlineData("<b>1</b>", false)]
+    [InlineData("12345678901234567890123456789012345678901234567890", true)]
+    [InlineData("123456789012345678901234567890123456789012345678901", false)]
+    public void Follower_number_accepts_letters_and_digits(string? number, bool valid)
+    {
+        var dto = ValidRequest();
+        dto.FollowerPhone = number;
+        var errors = new StudyRequestFormValidator().Validate(dto).Errors;
+        Assert.Equal(valid, errors.All(e => e.PropertyName != nameof(StudyRequestFormDto.FollowerPhone)));
+    }
+
+    [Fact]
+    public void Follower_number_is_kept_as_typed_without_phone_normalization()
+    {
+        var request = new StudyRequest { FollowerPhone = "  ق-45/2026  " };
+        StudyRequestSupport.Normalize(request);
+        Assert.Equal("ق-45/2026", request.FollowerPhone);
+        request.FollowerPhone = "   ";
+        StudyRequestSupport.Normalize(request);
+        Assert.Null(request.FollowerPhone);
+    }
+
     private static StudyRequestFormDto ValidRequest() => new()
     {
         RequestNumber = "001/2026", RequestDate = new DateTime(2026, 11, 18),

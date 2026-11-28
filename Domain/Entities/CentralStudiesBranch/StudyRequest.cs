@@ -60,6 +60,7 @@ namespace Domain.Entities.CentralStudiesBranch
         public StudyWorkType WorkType { get; set; }
 
         public string? FollowerName { get; set; }
+        /// <summary>رقم المتابع: نص من أحرف وأرقام (اسم الحقل بقي FollowerPhone للتوافق مع الواجهة)</summary>
         public string? FollowerPhone { get; set; }
         public string? Notes { get; set; }
 

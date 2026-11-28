@@ -88,7 +88,7 @@ namespace Application.Features.CentralStudies.Requests
             e.CityOrVillage = StudyRules.Clean(e.CityOrVillage);
             e.PropertyNature = StudyRules.Clean(e.PropertyNature);
             e.FollowerName = StudyRules.Clean(e.FollowerName);
-            e.FollowerPhone = PhoneRules.ToStored(e.FollowerPhone);
+            e.FollowerPhone = StudyRules.Clean(e.FollowerPhone);   // رقم المتابع نص كما أُدخل (لم يعد رقم هاتف يُوحَّد)
             e.Notes = StudyRules.Clean(e.Notes);
             e.GovernorateCode = e.GovernorateCode.Trim().ToUpperInvariant();
             e.MinistryArchiveDate = e.MinistryArchiveDate?.Date;
