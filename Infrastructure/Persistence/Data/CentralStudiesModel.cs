@@ -84,7 +84,7 @@ namespace Infrastructure.Persistence.Data
                 e.Property(x => x.PropertyNature).HasMaxLength(100);
                 e.Property(x => x.WorkType).HasConversion<int>();
                 e.Property(x => x.FollowerName).HasMaxLength(150);
-                e.Property(x => x.FollowerPhone).HasMaxLength(20);
+                e.Property(x => x.FollowerPhone).HasMaxLength(50);
                 e.Property(x => x.Notes).HasMaxLength(2000);
                 e.Property(x => x.Status).HasConversion<int>();
                 e.Property(x => x.RowVersion).IsRowVersion();

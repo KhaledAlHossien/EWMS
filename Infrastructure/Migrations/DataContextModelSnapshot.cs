@@ -1856,8 +1856,8 @@ namespace Infrastructure.Migrations
                         .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("FollowerPhone")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("GovernorateCode")
                         .IsRequired()

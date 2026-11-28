@@ -88,6 +88,7 @@ namespace Application.DTOs.Request
         /// <summary>1 إنشاء، 2 صيانة وترميم، 3 إنشاء جديد / صيانة وترميم</summary>
         public int WorkType { get; set; }
         public string? FollowerName { get; set; }
+        /// <summary>رقم المتابع: أحرف وأرقام (مع المسافة و- و/)، حتى 50 حرفاً</summary>
         public string? FollowerPhone { get; set; }
         public string? Notes { get; set; }
         /// <summary>اختياري: الموقع من سجل المواقع المشترك</summary>
