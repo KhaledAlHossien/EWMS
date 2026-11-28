@@ -20,6 +20,7 @@ namespace Application.Features.CentralStudies.Attachments
             : a.StartOrderId != null ? StudyEntityType.StartOrder
             : a.ProjectId != null ? StudyEntityType.Project
             : a.DrawingId != null ? StudyEntityType.Drawing
+            : a.DiwanTransactionId != null ? StudyEntityType.DiwanTransaction
             : StudyEntityType.Version;
 
         public static bool CanEdit(Viewer viewer, AttachmentOwner owner) =>
@@ -47,6 +48,6 @@ namespace Application.Features.CentralStudies.Attachments
                 : attachment.UploadedByUserId == viewer.Id);
 
         public static int OwnerIdOf(StudyAttachment a) =>
-            a.RequestId ?? a.AssignmentId ?? a.ResponseId ?? a.StartOrderId ?? a.ProjectId ?? a.DrawingId ?? a.VersionId ?? 0;
+            a.RequestId ?? a.AssignmentId ?? a.ResponseId ?? a.StartOrderId ?? a.ProjectId ?? a.DrawingId ?? a.VersionId ?? a.DiwanTransactionId ?? 0;
     }
 }
