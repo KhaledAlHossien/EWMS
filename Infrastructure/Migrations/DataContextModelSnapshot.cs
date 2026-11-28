@@ -848,6 +848,13 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Repetitions")
+                        .HasColumnType("int");
+
                     b.Property<int>("ResponseId")
                         .HasColumnType("int");
 
@@ -861,6 +868,8 @@ namespace Infrastructure.Migrations
                     b.ToTable("ResponseBuildingDetails", null, t =>
                         {
                             t.HasCheckConstraint("CK_ResponseBuildingDetails_Area", "[Area] > 0");
+
+                            t.HasCheckConstraint("CK_ResponseBuildingDetails_Repetitions", "[Repetitions] >= 1");
                         });
                 });
 
@@ -880,6 +889,9 @@ namespace Infrastructure.Migrations
                     b.Property<decimal>("Quantity")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("Repetitions")
+                        .HasColumnType("int");
 
                     b.Property<int>("ResponseId")
                         .HasColumnType("int");
@@ -902,6 +914,8 @@ namespace Infrastructure.Migrations
 
                     b.ToTable("ResponseCostItems", t =>
                         {
+                            t.HasCheckConstraint("CK_ResponseCostItems_Repetitions", "[Repetitions] >= 1");
+
                             t.HasCheckConstraint("CK_ResponseCostItems_Values", "[Quantity] >= 0 AND [UnitPrice] >= 0");
                         });
                 });
@@ -1383,6 +1397,10 @@ namespace Infrastructure.Migrations
                     b.Property<decimal?>("SiteArea")
                         .HasPrecision(12, 2)
                         .HasColumnType("decimal(12,2)");
+
+                    b.Property<string>("SiteNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");

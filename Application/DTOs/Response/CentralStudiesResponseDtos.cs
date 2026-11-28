@@ -242,7 +242,11 @@ namespace Application.DTOs.Response
     {
         public int BuildingType { get; set; }
         public string BuildingTypeName { get; set; } = string.Empty;
+        /// <summary>عدد أسطر التفاصيل (المباني المختلفة)</summary>
         public int BuildingCount { get; set; }
+        /// <summary>مجموع التكرارات: عدد المباني الفعلي مع التكرار</summary>
+        public int TotalRepetitions { get; set; }
+        /// <summary>المساحة كاملة: مجموع (المساحة × التكرار)</summary>
         public decimal BuildingsArea { get; set; }
         public List<ResponseBuildingDetailDto> Details { get; set; } = [];
     }
@@ -251,7 +255,12 @@ namespace Application.DTOs.Response
     {
         public string Code { get; set; } = string.Empty;
         public string Function { get; set; } = string.Empty;
+        /// <summary>مساحة المبنى الواحد</summary>
         public decimal Area { get; set; }
+        public int Repetitions { get; set; }
+        /// <summary>المساحة كاملة = المساحة × التكرار</summary>
+        public decimal TotalArea { get; set; }
+        public string? Note { get; set; }
     }
 
     public class ResponseCostItemDto
@@ -262,6 +271,8 @@ namespace Application.DTOs.Response
         public string Unit { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
+        public int Repetitions { get; set; }
+        /// <summary>الكلفة كاملة = الكمية × سعر الوحدة × التكرار</summary>
         public decimal Total { get; set; }
     }
 
@@ -300,6 +311,7 @@ namespace Application.DTOs.Response
         public int? RequiredDays { get; set; }
         public string ResponseNumber { get; set; } = string.Empty;
         public decimal? SiteArea { get; set; }
+        public string? SiteNote { get; set; }
         /// <summary>التكلفة المبدئية المدخلة يدوياً (جزء القسم المتابع)</summary>
         public decimal? InitialCost { get; set; }
         public bool CostsInUsd { get; set; }

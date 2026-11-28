@@ -98,7 +98,8 @@ namespace Application.Features.CentralStudies.Responses
             if (StudyResponseBuildings.Problem(dto) is { } shape)
                 throw new InvalidOperationException(shape);
 
-            var areas = dto.Buildings.ToDictionary(b => b.BuildingType, b => b.Details.Sum(d => d.Area));
+            // المساحة كاملة لكل نوع: مجموع (مساحة المبنى × تكراره)
+            var areas = dto.Buildings.ToDictionary(b => b.BuildingType, b => b.Details.Sum(d => d.Area * d.Repetitions));
             if (areas.Values.Any(a => a > StudyResponseFormValidator.MaxBuildingArea))
                 throw new InvalidOperationException("المساحة الإجمالية للمباني خارج النطاق");
 
@@ -106,6 +107,7 @@ namespace Application.Features.CentralStudies.Responses
             e.ProposedManagerUserId = dto.ProposedManagerUserId;
             e.Recommendation = (StudyRecommendation)dto.Recommendation;
             e.SiteArea = dto.SiteArea;
+            e.SiteNote = StudyRules.Clean(dto.SiteNote);
             e.InitialCost = dto.InitialCost;
             e.CostsInUsd = costsInUsd;
             e.UsdToSypRate = dto.UsdToSypRate;
@@ -125,7 +127,9 @@ namespace Application.Features.CentralStudies.Responses
                     SortOrder = i + 1,
                     Code = d.Code.Trim(),
                     Function = d.Function.Trim(),
-                    Area = d.Area
+                    Area = d.Area,
+                    Repetitions = d.Repetitions,
+                    Note = StudyRules.Clean(d.Note)
                 }));
             }
 
@@ -136,7 +140,8 @@ namespace Application.Features.CentralStudies.Responses
                 Description = c.Description.Trim(),
                 Unit = c.Unit.Trim(),
                 Quantity = c.Quantity,
-                UnitPrice = c.UnitPrice
+                UnitPrice = c.UnitPrice,
+                Repetitions = c.Repetitions
             }));
         }
     }

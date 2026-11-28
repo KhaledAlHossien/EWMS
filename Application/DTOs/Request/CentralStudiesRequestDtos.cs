@@ -132,6 +132,8 @@ namespace Application.DTOs.Request
         public int Recommendation { get; set; }
         /// <summary>مساحة الموقع العام (حقل واحد للرد)</summary>
         public decimal? SiteArea { get; set; }
+        /// <summary>ملاحظة بجانب مساحة الموقع العام (اختيارية)</summary>
+        public string? SiteNote { get; set; }
         /// <summary>التكلفة المبدئية (حقل واحد للرد، بجانب جدول البنود)</summary>
         public decimal? InitialCost { get; set; }
         public bool CostsInUsd { get; set; }
@@ -152,7 +154,7 @@ namespace Application.DTOs.Request
 
     public class ResponseBuildingFormDto
     {
-        /// <summary>1 إعادة تأهيل، 2 إنشاء جديد (سطر واحد لكل نوع)</summary>
+        /// <summary>1 إعادة تأهيل، 2 إنشاء جديد، 3 إعادة تأهيل جزئي (سطر واحد لكل نوع)</summary>
         public int BuildingType { get; set; }
         public int BuildingCount { get; set; }
         public decimal BuildingsArea { get; set; }
@@ -163,7 +165,11 @@ namespace Application.DTOs.Request
     {
         public string Code { get; set; } = string.Empty;
         public string Function { get; set; } = string.Empty;
+        /// <summary>مساحة المبنى الواحد</summary>
         public decimal Area { get; set; }
+        /// <summary>عدد تكرارات المبنى، 1 إن لم يُرسل</summary>
+        public int Repetitions { get; set; } = 1;
+        public string? Note { get; set; }
     }
 
     public class ResponseCostItemFormDto
@@ -172,6 +178,8 @@ namespace Application.DTOs.Request
         public string Unit { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
+        /// <summary>تكرار مبنى البند (= تكرار سطر التفاصيل المقابل)، 1 إن لم يُرسل</summary>
+        public int Repetitions { get; set; } = 1;
     }
 
     public class ResponseStaffFormDto
