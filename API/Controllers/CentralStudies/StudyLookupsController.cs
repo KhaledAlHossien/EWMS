@@ -4,6 +4,7 @@ using Application.Features.CentralStudies.Lookups.Catalogs.Commands.Create;
 using Application.Features.CentralStudies.Lookups.Catalogs.Commands.Delete;
 using Application.Features.CentralStudies.Lookups.Catalogs.Commands.Update;
 using Application.Features.CentralStudies.Lookups.Catalogs.Queries.GetAll;
+using Application.Features.CentralStudies.Lookups.CoordinationHeads.Queries.GetCoordinationHeads;
 using Application.Features.CentralStudies.Lookups.Employees.Queries.GetEmployees;
 using Application.Features.CentralStudies.Lookups.Enums.Queries.GetEnums;
 using Application.Features.CentralStudies.Lookups.StageTypes.Commands.Create;
@@ -51,6 +52,12 @@ namespace API.Controllers
         [Authorize(Policy = "AnyStudyEmployeePick")]
         public async Task<ActionResult<List<StudyEmployeeDto>>> Employees([FromQuery] int? branchId, [FromQuery] int? departmentId)
             => Ok(await _mediator.Send(new GetStudyEmployeesQuery(branchId, departmentId)));
+
+        /// <summary>رؤساء قسم التنسيق والارتباط (من يملك التوقيع بصفته): اختيار مدير مشروع الفرع الجغرافي. branchId لمن يتصفح المؤسسة</summary>
+        [HttpGet("CoordinationHeads")]
+        [Authorize(Policy = "AnyStudyEmployeePick")]
+        public async Task<ActionResult<List<StudyPersonDto>>> CoordinationHeads([FromQuery] int? branchId)
+            => Ok(await _mediator.Send(new GetCoordinationHeadsQuery(branchId)));
 
         // ════════ أنواع المراحل ════════
 

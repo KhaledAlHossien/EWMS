@@ -80,7 +80,9 @@ namespace Application.DTOs.Response
         public int? DiwanId { get; set; }
         public string? DiwanNumber { get; set; }
         public int? DiwanStatus { get; set; }
-        /// <summary>قرار الديوان المركزي: 1 موافقة، 2 رفض</summary>
+        /// <summary>مرحلة معاملة الديوان (StudyDiwanStage): 1 لدى الديوان … 5 رفض مركزي بانتظار مدير المشاريع … 8 جاهزة لصادر جديد</summary>
+        public int? DiwanStage { get; set; }
+        /// <summary>قرار الديوان المركزي كما حدده رئيس الفرع: 1 موافقة، 2 رفض (فارغ قبل الإحالة)</summary>
         public int? CentralDecision { get; set; }
         public int? StartOrderId { get; set; }
         public string? StartOrderNumber { get; set; }
@@ -330,6 +332,13 @@ namespace Application.DTOs.Response
         public string MainBeneficiary { get; set; } = string.Empty;
         /// <summary>يُنشئ معاملة الديوان (رد معتمد بلا معاملة ولا أمر بدء)</summary>
         public bool CanCreateDiwanTransaction { get; set; }
+        /// <summary>مرحلة معاملة الديوان إن وُجدت (لصفحة الرد: قيد تعديل تخطيطي أو فني بعد رفض مركزي)</summary>
+        public int? DiwanStage { get; set; }
+        public string? DiwanStageName { get; set; }
+        /// <summary>أثناء التعديل التخطيطي أو الفني فقط: سبب التعديل كما كتبه مدير المشاريع</summary>
+        public string? DiwanRevisionReason { get; set; }
+        /// <summary>أثناء التعديل فقط: سبب الرفض المركزي كما كتبه رئيس الفرع</summary>
+        public string? DiwanRejectionNote { get; set; }
     }
 
     public class StartOrderEngineerDto
@@ -674,7 +683,41 @@ namespace Application.DTOs.Response
         public int? CentralDecision { get; set; }
         public string? CentralDecisionName { get; set; }
         public string? Notes { get; set; }
+        /// <summary>المرحلة (StudyDiwanStage) واسمها: تفصيل status وأين المعاملة الآن</summary>
+        public int Stage { get; set; }
+        public string StageName { get; set; } = string.Empty;
+        /// <summary>رقم الجولة الحالية (يزيد مع كل صادر جديد بعد رفض مركزي)</summary>
+        public int RoundNumber { get; set; }
+        /// <summary>الجولات المغلقة بالترتيب: صف لكل إحالة من رئيس الفرع</summary>
+        public List<StudyDiwanRoundDto> Rounds { get; set; } = [];
         /// <summary>يصدر أمر البدء منها (معتمدة بقرار موافقة، والتوصية ليست «غير متاح»، ولا أمر بدء للرد)</summary>
         public bool CanCreateStartOrder { get; set; }
+        /// <summary>رئيس الفرع: يحيلها إلى مدير المشاريع بموافقة أو برفض (Refer)، أو يعيدها إلى الديوان (Return)</summary>
+        public bool CanRefer { get; set; }
+        public bool CanReturn { get; set; }
+        /// <summary>مدير المشاريع: يختار التعديل التخطيطي أو الفني بعد الرفض المركزي (RequestRevision)</summary>
+        public bool CanRequestRevision { get; set; }
+    }
+
+    /// <summary>جولة مغلقة من معاملة الديوان</summary>
+    public class StudyDiwanRoundDto
+    {
+        public int RoundNumber { get; set; }
+        public string DispatchNumber { get; set; } = string.Empty;
+        public DateTime DispatchDate { get; set; }
+        public string ReplyNumber { get; set; } = string.Empty;
+        public DateTime ReplyDate { get; set; }
+        public int CentralDecision { get; set; }
+        public string CentralDecisionName { get; set; } = string.Empty;
+        public int ReferredByUserId { get; set; }
+        public string ReferredByName { get; set; } = string.Empty;
+        public DateTime ReferredAt { get; set; }
+        public string? ReferralNote { get; set; }
+        /// <summary>1 تخطيطي، 2 فني — فارغ للموافقة أو قبل اختيار مدير المشاريع</summary>
+        public int? RevisionKind { get; set; }
+        public string? RevisionKindName { get; set; }
+        public string? RevisionByName { get; set; }
+        public DateTime? RevisionAt { get; set; }
+        public string? RevisionReason { get; set; }
     }
 }

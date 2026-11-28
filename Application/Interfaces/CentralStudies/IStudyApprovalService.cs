@@ -8,6 +8,9 @@ namespace Application.Interfaces
         /// <summary>سطور مستند بترتيبها مع الموقّعين</summary>
         Task<List<StudyApproval>> GetForOwnerAsync(StudyEntityType ownerType, int ownerId);
 
+        /// <summary>سطور مستند متتبَّعة للتعديل (يحفظها حفظ المستند في السياق نفسه)</summary>
+        Task<List<StudyApproval>> GetTrackedForOwnerAsync(StudyEntityType ownerType, int ownerId);
+
         /// <summary>سطر مع مستنده كاملاً (السلسلة حتى الفرع، والقسم المعني بالصفة) — متتبَّع للتعديل</summary>
         Task<StudyApproval?> GetWithOwnerAsync(int id);
 

@@ -24,6 +24,9 @@ namespace Application.Features.CentralStudies.Approvals.Commands.Decide
             var row = await _service.GetWithOwnerAsync(request.Id) ?? throw new KeyNotFoundException("سطر التوقيع غير موجود");
             var owner = ApprovalOwner.Of(row);
             StudyRules.EnsureInScope(viewer, owner.BranchId);
+            // معاملة الديوان لا تُوقَّع هنا: رئيس الفرع يحدد قرار المركز من صفحتها (StudyDiwanTransactions/Refer أو Return)
+            if (owner.Type == StudyEntityType.DiwanTransaction)
+                throw new InvalidOperationException("معاملة الديوان يقرّر فيها رئيس الفرع من صفحتها: إحالة إلى مدير المشاريع بموافقة أو برفض، أو إعادة إلى الديوان");
 
             var siblings = await _service.GetForOwnerAsync(owner.Type, owner.Id);
             var current = siblings.First(s => s.Id == row.Id);
@@ -51,14 +54,12 @@ namespace Application.Features.CentralStudies.Approvals.Commands.Decide
             var verb = decision == StudyDecision.Rejected ? StudyLogAction.Rejected : StudyLogAction.Approved;
             await _kit.LogAsync(owner.RequestId, owner.Type, owner.Id, verb,
                 $"{StudyRules.Name(decision)} بصفة {StudyRules.Name(row.SignerRole)} على {StudyRules.Name(owner.Type)} {owner.Number}", row.Note);
-            // معاملة ديوان اعتمدها رئيس الفرع بقرار رفض مركزي: تُرفض ويعود الرد إلى القسم المتابع (ApplyFinal)
-            if (final == true && row.DiwanTransaction is { CentralDecision: StudyDiwanDecision.Rejected } rejected)
-            {
-                await _kit.LogAsync(owner.RequestId, StudyEntityType.Response, rejected.ResponseId, StudyLogAction.Rejected,
-                    $"رفض الديوان المركزي الدراسة بالكتاب {rejected.ReplyNumber} — أُعيد الرد إلى القسم المتابع للتعديل");
-                await _kit.NotifyCentralRejectionAsync(rejected);
-            }
-            else if (final is bool done)
+            // رد معدّل بعد رفض مركزي: اعتماده يعيد المعاملة إلى الديوان لصادر جديد (NotifyNextStepAsync أدناه يُشعر موظفيه)
+            if (final == true && row.Response?.DiwanTransaction is { Stage: StudyDiwanStage.ReadyToResend } ready)
+                await _kit.LogAsync(owner.RequestId, StudyEntityType.DiwanTransaction, ready.Id, StudyLogAction.Edited,
+                    $"اعتُمد إشعار الرد المعدّل — معاملة الديوان {ready.TransactionNumber} جاهزة لصادر جديد");
+
+            if (final is bool done)
             {
                 if (done)
                 {
@@ -83,7 +84,18 @@ namespace Application.Features.CentralStudies.Approvals.Commands.Decide
         {
             var status = approved ? StudyDocumentStatus.Approved : StudyDocumentStatus.Rejected;
             if (row.Assignment != null) { row.Assignment.Status = status; row.Assignment.UpdatedAt = now; }
-            else if (row.Response != null) { row.Response.Status = status; row.Response.UpdatedAt = now; }
+            else if (row.Response != null)
+            {
+                row.Response.Status = status;
+                row.Response.UpdatedAt = now;
+                // الرد قيد التعديل بعد رفض مركزي: اعتماده = المعاملة جاهزة لصادر جديد؛ رفضه = يعود إلى القسم المتابع (تعديل فني)
+                if (row.Response.DiwanTransaction is { } revised && StudyRules.InDiwanRevision(revised.Stage))
+                {
+                    revised.Stage = approved ? StudyDiwanStage.ReadyToResend : StudyDiwanStage.TechnicalRevision;
+                    revised.Status = StudyRules.StatusOf(revised.Stage);
+                    revised.UpdatedAt = now;
+                }
+            }
             else if (row.StartOrder != null) { row.StartOrder.Status = status; row.StartOrder.UpdatedAt = now; }
             else if (row.DesignApproval is { } cda)
             {
@@ -96,19 +108,6 @@ namespace Application.Features.CentralStudies.Approvals.Commands.Decide
                 if (approved || cda.Version.Drawing.Status != DrawingStatus.Approved)
                     cda.Version.Drawing.Status = cda.Version.Status;
                 cda.Version.Drawing.UpdatedAt = now;
-            }
-            else if (row.DiwanTransaction is { } diwan)
-            {
-                // موافقة رئيس الفرع تُثبت قرار الديوان المركزي: موافقة = معتمدة (يصدر أمر البدء ما لم تكن التوصية «غير متاح»)،
-                // ورفض مركزي = مرفوضة ويعود الرد إلى القسم المتابع ليعدّله، ثم تُحدَّث المعاملة نفسها بصادر ورد جديدين
-                var centralRejection = approved && diwan.CentralDecision == StudyDiwanDecision.Rejected;
-                diwan.Status = approved && !centralRejection ? StudyDocumentStatus.Approved : StudyDocumentStatus.Rejected;
-                diwan.UpdatedAt = now;
-                if (centralRejection)
-                {
-                    diwan.Response.Status = StudyDocumentStatus.Rejected;
-                    diwan.Response.UpdatedAt = now;
-                }
             }
             else if (row.Project is { } project && approved)
             {
