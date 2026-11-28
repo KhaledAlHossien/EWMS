@@ -36,6 +36,8 @@ namespace API.SystemBuild
 
             // الإشعارات اللحظية (SignalR)
             services.AddSignalR();
+            services.AddSingleton<LiveSessions>();
+            services.AddSingleton<ILiveSessions>(sp => sp.GetRequiredService<LiveSessions>());
 
             // حد المحاولات لكل جهاز على الدخول وتغيير كلمة المرور (LoginRules) — 429 برسالة عربية
             services.AddRateLimiter(options =>

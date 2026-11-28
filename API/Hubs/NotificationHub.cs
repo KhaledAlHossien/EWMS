@@ -13,5 +13,21 @@ namespace API.Hubs
     {
         public const string Path = "/hubs/notifications";
         public const string ReceiveMethod = "notification";
+
+        private readonly LiveSessions _sessions;
+
+        public NotificationHub(LiveSessions sessions) => _sessions = sessions;
+
+        public override Task OnConnectedAsync()
+        {
+            _sessions.Add(Context);
+            return base.OnConnectedAsync();
+        }
+
+        public override Task OnDisconnectedAsync(Exception? exception)
+        {
+            _sessions.Remove(Context.ConnectionId);
+            return base.OnDisconnectedAsync(exception);
+        }
     }
 }
