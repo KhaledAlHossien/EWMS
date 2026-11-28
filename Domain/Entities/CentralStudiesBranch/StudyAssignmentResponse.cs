@@ -27,6 +27,8 @@ namespace Domain.Entities.CentralStudiesBranch
         public StudyRecommendation Recommendation { get; set; }
         /// <summary>مساحة الموقع العام — حقل واحد للرد كله (جزء القسم المتابع)</summary>
         public decimal? SiteArea { get; set; }
+        /// <summary>ملاحظة بجانب مساحة الموقع العام (اختيارية)</summary>
+        public string? SiteNote { get; set; }
         /// <summary>التكلفة المبدئية — حقل واحد للرد كله (جزء القسم المتابع)، بجانب مجموع الجدول التفصيلي</summary>
         public decimal? InitialCost { get; set; }
         /// <summary>الأرقام المالية في الرد بالدولار عند تفعيل هذا الحقل؛ الردود السابقة تحتفظ بقيمها.</summary>
@@ -50,12 +52,14 @@ namespace Domain.Entities.CentralStudiesBranch
         public StudyDiwanTransaction? DiwanTransaction { get; set; }
     }
 
-    /// <summary>بيانات المباني: سطر لكل نوع بناء (المفتاح الرد + النوع ⇒ سطران كحد أقصى)</summary>
+    /// <summary>بيانات المباني: سطر لكل نوع بناء (المفتاح الرد + النوع ⇒ ثلاثة أسطر كحد أقصى)</summary>
     public class ResponseBuilding
     {
         public int ResponseId { get; set; }
         public StudyBuildingType BuildingType { get; set; }
+        /// <summary>عدد أسطر التفاصيل (المباني المختلفة)، لا يشمل التكرار</summary>
         public int BuildingCount { get; set; }
+        /// <summary>المساحة كاملة: مجموع (مساحة المبنى × عدد تكراراته)، يحسبها الخادم</summary>
         public decimal BuildingsArea { get; set; }
         public List<ResponseBuildingDetail> Details { get; set; } = [];
     }
@@ -68,10 +72,14 @@ namespace Domain.Entities.CentralStudiesBranch
         public int SortOrder { get; set; }
         public string Code { get; set; } = string.Empty;
         public string Function { get; set; } = string.Empty;
+        /// <summary>مساحة المبنى الواحد</summary>
         public decimal Area { get; set; }
+        /// <summary>عدد تكرارات المبنى (1 على الأقل): المساحة كاملة = المساحة × التكرار، وكذلك كلفته</summary>
+        public int Repetitions { get; set; } = 1;
+        public string? Note { get; set; }
     }
 
-    /// <summary>بند تكلفة — الإجمالي (الكمية × سعر الوحدة) يُحسب ولا يُخزَّن</summary>
+    /// <summary>بند تكلفة — الإجمالي (الكمية × سعر الوحدة × التكرار) يُحسب ولا يُخزَّن</summary>
     public class ResponseCostItem
     {
         public int Id { get; set; }
@@ -81,6 +89,8 @@ namespace Domain.Entities.CentralStudiesBranch
         public string Unit { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; }
+        /// <summary>عدد تكرارات مبنى البند (= تكرار سطر التفاصيل المقابل)</summary>
+        public int Repetitions { get; set; } = 1;
     }
 
     /// <summary>الكادر المقترح: عدد المهندسين لكل اختصاص (اختصاص مرة واحدة لكل رد)</summary>

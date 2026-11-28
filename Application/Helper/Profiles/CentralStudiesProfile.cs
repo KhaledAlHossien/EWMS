@@ -95,13 +95,15 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.Approvals, o => o.Ignore());
 
             // ----- الرد -----
-            CreateMap<ResponseBuildingDetail, ResponseBuildingDetailDto>();
+            CreateMap<ResponseBuildingDetail, ResponseBuildingDetailDto>()
+                .ForMember(d => d.TotalArea, o => o.MapFrom(s => s.Area * s.Repetitions));
             CreateMap<ResponseBuilding, ResponseBuildingDto>()
                 .ForMember(d => d.Details, o => o.MapFrom(s => s.Details.OrderBy(x => x.SortOrder)))
+                .ForMember(d => d.TotalRepetitions, o => o.MapFrom(s => s.Details.Sum(x => x.Repetitions)))
                 .ForMember(d => d.BuildingType, o => o.MapFrom(s => (int)s.BuildingType))
                 .ForMember(d => d.BuildingTypeName, o => o.MapFrom(s => StudyRules.Name(s.BuildingType)));
             CreateMap<ResponseCostItem, ResponseCostItemDto>()
-                .ForMember(d => d.Total, o => o.MapFrom(s => Math.Round(s.Quantity * s.UnitPrice, 2)));
+                .ForMember(d => d.Total, o => o.MapFrom(s => Math.Round(s.Quantity * s.UnitPrice * s.Repetitions, 2)));
             CreateMap<ResponseStaffEstimate, ResponseStaffDto>()
                 .ForMember(d => d.DisciplineName, o => o.MapFrom(s => s.Discipline != null ? s.Discipline.Name : string.Empty));
             CreateMap<ResponseLogisticItem, StudyItemDto>();
@@ -123,7 +125,7 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.CanEditPlanningPart, o => o.Ignore())
                 .ForMember(d => d.MainBeneficiary, o => o.MapFrom(s => s.Assignment.Request.MainBeneficiary))
                 .ForMember(d => d.CanCreateDiwanTransaction, o => o.Ignore())
-                .ForMember(d => d.TotalCost, o => o.MapFrom(s => Math.Round(s.CostItems.Sum(c => c.Quantity * c.UnitPrice), 2)))
+                .ForMember(d => d.TotalCost, o => o.MapFrom(s => Math.Round(s.CostItems.Sum(c => c.Quantity * c.UnitPrice * c.Repetitions), 2)))
                 .ForMember(d => d.Buildings, o => o.MapFrom(s => s.Buildings.OrderBy(b => b.BuildingType)))
                 .ForMember(d => d.CostItems, o => o.MapFrom(s => s.CostItems.OrderBy(c => c.SortOrder).ThenBy(c => c.Id)))
                 .ForMember(d => d.StaffEstimates, o => o.MapFrom(s => s.StaffEstimates.OrderBy(x => x.DisciplineId)))
