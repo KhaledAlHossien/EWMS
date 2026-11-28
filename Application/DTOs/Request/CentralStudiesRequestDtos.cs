@@ -50,6 +50,8 @@ namespace Application.DTOs.Request
         public int? SiteId { get; set; }
         /// <summary>الطلبات والمشاريع فقط: فرع دراسة واحد (المركزية أو فرع جغرافي)</summary>
         public int? StudyBranchId { get; set; }
+        /// <summary>معاملات الديوان فقط: مرحلة واحدة (5 = رفض مركزي بانتظار مدير المشاريع…)</summary>
+        public int? DiwanStage { get; set; }
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 20;
     }
@@ -356,8 +358,8 @@ namespace Application.DTOs.Request
     // ==================== معاملة الديوان ====================
 
     /// <summary>
-    /// معاملة الديوان: الإنشاء يحمل responseId (رد معتمد بلا معاملة) والصادر إلى الديوان المركزي؛ الرد المركزي (رقمه وتاريخه
-    /// وقراره) يُكمَل بالتعديل قبل الإرسال للاعتماد. يُرسل النموذج كاملاً في كل حفظ.
+    /// معاملة الديوان (موظف الديوان): الإنشاء يحمل responseId (رد معتمد بلا معاملة) والصادر إلى الديوان المركزي؛ الرد المركزي
+    /// (رقمه وتاريخه) يُكمَل بالتعديل قبل الإرسال إلى رئيس الفرع. لا قرار فيه: رئيس الفرع يقرؤه ويحدده عند الإحالة. يُرسل كاملاً في كل حفظ.
     /// </summary>
     public class StudyDiwanTransactionFormDto
     {
@@ -366,9 +368,30 @@ namespace Application.DTOs.Request
         public DateTime DispatchDate { get; set; }
         public string? ReplyNumber { get; set; }
         public DateTime? ReplyDate { get; set; }
-        /// <summary>1 موافقة، 2 رفض</summary>
-        public int? CentralDecision { get; set; }
         public string? Notes { get; set; }
+        public byte[]? RowVersion { get; set; }
+    }
+
+    /// <summary>إحالة رئيس الفرع إلى مدير المشاريع: قرار الديوان المركزي كما في الكتاب (1 موافقة، 2 رفض — الملاحظة إلزامية)</summary>
+    public class StudyDiwanReferFormDto
+    {
+        public int CentralDecision { get; set; }
+        public string? Note { get; set; }
+        public byte[]? RowVersion { get; set; }
+    }
+
+    /// <summary>إعادة رئيس الفرع المعاملة إلى الديوان لتصحيحها أو تصحيح مرفقاتها (السبب إلزامي)</summary>
+    public class StudyDiwanReturnFormDto
+    {
+        public string Reason { get; set; } = string.Empty;
+        public byte[]? RowVersion { get; set; }
+    }
+
+    /// <summary>اختيار مدير المشاريع بعد الرفض المركزي: 1 تعديل تخطيطي (يعدّله ويوقّعه بنفسه)، 2 تعديل فني (إلى القسم المتابع)</summary>
+    public class StudyDiwanRevisionFormDto
+    {
+        public int Kind { get; set; }
+        public string Reason { get; set; } = string.Empty;
         public byte[]? RowVersion { get; set; }
     }
 }

@@ -55,7 +55,7 @@ namespace Application.Features.CentralStudies
     public sealed record AttachmentOwner(
         StudyEntityType Type, int Id, int RequestId, int BranchId,
         string ViewPermission, string EditPermission, bool Closed, int? EditDepartmentId, int? ProjectManagerUserId = null,
-        int? ProjectId = null);
+        int? ProjectId = null, string? ClosedReason = null, DateTime? LockedBefore = null);
 
     /// <summary>
     /// أدوات مشتركة لمعالجات فرع الدراسات (خدمة لكل طلب HTTP): المستخدم الحالي وصلاحياته، سجل الدراسة،
@@ -263,14 +263,14 @@ namespace Application.Features.CentralStudies
                     return response.DiwanTransaction switch
                     {
                         null => new(StudyPermissions.CreateDiwan, "معاملة الديوان", branchId, null, response.Assignment.Request, response.ResponseNumber),
-                        { Status: StudyDocumentStatus.Rejected } => new(StudyPermissions.EditDiwan, "تحديث معاملة الديوان", branchId, null,
-                            response.Assignment.Request, response.ResponseNumber, "إشعار رد معدّل بانتظار تحديث معاملة الديوان وإرسالها من جديد"),
+                        { Stage: StudyDiwanStage.ReadyToResend } => new(StudyPermissions.EditDiwan, "صادر جديد في معاملة الديوان", branchId, null,
+                            response.Assignment.Request, response.ResponseNumber, "إشعار رد معدّل بانتظار صادر جديد في معاملة الديوان"),
                         _ => null
                     };
                 case StudyEntityType.DiwanTransaction:
-                    // المعاملة ← أمر البدء، بقرار موافقة مركزي وتوصية ليست «غير متاح» (وإلا أُغلقت السلسلة)
+                    // المعاملة ← أمر البدء، بإحالة رئيس الفرع بموافقة مركزية وتوصية ليست «غير متاح» (وإلا أُغلقت السلسلة)
                     var diwan = await _diwan.GetByIdAsync(docId) ?? throw new KeyNotFoundException("معاملة الديوان غير موجودة");
-                    if (diwan.Status != StudyDocumentStatus.Approved || diwan.CentralDecision != StudyDiwanDecision.Approved
+                    if (diwan.Stage != StudyDiwanStage.CentralApproved || diwan.CentralDecision != StudyDiwanDecision.Approved
                         || diwan.Response.Recommendation == StudyRecommendation.NotAvailable || diwan.Response.StartOrder != null)
                         return null;
                     return new("CreateStudyStartOrder", "أمر البدء", diwan.Response.Assignment.Request.BranchId, null,
@@ -294,26 +294,70 @@ namespace Application.Features.CentralStudies
             _permissions.GetUsersWithPermissionAsync(permission, departmentId: departmentId);
 
         /// <summary>
-        /// رفض الديوان المركزي (اعتمد رئيس الفرع معاملة بقرار رفض): عاد الرد إلى القسم المتابع — لموظفيه الذين يعدّلونه ولمنشئ المعاملة
+        /// رؤساء قسم التنسيق والارتباط في فرع الدراسة (قرار المستخدم 2026-11-28: مدير مشروع الفرع الجغرافي رئيس هذا القسم):
+        /// النشطون الذين يملكون صلاحية التوقيع بصفة التنسيق والارتباط ولهم قسم، بلا مدير النظام. لا يُستنتج المنصب من اسم الدور.
         /// </summary>
-        public async Task NotifyCentralRejectionAsync(StudyDiwanTransaction transaction)
+        public async Task<List<User>> CoordinationHeadsAsync(int branchId) =>
+            (await _permissions.GetUsersWithPermissionAsync(StudyRules.SignPermission(StudySignerRole.Coordination), branchId: branchId))
+                .Where(u => u.DepartmentId != null && !OrganizationRole.IsSystemAdmin(u))
+                .GroupBy(u => u.Id).Select(g => g.First()).OrderBy(u => u.FullName).ToList();
+
+        /// <summary>
+        /// انتقال في معاملة الديوان: لحاملي صلاحية صاحب الخطوة التالية ضمن حدّها (القسم إن حُدد، وإلا فرع الدراسة)،
+        /// ومعهم مستلمون إضافيون (منشئ المعاملة أو الرد)، بلا من نفّذ الانتقال الآن.
+        /// </summary>
+        public async Task NotifyHoldersAsync(string permission, int branchId, int? departmentId, string title, string message,
+            StudyEntityType relatedType, int relatedId, IEnumerable<int>? extraRecipients = null)
         {
             var viewer = await ViewerAsync();
-            var response = transaction.Response;
-            var editors = await DepartmentHoldersAsync(StudyPermissions.EditResponse, response.Assignment.FollowingDepartmentId);
-            var recipients = editors.Select(u => u.Id).Append(transaction.CreatedByUserId).Where(id => id != viewer.Id).Distinct();
+            var holders = departmentId is int dept
+                ? await DepartmentHoldersAsync(permission, dept)
+                : await _permissions.GetUsersWithPermissionAsync(permission, branchId: branchId);
+            var recipients = holders.Select(u => u.Id).Concat(extraRecipients ?? []).Where(id => id != viewer.Id).Distinct();
             var now = DateTime.Now;
             var notes = recipients.Select(id => new Notification
             {
                 UserId = id,
-                Title = "رفض الديوان المركزي الدراسة — عدّل إشعار الرد وأعد إرساله",
-                Message = $"{transaction.TransactionNumber} — {response.Assignment.Request.MainBeneficiary}",
+                Title = title,
+                Message = message,
                 Type = NotificationType.StudyNextStepReady,
-                RelatedEntityType = RelatedType(StudyEntityType.Response),
-                RelatedEntityId = response.Id,
+                RelatedEntityType = RelatedType(relatedType),
+                RelatedEntityId = relatedId,
                 CreatedAt = now
             }).ToList();
             if (notes.Count > 0) await _notifications.AddRangeAsync(notes);
+        }
+
+        /// <summary>
+        /// «من عليه الخطوة» في معاملة الديوان بحسب مرحلتها: رئيس الفرع (nextSigners)، أو في nextIssuers: مصدر أمر البدء، مستلم الرفض
+        /// المركزي، موقّع التخطيط أثناء التعديل التخطيطي، القسم المتابع (أو موقّعو الرد بعد إرساله) أثناء التعديل الفني، وموظف الديوان.
+        /// </summary>
+        public async Task AddDiwanWhoIsNextAsync(StudyDiwanTransactionDto dto, StudyDiwanTransaction t)
+        {
+            var branchId = t.Response.Assignment.Request.BranchId;
+            List<User>? holders = null;
+            switch (t.Stage)
+            {
+                case StudyDiwanStage.AtBranchHead:
+                case StudyDiwanStage.CentralApproved:
+                    await AddWhoIsNextAsync(dto, StudyEntityType.DiwanTransaction, t.Id, ApprovalOwner.Of(t));
+                    return;
+                case StudyDiwanStage.CentralRejected:
+                    holders = await _permissions.GetUsersWithPermissionAsync(StudyPermissions.HandleDiwanRejection, branchId: branchId);
+                    break;
+                case StudyDiwanStage.PlanningRevision:
+                case StudyDiwanStage.TechnicalRevision when t.Response.Status == StudyDocumentStatus.PendingApproval:
+                    (_, holders) = await NextSignerHoldersAsync(ApprovalOwner.Of(t.Response));
+                    break;
+                case StudyDiwanStage.TechnicalRevision:
+                    holders = await DepartmentHoldersAsync(StudyPermissions.EditResponse, t.Response.Assignment.FollowingDepartmentId);
+                    break;
+                case StudyDiwanStage.ReturnedToDiwan:
+                case StudyDiwanStage.ReadyToResend:
+                    holders = await _permissions.GetUsersWithPermissionAsync(StudyPermissions.EditDiwan, branchId: branchId);
+                    break;
+            }
+            if (holders != null) (dto.NextIssuers, dto.NextIssuersTotal) = ShownPeople(holders);
         }
 
         /// <summary>
@@ -375,7 +419,7 @@ namespace Application.Features.CentralStudies
                     ? c.ProjectId == null || c.ProjectStatus == (int)StudyProjectStatus.Cancelled
                     : c.AssignmentId == null || c.AssignmentStatus == cancelled,
                 StudyEntityType.Assignment => c.ResponseId == null || c.ResponseStatus == cancelled,
-                StudyEntityType.Response => c.DiwanId == null || c.DiwanStatus == (int)StudyDocumentStatus.Rejected,
+                StudyEntityType.Response => c.DiwanId == null || c.DiwanStage == (int)StudyDiwanStage.ReadyToResend,
                 StudyEntityType.DiwanTransaction => c.StartOrderId == null || c.StartOrderStatus == cancelled,
                 StudyEntityType.StartOrder => c.ProjectId == null || c.ProjectStatus == (int)StudyProjectStatus.Cancelled,
                 _ => false
@@ -481,8 +525,13 @@ namespace Application.Features.CentralStudies
                 case StudyEntityType.DiwanTransaction:
                 {
                     var t = await _diwan.GetByIdAsync(id) ?? throw new KeyNotFoundException(missing);
+                    // تُضاف المرفقات وتُحذف والمعاملة لدى الديوان فقط، وكتب الجولات السابقة لا تُحذف
+                    var cancelled = t.Status == StudyDocumentStatus.Cancelled;
+                    var locked = cancelled || !StudyRules.AtDiwan(t.Stage);
                     return new(type, id, t.Response.Assignment.RequestId, t.Response.Assignment.Request.BranchId,
-                        StudyPermissions.ViewDiwan, StudyPermissions.EditDiwan, t.Status == StudyDocumentStatus.Cancelled, null);
+                        StudyPermissions.ViewDiwan, StudyPermissions.EditDiwan, locked, null,
+                        ClosedReason: locked && !cancelled ? $"مرفقات المعاملة تُضاف وتُحذف وهي لدى الديوان فقط (الآن: {StudyRules.Name(t.Stage)})" : null,
+                        LockedBefore: StudyRules.LastRound(t)?.ReferredAt);
                 }
                 case StudyEntityType.Project:
                 {

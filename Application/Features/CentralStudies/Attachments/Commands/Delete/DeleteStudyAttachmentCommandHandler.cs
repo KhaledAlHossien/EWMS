@@ -20,7 +20,10 @@ namespace Application.Features.CentralStudies.Attachments.Commands.Delete
             var viewer = await _kit.ViewerAsync();
             var attachment = await _service.GetByIdAsync(request.Id) ?? throw new KeyNotFoundException("المرفق غير موجود");
             var owner = await _kit.ResolveOwnerAsync(StudyAttachmentSupport.OwnerTypeOf(attachment), StudyAttachmentSupport.OwnerIdOf(attachment));
+            if (owner.Closed && owner.ClosedReason != null) throw new InvalidOperationException(owner.ClosedReason);
             if (!StudyAttachmentSupport.CanEdit(viewer, owner)) throw new UnauthorizedAccessException("لا تملك صلاحية حذف هذا المرفق");
+            if (!StudyAttachmentSupport.CanDelete(viewer, owner, attachment))
+                throw new InvalidOperationException("مرفق من جولة سابقة مع الديوان المركزي — يبقى للأرشيف ولا يُحذف");
             var name = attachment.FileName;
             await _service.DeleteAsync(attachment);   // الملف في المجلد يحذفه المنظّف الدوري
             await _kit.LogAsync(owner.RequestId, StudyEntityType.Attachment, request.Id, StudyLogAction.Deleted,

@@ -27,7 +27,7 @@ namespace Application.Features.CentralStudies.Attachments.Queries.GetByOwner
             return (await _service.GetForOwnerAsync(owner.Type, owner.Id)).Where(a => StudyAttachmentSupport.CanSeeAttachment(viewer, owner, a)).Select(a =>
             {
                 var dto = _kit.Mapper.Map<StudyAttachmentDto>(a);
-                dto.CanDelete = canEdit;
+                dto.CanDelete = canEdit && (owner.LockedBefore is not DateTime locked || a.UploadedAt > locked);
                 return dto;
             }).ToList();
         }

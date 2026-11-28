@@ -14,6 +14,8 @@ namespace Infrastructure.Persistence.Repositories
             .Include(t => t.Response).ThenInclude(r => r.Assignment).ThenInclude(a => a.Request).ThenInclude(q => q.Branch)
             .Include(t => t.Response).ThenInclude(r => r.StartOrder)
             .Include(t => t.CreatedBy)
+            .Include(t => t.Rounds).ThenInclude(r => r.ReferredBy)
+            .Include(t => t.Rounds).ThenInclude(r => r.RevisionBy)
             .AsSplitQuery();
 
         public async Task<StudyDiwanTransaction?> GetByIdAsync(int id) =>
@@ -26,6 +28,7 @@ namespace Infrastructure.Persistence.Repositories
             if (branchLimit != null) query = query.Where(t => t.Response.Assignment.Request.BranchId == branchLimit);
             if (filter.BranchId is int branchId) query = query.Where(t => t.Response.Assignment.Request.BranchId == branchId);
             if (filter.Status is int status) query = query.Where(t => (int)t.Status == status);
+            if (filter.DiwanStage is int stage) query = query.Where(t => (int)t.Stage == stage);
             if (filter.From is DateTime from) query = query.Where(t => t.DispatchDate >= from.Date);
             if (filter.To is DateTime to) query = query.Where(t => t.DispatchDate <= to.Date);
             if (!string.IsNullOrWhiteSpace(filter.Search))

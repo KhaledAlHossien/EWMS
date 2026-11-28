@@ -1626,6 +1626,79 @@ namespace Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanRound", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CentralDecision")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DispatchDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("DispatchNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ReferralNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("ReferredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ReferredByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ReplyDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ReplyNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("RevisionAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("RevisionByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RevisionKind")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RevisionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("RoundNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TransactionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReferredByUserId");
+
+                    b.HasIndex("RevisionByUserId");
+
+                    b.HasIndex("TransactionId", "RoundNumber")
+                        .IsUnique();
+
+                    b.ToTable("StudyDiwanRounds", t =>
+                        {
+                            t.HasCheckConstraint("CK_StudyDiwanRounds_Decision", "[CentralDecision] IN (1, 2)");
+
+                            t.HasCheckConstraint("CK_StudyDiwanRounds_Revision", "[RevisionKind] IS NULL OR [RevisionKind] IN (1, 2)");
+                        });
+                });
+
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanTransaction", b =>
                 {
                     b.Property<int>("Id")
@@ -1665,11 +1738,17 @@ namespace Infrastructure.Migrations
                     b.Property<int>("ResponseId")
                         .HasColumnType("int");
 
+                    b.Property<int>("RoundNumber")
+                        .HasColumnType("int");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<int>("Stage")
+                        .HasColumnType("int");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -1692,11 +1771,17 @@ namespace Infrastructure.Migrations
                     b.HasIndex("TransactionNumber")
                         .IsUnique();
 
+                    b.HasIndex("Stage", "CreatedAt");
+
                     b.HasIndex("Status", "CreatedAt");
 
                     b.ToTable("StudyDiwanTransactions", t =>
                         {
                             t.HasCheckConstraint("CK_StudyDiwanTransactions_Decision", "[CentralDecision] IS NULL OR [CentralDecision] IN (1, 2)");
+
+                            t.HasCheckConstraint("CK_StudyDiwanTransactions_Round", "[RoundNumber] >= 1");
+
+                            t.HasCheckConstraint("CK_StudyDiwanTransactions_Stage", "[Stage] BETWEEN 1 AND 9");
                         });
                 });
 
@@ -4645,6 +4730,32 @@ namespace Infrastructure.Migrations
                     b.Navigation("Branch");
                 });
 
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanRound", b =>
+                {
+                    b.HasOne("Domain.Entities.User", "ReferredBy")
+                        .WithMany()
+                        .HasForeignKey("ReferredByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "RevisionBy")
+                        .WithMany()
+                        .HasForeignKey("RevisionByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Domain.Entities.CentralStudiesBranch.StudyDiwanTransaction", "Transaction")
+                        .WithMany("Rounds")
+                        .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ReferredBy");
+
+                    b.Navigation("RevisionBy");
+
+                    b.Navigation("Transaction");
+                });
+
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanTransaction", b =>
                 {
                     b.HasOne("Domain.Entities.User", "CreatedBy")
@@ -5532,6 +5643,11 @@ namespace Infrastructure.Migrations
                     b.Navigation("StaffEstimates");
 
                     b.Navigation("StartOrder");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyDiwanTransaction", b =>
+                {
+                    b.Navigation("Rounds");
                 });
 
             modelBuilder.Entity("Domain.Entities.CentralStudiesBranch.StudyProject", b =>

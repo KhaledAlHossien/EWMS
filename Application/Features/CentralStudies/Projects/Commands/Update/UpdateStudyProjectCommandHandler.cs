@@ -27,7 +27,11 @@ namespace Application.Features.CentralStudies.Projects.Commands.Update
             StudyProjectSupport.EnsureOpen(entity);
             if (request.Dto.ManagerUserId is int managerId && managerId != entity.ManagerUserId)
             {
-                StudyRules.EnsureBranchEmployee(await _users.GetByIdAsync(managerId), entity.BranchId, "مدير المشروع");
+                // مشروع الفرع الجغرافي يديره رئيس قسم التنسيق والارتباط؛ مشروع المركزية أي موظف نشط في فرع الدراسة
+                if (StudyRules.TrackOf(entity.Request) == StudyTrack.Coordination)
+                    await _support.CoordinationManagerAsync(entity.BranchId, managerId, viewer);
+                else
+                    StudyRules.EnsureBranchEmployee(await _users.GetByIdAsync(managerId), entity.BranchId, "مدير المشروع");
                 entity.ManagerUserId = managerId;
             }
             entity.Name = request.Dto.Name.Trim();

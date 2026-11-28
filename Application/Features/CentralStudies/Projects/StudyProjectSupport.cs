@@ -28,6 +28,27 @@ namespace Application.Features.CentralStudies.Projects
             return dto;
         }
 
+        /// <summary>
+        /// مدير مشروع الفرع الجغرافي = رئيس قسم التنسيق والارتباط (StudyKit.CoordinationHeadsAsync). المختار يجب أن يكون منهم؛
+        /// بلا اختيار: من يحيل إن كان منهم، وإلا الرئيس الوحيد في الفرع، وإن تعدّدوا يُطلب الاختيار.
+        /// </summary>
+        public async Task<Domain.Entities.User> CoordinationManagerAsync(int branchId, int? chosenId, Viewer viewer)
+        {
+            var heads = await _kit.CoordinationHeadsAsync(branchId);
+            if (chosenId is int id)
+                return heads.FirstOrDefault(u => u.Id == id) ?? throw new InvalidOperationException(
+                    "مدير مشروع الفرع الجغرافي هو رئيس قسم التنسيق والارتباط: من يملك صلاحية «التوقيع بصفة التنسيق والارتباط» في فرع الدراسة");
+            if (heads.FirstOrDefault(u => u.Id == viewer.Id) is { } self) return self;
+            return heads.Count switch
+            {
+                1 => heads[0],
+                0 => throw new InvalidOperationException(
+                    "لا رئيس لقسم التنسيق والارتباط في فرع الدراسة — امنح رئيس القسم صلاحية «التوقيع بصفة التنسيق والارتباط» أولاً"),
+                _ => throw new InvalidOperationException(
+                    $"حدد مدير المشروع من رؤساء التنسيق والارتباط: {string.Join("، ", heads.Select(u => u.FullName))}")
+            };
+        }
+
         /// <summary>رئيس القسم المشارك يعيّن موظفي قسمه فقط (مدير النظام بلا حدّ)</summary>
         public async Task<(ProjectDepartment Participation, StudyProject Project)> LoadParticipationForMembersAsync(int projectDepartmentId, Viewer viewer)
         {

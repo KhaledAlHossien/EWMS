@@ -23,12 +23,12 @@ namespace Application.Features.CentralStudies.DiwanTransactions.Commands.Cancel
             var viewer = await _kit.ViewerAsync();
             var entity = await _support.LoadAsync(request.Id, viewer);
             if (entity.Status == StudyDocumentStatus.Cancelled) throw new InvalidOperationException("معاملة الديوان ملغاة مسبقاً");
-            if (entity.Status == StudyDocumentStatus.Draft) throw new InvalidOperationException("المسودة تُحذف ولا تُلغى");
+            if (entity.Stage == StudyDiwanStage.Registering && entity.Rounds.Count == 0)
+                throw new InvalidOperationException("المسودة تُحذف ولا تُلغى");
             if (entity.Response.StartOrder is { } order && order.Status != StudyDocumentStatus.Cancelled)
                 throw new InvalidOperationException("للمعاملة أمر بدء قائم — ألغِ أمر البدء أولاً");
 
-            entity.Status = StudyDocumentStatus.Cancelled;
-            entity.UpdatedAt = DateTime.Now;
+            StudyDiwanTransactionSupport.MoveTo(entity, StudyDiwanStage.Cancelled);
             await _service.UpdateAsync(entity);
             await _kit.LogAsync(entity.Response.Assignment.RequestId, StudyEntityType.DiwanTransaction, entity.Id, StudyLogAction.Cancelled,
                 $"ألغى معاملة الديوان {entity.TransactionNumber}", request.Reason.Trim());

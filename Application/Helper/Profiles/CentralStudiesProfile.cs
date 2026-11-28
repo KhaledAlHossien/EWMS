@@ -125,6 +125,12 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.CanEditPlanningPart, o => o.Ignore())
                 .ForMember(d => d.MainBeneficiary, o => o.MapFrom(s => s.Assignment.Request.MainBeneficiary))
                 .ForMember(d => d.CanCreateDiwanTransaction, o => o.Ignore())
+                .ForMember(d => d.DiwanStage, o => o.MapFrom(s => s.DiwanTransaction != null ? (int?)s.DiwanTransaction.Stage : null))
+                .ForMember(d => d.DiwanStageName, o => o.MapFrom(s => s.DiwanTransaction != null ? StudyRules.Name(s.DiwanTransaction.Stage) : null))
+                .ForMember(d => d.DiwanRevisionReason, o => o.MapFrom(s => StudyRules.RevisionRound(s.DiwanTransaction) != null
+                    ? StudyRules.RevisionRound(s.DiwanTransaction)!.RevisionReason : null))
+                .ForMember(d => d.DiwanRejectionNote, o => o.MapFrom(s => StudyRules.RevisionRound(s.DiwanTransaction) != null
+                    ? StudyRules.RevisionRound(s.DiwanTransaction)!.ReferralNote : null))
                 .ForMember(d => d.TotalCost, o => o.MapFrom(s => Math.Round(s.CostItems.Sum(c => c.Quantity * c.UnitPrice * c.Repetitions), 2)))
                 .ForMember(d => d.Buildings, o => o.MapFrom(s => s.Buildings.OrderBy(b => b.BuildingType)))
                 .ForMember(d => d.CostItems, o => o.MapFrom(s => s.CostItems.OrderBy(c => c.SortOrder).ThenBy(c => c.Id)))
@@ -173,9 +179,22 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.RecommendationName, o => o.MapFrom(s => StudyRules.Name(s.Response.Recommendation)))
                 .ForMember(d => d.CentralDecision, o => o.MapFrom(s => (int?)s.CentralDecision))
                 .ForMember(d => d.CentralDecisionName, o => o.MapFrom(s => s.CentralDecision != null ? StudyRules.Name(s.CentralDecision.Value) : null))
+                .ForMember(d => d.Stage, o => o.MapFrom(s => (int)s.Stage))
+                .ForMember(d => d.StageName, o => o.MapFrom(s => StudyRules.Name(s.Stage)))
+                .ForMember(d => d.Rounds, o => o.MapFrom(s => s.Rounds.OrderBy(r => r.RoundNumber)))
                 .ForMember(d => d.CanCreateStartOrder, o => o.Ignore())
+                .ForMember(d => d.CanRefer, o => o.Ignore())
+                .ForMember(d => d.CanReturn, o => o.Ignore())
+                .ForMember(d => d.CanRequestRevision, o => o.Ignore())
                 .ForMember(d => d.Chain, o => o.Ignore())
                 .ForMember(d => d.Approvals, o => o.Ignore());
+            CreateMap<StudyDiwanRound, StudyDiwanRoundDto>()
+                .ForMember(d => d.CentralDecision, o => o.MapFrom(s => (int)s.CentralDecision))
+                .ForMember(d => d.CentralDecisionName, o => o.MapFrom(s => StudyRules.Name(s.CentralDecision)))
+                .ForMember(d => d.ReferredByName, o => o.MapFrom(s => s.ReferredBy != null ? s.ReferredBy.FullName : string.Empty))
+                .ForMember(d => d.RevisionKind, o => o.MapFrom(s => (int?)s.RevisionKind))
+                .ForMember(d => d.RevisionKindName, o => o.MapFrom(s => s.RevisionKind != null ? StudyRules.Name(s.RevisionKind.Value) : null))
+                .ForMember(d => d.RevisionByName, o => o.MapFrom(s => s.RevisionBy != null ? s.RevisionBy.FullName : null));
 
             // ----- المشروع -----
             CreateMap<ProjectMember, ProjectMemberDto>()

@@ -469,6 +469,7 @@ namespace Infrastructure.Persistence.Data
                 e.Property(x => x.CentralDecision).HasConversion<int?>();
                 e.Property(x => x.Notes).HasMaxLength(1000);
                 e.Property(x => x.Status).HasConversion<int>();
+                e.Property(x => x.Stage).HasConversion<int>();
                 e.Property(x => x.RowVersion).IsRowVersion();
 
                 e.HasOne(x => x.Response).WithOne(r => r.DiwanTransaction)
@@ -477,7 +478,37 @@ namespace Infrastructure.Persistence.Data
 
                 e.HasIndex(x => x.TransactionNumber).IsUnique();
                 e.HasIndex(x => new { x.Status, x.CreatedAt });
-                e.ToTable(t => t.HasCheckConstraint("CK_StudyDiwanTransactions_Decision", "[CentralDecision] IS NULL OR [CentralDecision] IN (1, 2)"));
+                e.HasIndex(x => new { x.Stage, x.CreatedAt });
+                e.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_StudyDiwanTransactions_Decision", "[CentralDecision] IS NULL OR [CentralDecision] IN (1, 2)");
+                    t.HasCheckConstraint("CK_StudyDiwanTransactions_Stage", "[Stage] BETWEEN 1 AND 9");
+                    t.HasCheckConstraint("CK_StudyDiwanTransactions_Round", "[RoundNumber] >= 1");
+                });
+            });
+
+            // جولات معاملة الديوان: صف لكل إحالة من رئيس الفرع (لا يُحذف إلا مع معاملته)
+            builder.Entity<StudyDiwanRound>(e =>
+            {
+                e.Property(x => x.DispatchNumber).HasMaxLength(50).IsRequired();
+                e.Property(x => x.DispatchDate).HasColumnType("date");
+                e.Property(x => x.ReplyNumber).HasMaxLength(50).IsRequired();
+                e.Property(x => x.ReplyDate).HasColumnType("date");
+                e.Property(x => x.CentralDecision).HasConversion<int>();
+                e.Property(x => x.ReferralNote).HasMaxLength(1000);
+                e.Property(x => x.RevisionKind).HasConversion<int?>();
+                e.Property(x => x.RevisionReason).HasMaxLength(1000);
+
+                e.HasOne(x => x.Transaction).WithMany(t => t.Rounds).HasForeignKey(x => x.TransactionId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(x => x.ReferredBy).WithMany().HasForeignKey(x => x.ReferredByUserId).OnDelete(DeleteBehavior.Restrict);
+                e.HasOne(x => x.RevisionBy).WithMany().HasForeignKey(x => x.RevisionByUserId).OnDelete(DeleteBehavior.Restrict);
+
+                e.HasIndex(x => new { x.TransactionId, x.RoundNumber }).IsUnique();
+                e.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_StudyDiwanRounds_Decision", "[CentralDecision] IN (1, 2)");
+                    t.HasCheckConstraint("CK_StudyDiwanRounds_Revision", "[RevisionKind] IS NULL OR [RevisionKind] IN (1, 2)");
+                });
             });
 
             builder.Entity<StudyNumberSequence>(e =>

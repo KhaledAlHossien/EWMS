@@ -22,6 +22,8 @@ namespace Application.Features.CentralStudies.DiwanTransactions.Commands.Delete
             var viewer = await _kit.ViewerAsync();
             var entity = await _support.LoadAsync(request.Id, viewer);
             StudyRules.EnsureDraftForDelete(entity.Status);
+            if (entity.Rounds.Count > 0)
+                throw new InvalidOperationException("للمعاملة جولات سابقة مع الديوان المركزي — تُلغى ولا تُحذف");
             var requestId = entity.Response.Assignment.RequestId;
             var number = entity.TransactionNumber;
             await _service.DeleteAsync(entity);

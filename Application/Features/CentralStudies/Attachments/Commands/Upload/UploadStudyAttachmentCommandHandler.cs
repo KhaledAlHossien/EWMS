@@ -27,6 +27,7 @@ namespace Application.Features.CentralStudies.Attachments.Commands.Upload
         {
             var viewer = await _kit.ViewerAsync();
             var owner = await _support.OwnerAsync(request.OwnerType, request.OwnerId);
+            if (owner.Closed && owner.ClosedReason != null) throw new InvalidOperationException(owner.ClosedReason);
             if (!StudyAttachmentSupport.CanEdit(viewer, owner))
                 throw new UnauthorizedAccessException(owner.Closed ? "السجل ملغى — لا تُضاف مرفقات" : "لا تملك صلاحية الإرفاق بهذا السجل");
             var type = await _lookups.GetAttachmentTypeAsync(request.AttachmentTypeId);

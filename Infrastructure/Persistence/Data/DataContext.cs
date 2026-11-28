@@ -96,6 +96,7 @@ namespace Infrastructure.Persistence.Data
         public DbSet<StudyActivityLog> StudyActivityLogs { get; set; }
         public DbSet<StudyNumberSequence> StudyNumberSequences { get; set; }
         public DbSet<StudyDiwanTransaction> StudyDiwanTransactions { get; set; }
+        public DbSet<StudyDiwanRound> StudyDiwanRounds { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

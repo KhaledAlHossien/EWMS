@@ -109,6 +109,8 @@ namespace Infrastructure.Persistence.Repositories
                         ? null : r.Assignment.Response.DiwanTransaction.TransactionNumber,
                     DiwanStatus = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.DiwanTransaction == null
                         ? null : (int)r.Assignment.Response.DiwanTransaction.Status,
+                    DiwanStage = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.DiwanTransaction == null
+                        ? null : (int)r.Assignment.Response.DiwanTransaction.Stage,
                     CentralDecision = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.DiwanTransaction == null
                         ? null : (int?)r.Assignment.Response.DiwanTransaction.CentralDecision,
                     StartOrderId = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.StartOrder == null
@@ -207,7 +209,7 @@ namespace Infrastructure.Persistence.Repositories
             .Include(r => r.StaffEstimates).ThenInclude(s => s.Discipline)
             .Include(r => r.LogisticItems)
             .Include(r => r.StartOrder)
-            .Include(r => r.DiwanTransaction)
+            .Include(r => r.DiwanTransaction).ThenInclude(t => t!.Rounds)
             .AsSplitQuery();
 
         public async Task<StudyAssignmentResponse?> GetByIdAsync(int id) =>
