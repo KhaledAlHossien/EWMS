@@ -1,5 +1,3 @@
-using Domain.Entities.CentralStudiesBranch;
-
 namespace Application.DTOs.Request
 {
     // ════════════════════ فرع الدراسات المركزية: نماذج الإدخال ════════════════════
@@ -30,10 +28,6 @@ namespace Application.DTOs.Request
     public class StudyDocumentFilterDto
     {
         public int? Status { get; set; }
-        public int? DiwanStage { get; set; }
-        public bool DiwanOnly { get; set; }
-        /// <summary>المعاملات المفتوحة فقط (تنتظر إجراءً)، الأقدم انتظاراً أولاً</summary>
-        public bool DiwanOpen { get; set; }
         public string? Search { get; set; }
         public int? BranchId { get; set; }
         public DateTime? From { get; set; }
@@ -178,7 +172,8 @@ namespace Application.DTOs.Request
     /// <summary>أمر بدء الدراسة (PIO) — معرّف كتاب الموافقة المركزي المحال عند الإنشاء فقط</summary>
     public class StudyStartOrderFormDto
     {
-        public int DiwanReplyId { get; set; }
+        /// <summary>معاملة ديوان معتمدة بقرار موافقة مركزي</summary>
+        public int DiwanTransactionId { get; set; }
         public int CompetentDepartmentId { get; set; }
         public int ProjectManagerUserId { get; set; }
         public DateTime OrderDate { get; set; }
@@ -317,9 +312,20 @@ namespace Application.DTOs.Request
 
     // ==================== معاملة الديوان ====================
 
-    /// <summary>رقم كتاب الديوان وتاريخه: الصادر إلى الديوان المركزي أو الرد المركزي، مع نسخة إشعار الرد المعروضة</summary>
-    public record StudyDiwanDispatchFormDto(string Number, DateOnly Date, string RowVersion);
-
-    /// <summary>إجراء رئيس الفرع على الرد المركزي (الملاحظة إلزامية عند الإعادة للتصحيح)</summary>
-    public record StudyDiwanReviewFormDto(StudyDiwanReviewAction Action, string? Note, string RowVersion);
+    /// <summary>
+    /// معاملة الديوان: الإنشاء يحمل responseId (رد معتمد بلا معاملة) والصادر إلى الديوان المركزي؛ الرد المركزي (رقمه وتاريخه
+    /// وقراره) يُكمَل بالتعديل قبل الإرسال للاعتماد. يُرسل النموذج كاملاً في كل حفظ.
+    /// </summary>
+    public class StudyDiwanTransactionFormDto
+    {
+        public int ResponseId { get; set; }
+        public string DispatchNumber { get; set; } = string.Empty;
+        public DateTime DispatchDate { get; set; }
+        public string? ReplyNumber { get; set; }
+        public DateTime? ReplyDate { get; set; }
+        /// <summary>1 موافقة، 2 رفض</summary>
+        public int? CentralDecision { get; set; }
+        public string? Notes { get; set; }
+        public byte[]? RowVersion { get; set; }
+    }
 }

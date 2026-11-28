@@ -16,6 +16,7 @@ namespace Infrastructure.Persistence.Repositories
             StudyEntityType.StartOrder => _context.StudyApprovals.Where(a => a.StartOrderId == ownerId),
             StudyEntityType.DesignApproval => _context.StudyApprovals.Where(a => a.DesignApprovalId == ownerId),
             StudyEntityType.Project => _context.StudyApprovals.Where(a => a.ProjectId == ownerId),
+            StudyEntityType.DiwanTransaction => _context.StudyApprovals.Where(a => a.DiwanTransactionId == ownerId),
             _ => _context.StudyApprovals.Where(a => false)
         };
 
@@ -30,6 +31,7 @@ namespace Infrastructure.Persistence.Repositories
                 .ThenInclude(p => p.StartOrder).ThenInclude(o => o.Response).ThenInclude(r => r.Assignment)
             .Include(a => a.Project).ThenInclude(p => p!.Branch)
             .Include(a => a.Project).ThenInclude(p => p!.StartOrder).ThenInclude(o => o.Response).ThenInclude(r => r.Assignment)
+            .Include(a => a.DiwanTransaction).ThenInclude(x => x!.Response).ThenInclude(x => x.Assignment).ThenInclude(x => x.Request).ThenInclude(r => r.Branch)
             .AsSplitQuery();
 
         public async Task<List<StudyApproval>> GetForOwnerAsync(StudyEntityType ownerType, int ownerId) =>
@@ -69,6 +71,7 @@ namespace Infrastructure.Persistence.Repositories
             StudyEntityType.Project => _context.StudyAttachments.Where(a => a.ProjectId == ownerId),
             StudyEntityType.Drawing => _context.StudyAttachments.Where(a => a.DrawingId == ownerId),
             StudyEntityType.Version => _context.StudyAttachments.Where(a => a.VersionId == ownerId),
+            StudyEntityType.DiwanTransaction => _context.StudyAttachments.Where(a => a.DiwanTransactionId == ownerId),
             _ => _context.StudyAttachments.Where(a => false)
         };
 
@@ -175,6 +178,7 @@ namespace Infrastructure.Persistence.Repositories
             await _context.StudyRequests.AnyAsync(x => x.CreatedByUserId == userId)
             || await _context.StudyAssignments.AnyAsync(x => x.CreatedByUserId == userId)
             || await _context.StudyAssignmentResponses.AnyAsync(x => x.CreatedByUserId == userId || x.ProposedManagerUserId == userId)
+            || await _context.StudyDiwanTransactions.AnyAsync(x => x.CreatedByUserId == userId)
             || await _context.StudyStartOrders.AnyAsync(x => x.CreatedByUserId == userId || x.ProjectManagerUserId == userId)
             || await _context.StartOrderEngineers.AnyAsync(x => x.EngineerUserId == userId)
             || await _context.StudyProjects.AnyAsync(x => x.CreatedByUserId == userId || x.ManagerUserId == userId)

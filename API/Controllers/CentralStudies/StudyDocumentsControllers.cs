@@ -8,6 +8,13 @@ using Application.Features.CentralStudies.Assignments.Commands.Update;
 using Application.Features.CentralStudies.Assignments.Queries.GetById;
 using Application.Features.CentralStudies.Assignments.Queries.PreviewProjectCode;
 using Application.Features.CentralStudies.Assignments.Queries.Search;
+using Application.Features.CentralStudies.DiwanTransactions.Commands.Cancel;
+using Application.Features.CentralStudies.DiwanTransactions.Commands.Create;
+using Application.Features.CentralStudies.DiwanTransactions.Commands.Delete;
+using Application.Features.CentralStudies.DiwanTransactions.Commands.Submit;
+using Application.Features.CentralStudies.DiwanTransactions.Commands.Update;
+using Application.Features.CentralStudies.DiwanTransactions.Queries.GetById;
+using Application.Features.CentralStudies.DiwanTransactions.Queries.Search;
 using Application.Features.CentralStudies.Requests.Commands.Cancel;
 using Application.Features.CentralStudies.Requests.Commands.Create;
 using Application.Features.CentralStudies.Requests.Commands.Delete;
@@ -243,5 +250,57 @@ namespace API.Controllers
         [Authorize(Policy = "CancelStudyDocuments")]
         public async Task<ActionResult<StudyStartOrderDto>> Cancel(int id, [FromBody] StudyCancelDto dto)
             => Ok(await _mediator.Send(new CancelStudyStartOrderCommand(id, dto.Reason)));
+    }
+
+    /// <summary>
+    /// معاملات الديوان (DWN) — بين الرد المعتمد وأمر البدء: Create يسجّل الصادر لرد معتمد (responseId في النموذج)، Update يكمل الرد
+    /// المركزي، وصورة الكتاب مرفق عادي (StudyAttachments، ownerType = 14)، ثم Submit لاعتماد رئيس الفرع (StudyApprovals).
+    /// </summary>
+    [ApiController]
+    [Route("api/StudyDiwanTransactions")]
+    [Authorize]
+    public class StudyDiwanTransactionsController : ControllerBase
+    {
+        private readonly IMediator _mediator;
+
+        public StudyDiwanTransactionsController(IMediator mediator) => _mediator = mediator;
+
+        /// <summary>بحث: status، search (رقم المعاملة أو الصادر أو الرد المركزي أو إشعار الرد أو الكود أو الجهة)، branchId، from/to، page، pageSize</summary>
+        [HttpGet("GetAll")]
+        [Authorize(Policy = "ViewStudyDiwanTransactions")]
+        public async Task<ActionResult<PagedResultDto<StudyDiwanTransactionDto>>> GetAll([FromQuery] StudyDocumentFilterDto filter)
+            => Ok(await _mediator.Send(new SearchStudyDiwanTransactionsQuery(filter)));
+
+        /// <summary>المعاملة مع السلسلة وسطر توقيع رئيس الفرع</summary>
+        [HttpGet("Get/{id}")]
+        [Authorize(Policy = "ViewStudyDiwanTransactions")]
+        public async Task<ActionResult<StudyDiwanTransactionDto>> Get(int id) => Ok(await _mediator.Send(new GetStudyDiwanTransactionQuery(id)));
+
+        [HttpPost("Create")]
+        [Authorize(Policy = "CreateStudyDiwanTransaction")]
+        public async Task<ActionResult<StudyDiwanTransactionDto>> Create([FromBody] StudyDiwanTransactionFormDto dto)
+            => Ok(await _mediator.Send(new CreateStudyDiwanTransactionCommand(dto)));
+
+        [HttpPut("Update/{id}")]
+        [Authorize(Policy = "EditStudyDiwanTransaction")]
+        public async Task<ActionResult<StudyDiwanTransactionDto>> Update(int id, [FromBody] StudyDiwanTransactionFormDto dto)
+            => Ok(await _mediator.Send(new UpdateStudyDiwanTransactionCommand(id, dto)));
+
+        [HttpDelete("Delete/{id}")]
+        [Authorize(Policy = "DeleteStudyDiwanTransaction")]
+        public async Task<ActionResult> Delete(int id)
+        {
+            await _mediator.Send(new DeleteStudyDiwanTransactionCommand(id));
+            return Ok(new { message = "تم حذف معاملة الديوان" });
+        }
+
+        [HttpPut("Submit/{id}")]
+        [Authorize(Policy = "EditStudyDiwanTransaction")]
+        public async Task<ActionResult<StudyDiwanTransactionDto>> Submit(int id) => Ok(await _mediator.Send(new SubmitStudyDiwanTransactionCommand(id)));
+
+        [HttpPut("Cancel/{id}")]
+        [Authorize(Policy = "CancelStudyDocuments")]
+        public async Task<ActionResult<StudyDiwanTransactionDto>> Cancel(int id, [FromBody] StudyCancelDto dto)
+            => Ok(await _mediator.Send(new CancelStudyDiwanTransactionCommand(id, dto.Reason)));
     }
 }

@@ -35,6 +35,10 @@ namespace API.Controllers
         [Authorize(Policy = "PrintStudyDocuments")]
         public async Task<ActionResult<StudyPrintDto>> PrintStartOrder(int id) => Ok(await _mediator.Send(new GetStudyPrintQuery(StudyEntityType.StartOrder, id)));
 
+        [HttpGet("DiwanTransaction/{id}")]
+        [Authorize(Policy = "PrintStudyDocuments")]
+        public async Task<ActionResult<StudyPrintDto>> PrintDiwanTransaction(int id) => Ok(await _mediator.Send(new GetStudyPrintQuery(StudyEntityType.DiwanTransaction, id)));
+
         [HttpGet("DesignApproval/{id}")]
         [Authorize(Policy = "PrintStudyDocuments")]
         public async Task<ActionResult<StudyPrintDto>> PrintDesignApproval(int id) => Ok(await _mediator.Send(new GetStudyPrintQuery(StudyEntityType.DesignApproval, id)));

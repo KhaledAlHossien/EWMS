@@ -1,4 +1,4 @@
-﻿using Application.Common;
+using Application.Common;
 using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Interfaces;
@@ -31,24 +31,13 @@ namespace Application.Features.CentralStudies.Responses
             dto.CanEdit = dto.CanEditFollowingPart;
             dto.CanSubmit = dto.CanEditFollowingPart;
             dto.CanDelete = inScope && viewer.Has("DeleteStudyResponse") && e.Status == StudyDocumentStatus.Draft;
+            var diwanOpen = e.DiwanTransaction is { } diwan && diwan.Status != StudyDocumentStatus.Cancelled;
             dto.CanCancel = inScope && viewer.Has(StudyPermissions.CancelDocuments)
                             && e.Status is not (StudyDocumentStatus.Draft or StudyDocumentStatus.Cancelled)
-                            && (e.StartOrder == null || e.StartOrder.Status == StudyDocumentStatus.Cancelled);
-            var stage = StudyDiwanRules.StageOf(e);
-            dto.DiwanStage = (int?)stage;
-            dto.CanCreateStartOrder = inScope && viewer.Has("CreateStudyStartOrder") && e.StartOrder == null
-                                      && StudyDiwanRules.ReadyForStartOrder(e);
-
-            // إجراءات الديوان (للقائمة والتفاصيل معاً)
-            var active = e.Status == StudyDocumentStatus.Approved && e.StartOrder == null;
-            var branchId = e.Assignment.Request.BranchId;
-            var canRegister = active && StudyDiwanRules.CanAct(viewer, StudyPermissions.ManageDiwan, branchId);
-            dto.CanRegisterDiwanDispatch = canRegister && stage == StudyDiwanStage.AwaitingDispatch;
-            dto.CanRegisterDiwanReply = canRegister && stage is StudyDiwanStage.AwaitingReply or StudyDiwanStage.CorrectionRequested;
-            dto.CanReviewDiwan = active && stage == StudyDiwanStage.AwaitingBranchHead
-                                 && StudyDiwanRules.CanAct(viewer, StudyDiwanRules.HeadPermission, branchId);
-            // كل خطوة ديوان وكل اعتماد تحدّث UpdatedAt للرد، فهو بداية انتظار المرحلة الحالية
-            dto.DiwanSince = active && StudyDiwanRules.IsOpen(stage) ? e.UpdatedAt ?? e.CreatedAt : null;
+                            && (e.StartOrder == null || e.StartOrder.Status == StudyDocumentStatus.Cancelled) && !diwanOpen;
+            dto.CanDelete = dto.CanDelete && e.DiwanTransaction == null;
+            dto.CanCreateDiwanTransaction = inScope && viewer.Has(StudyPermissions.CreateDiwan) && e.Status == StudyDocumentStatus.Approved
+                                            && e.DiwanTransaction == null && e.StartOrder == null;
             return dto;
         }
 
@@ -90,14 +79,6 @@ namespace Application.Features.CentralStudies.Responses
         {
             var entity = await LoadAsync(id, viewer);
             var dto = ToDto(entity, viewer);
-            if (StudyDiwanRules.StageOf(entity) is { } stage)
-            {
-                var data = entity.DiwanCase;
-                dto.DiwanCase = new((int)stage, StudyDiwanRules.Name(stage), data?.DispatchNumber, data?.DispatchDate, data?.ReviewNote,
-                    data?.Replies.OrderByDescending(r => r.Id)
-                        .Select(r => new StudyDiwanReplyDto(r.Id, r.Number, r.Date, (int)r.Decision, r.FileName, r.RecordedAt)).ToList() ?? [],
-                    dto.CanRegisterDiwanDispatch, dto.CanRegisterDiwanReply, dto.CanReviewDiwan);
-            }
             dto.Chain = await _kit.ChainAsync(entity.Assignment.RequestId);
             dto.Approvals = await _kit.ApprovalsAsync(ApprovalOwner.Of(entity));
             await _kit.AddWhoIsNextAsync(dto, StudyEntityType.Response, entity.Id, ApprovalOwner.Of(entity));
@@ -114,13 +95,10 @@ namespace Application.Features.CentralStudies.Responses
             if (!costsInUsd && dto.UsdToSypRate != null)
                 throw new InvalidOperationException("سعر الصرف يُستخدم فقط عند التسعير بالدولار");
 
-            if (dto.Buildings.Sum(b => (long)b.BuildingCount) > 1 &&
-                dto.Buildings.Any(b => b.BuildingCount > 0 && b.Details.Count == 0) &&
-                !KeepsLegacyBuildingSummary(dto, e))
-                throw new InvalidOperationException("أدخل الرمز والوظيفة والمساحة لكل مبنى");
+            if (StudyResponseBuildings.Problem(dto) is { } shape)
+                throw new InvalidOperationException(shape);
 
-            var areas = dto.Buildings.ToDictionary(b => b.BuildingType,
-                b => b.Details.Count == 0 ? b.BuildingsArea : b.Details.Sum(d => d.Area));
+            var areas = dto.Buildings.ToDictionary(b => b.BuildingType, b => b.Details.Sum(d => d.Area));
             if (areas.Values.Any(a => a > StudyResponseFormValidator.MaxBuildingArea))
                 throw new InvalidOperationException("المساحة الإجمالية للمباني خارج النطاق");
 
@@ -161,11 +139,5 @@ namespace Application.Features.CentralStudies.Responses
                 UnitPrice = c.UnitPrice
             }));
         }
-
-        private static bool KeepsLegacyBuildingSummary(StudyResponseFormDto dto, StudyAssignmentResponse e) =>
-            dto.Buildings.Count == e.Buildings.Count &&
-            dto.Buildings.All(b => b.Details.Count == 0 && e.Buildings.Any(saved =>
-                (int)saved.BuildingType == b.BuildingType && saved.Details.Count == 0 &&
-                saved.BuildingCount == b.BuildingCount && saved.BuildingsArea == b.BuildingsArea));
     }
 }

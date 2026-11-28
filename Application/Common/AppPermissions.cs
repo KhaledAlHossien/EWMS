@@ -200,11 +200,15 @@
             new("CreateStudyResponse", "كتابة جزء القسم المتابع من إشعار الرد على تكليف معتمد (لموظفي القسم المتابع للتكليف)"),
             new("EditStudyResponse",   "تعديل جزء القسم المتابع من إشعار الرد وإرساله للاعتماد (المسودة أو المرفوض، لموظفي القسم المتابع للتكليف)"),
             new("EditStudyResponsePlanning", "تعديل جزء التخطيط وإدارة المشاريع من إشعار الرد (الموارد اللوجستية والكوادر والمدة) بعد توقيع القسم المتابع، في فرعه"),
-            new("ManageStudyDiwanCorrespondence", "ديوان فرع الدراسات: تسجيل الصادر والرد الورقي المركزي وإرفاق صورة الكتاب في فرعه (مع صلاحية عرض إشعارات الرد)"),
             new("DeleteStudyResponse", "حذف إشعار رد ما زال مسودة (في فرعه)"),
 
+            new("ViewStudyDiwanTransactions",  "عرض معاملات الديوان DWN (معاملات فرعه)"),
+            new("CreateStudyDiwanTransaction", "تسجيل الصادر إلى الديوان المركزي لرد معتمد: إنشاء معاملة الديوان (في فرعه)"),
+            new("EditStudyDiwanTransaction",   "تعديل معاملة الديوان (الصادر والرد المركزي وقراره) وإرفاق صورة الكتاب وإرسالها لاعتماد رئيس الفرع (المسودة أو المرفوضة، في فرعه)"),
+            new("DeleteStudyDiwanTransaction", "حذف معاملة ديوان ما زالت مسودة (في فرعه)"),
+
             new("ViewStudyStartOrders",  "عرض أوامر بدء الدراسة PIO (أوامر فرعه)"),
-            new("CreateStudyStartOrder", "إصدار أمر بدء دراسة PIO لرد معتمد في فرعه بعد موافقة الديوان المركزي وإحالة رئيس الفرع"),
+            new("CreateStudyStartOrder", "إصدار أمر بدء دراسة PIO من معاملة ديوان معتمدة بقرار موافقة مركزي (في فرعه)"),
             new("EditStudyStartOrder",   "تعديل أمر بدء الدراسة وإرساله للاعتماد (المسودة أو المرفوض، في فرعه)"),
             new("DeleteStudyStartOrder", "حذف أمر بدء ما زال مسودة (في فرعه)"),
 
@@ -214,7 +218,7 @@
             new("SignStudyAsFollowingDepartment", "التوقيع بصفة القسم المتابع (التكليفات والردود التي قسمه هو المتابع فيها)"),
             new("SignStudyAsPlanning",            "التوقيع بصفة التخطيط وإدارة المشاريع (ردود فرعه)"),
             new("SignStudyAsCompetentDepartment", "التوقيع بصفة رئيس القسم المختص (أوامر البدء التي قسمه هو المختص فيها)"),
-            new("SignStudyAsBranchHead",          "التوقيع بصفة رئيس الفرع (التكليفات وأوامر البدء وإنجاز المشاريع) وإجراء رئيس الفرع على الرد المركزي"),
+            new("SignStudyAsBranchHead",          "التوقيع بصفة رئيس الفرع (التكليفات ومعاملات الديوان وأوامر البدء وإنجاز المشاريع)"),
             new("SignStudyAsSendingDepartment",   "التوقيع بصفة القسم المرسل في اعتماد المخططات الأولي (مخططات قسمه المعمارية)"),
             new("SignStudyAsDesignManagement",    "التوقيع بصفة إدارة التصميم في اعتماد المخططات الأولي (مشاريع فرعه)"),
             new("SignStudyAsQualityControl",      "التوقيع بصفة ضبط الجودة في اعتماد المخططات الأولي (مشاريع فرعه)"),
@@ -258,7 +262,7 @@
 
             new("ViewStudyActivityLog", "عرض سجل الدراسة: من فعل ماذا ومتى من الطلب حتى إغلاق المشروع (دراسات فرعه)"),
 
-            new("PrintStudyDocuments", "طباعة مستندات الدراسات (الطلب والتكليف والرد وأمر البدء واعتماد المخططات) بشرط صلاحية عرض المستند نفسه (دراسات فرعه)"),
+            new("PrintStudyDocuments", "طباعة مستندات الدراسات (الطلب والتكليف والرد ومعاملة الديوان وأمر البدء واعتماد المخططات) بشرط صلاحية عرض المستند نفسه (دراسات فرعه)"),
         ];
 
         /// <summary>
@@ -297,7 +301,7 @@
             // فرع الدراسات: التوقيع بأي صفة، والقراءة المشتركة (المرفقات والتواقيع والسجل) لمن يرى أي مستند
             ["AnyStudySign"] = ["SignStudyAsFollowingDepartment", "SignStudyAsPlanning", "SignStudyAsCompetentDepartment", "SignStudyAsBranchHead",
                 "SignStudyAsSendingDepartment", "SignStudyAsDesignManagement", "SignStudyAsQualityControl", "SignStudyAsProjectManagement"],
-            ["AnyStudyView"] = ["ViewStudyRequests", "ViewStudyAssignments", "ViewStudyResponses", "ViewStudyStartOrders",
+            ["AnyStudyView"] = ["ViewStudyRequests", "ViewStudyAssignments", "ViewStudyResponses", "ViewStudyDiwanTransactions", "ViewStudyStartOrders",
                 "ViewStudyProjects", "ViewStudyDrawings", "ViewStudyActivityLog"],
             ["AnyStudyTaskView"] = ["ViewStudyProjects", "UpdateStudyTaskProgress"],
             ["AnyStudyAssignmentWrite"] = ["CreateStudyAssignment", "EditStudyAssignment"],
@@ -307,7 +311,7 @@
             ["AnyStudyEmployeePick"] = ["CreateStudyResponse", "EditStudyResponse", "CreateStudyStartOrder", "EditStudyStartOrder",
                 "EditStudyProject", "AddStudyProjectMember"],
             // رفع مرفق أو حذفه: بصلاحية تعديل صاحبه (يفحصها الـ handler)
-            ["AnyStudyAttachmentWrite"] = ["EditStudyRequest", "EditStudyAssignment", "EditStudyResponse", "EditStudyStartOrder",
+            ["AnyStudyAttachmentWrite"] = ["EditStudyRequest", "EditStudyAssignment", "EditStudyResponse", "EditStudyDiwanTransaction", "EditStudyStartOrder",
                 "EditStudyProject", "EditStudyDrawing", "EditArchitecturalVersion"],
             // سجل المواقع المشترك (قراءة بيانات الموقع الأساسية): مديرو المواقع، موثّقو الأجهزة، مسجّلو طبقات الفرع،
             // ومن يرى مشاريع الدراسات (صفحة الموقع تعرض له بطاقة المشاريع وحدها) أو يكتب طلب دراسة (يختار الموقع). تفاصيل كل بطاقة تبقى بصلاحياتها.

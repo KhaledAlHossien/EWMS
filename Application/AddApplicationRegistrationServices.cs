@@ -43,7 +43,7 @@ namespace Application
             services.AddScoped<Application.Features.CentralStudies.Responses.StudyResponseSupport>();
             services.AddScoped<Application.Features.CentralStudies.Stages.StudyStageSupport>();
             services.AddScoped<Application.Features.CentralStudies.StartOrders.StudyStartOrderSupport>();
-            services.AddScoped<Application.Features.CentralStudies.Responses.StudyDiwanSupport>();
+            services.AddScoped<Application.Features.CentralStudies.DiwanTransactions.StudyDiwanTransactionSupport>();
 
             // بقية الميزات: الدوال المشتركة بين عملياتها — صنف «Support» لكل ميزة بالنمط نفسه
             services.AddScoped<Application.Features.AssignedTasks.AssignedTaskExtrasSupport>();

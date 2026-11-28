@@ -91,7 +91,7 @@ public class StudyProjectReactivationTests
         await db.SaveChangesAsync();
 
         var kit = new StudyKit(null!, new UserPermissionService(db), null!, new StudyApprovalService(db), null!,
-            null!, null!, null!, null!, new StudyProjectService(db), null!, null!);
+            null!, null!, null!, null!, null!, new StudyProjectService(db), null!, null!);
         var notes = await kit.ProjectReactivationNotificationsAsync(project, 1, default);
 
         int[] expectedRecipients = resumesApproval ? [1, 2, 3, 4, 6] : [1, 2, 3, 4];

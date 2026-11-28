@@ -84,6 +84,7 @@ using (var scope = app.Services.CreateScope())
     await DbSeeder.BackfillVacationSegmentsAsync(db);
     await DbSeeder.EncryptDevicePasswordsAsync(db, scope.ServiceProvider.GetRequiredService<Application.Interfaces.IDevicePasswordProtector>());
     await DbSeeder.BackfillInstallationUnitsAsync(db, app.Configuration);
+    await DbSeeder.BackfillStudyAttachmentSizesAsync(db, scope.ServiceProvider.GetRequiredService<Application.Interfaces.IFileStore>(), app.Logger);
 }
 
 app.Run();

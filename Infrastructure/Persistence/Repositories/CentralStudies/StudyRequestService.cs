@@ -78,11 +78,15 @@ namespace Infrastructure.Persistence.Repositories
                     AssignmentStatus = r.Assignment == null ? null : (int)r.Assignment.Status,
                     ResponseId = r.Assignment == null || r.Assignment.Response == null ? null : r.Assignment.Response.Id,
                     ResponseStatus = r.Assignment == null || r.Assignment.Response == null ? null : (int)r.Assignment.Response.Status,
-                    DiwanStage = r.Assignment == null || r.Assignment.Response == null ? null
-                        : r.Assignment.Response.Status == StudyDocumentStatus.Approved && r.Assignment.Response.StartOrder == null
-                          && (r.Assignment.Response.DiwanCase == null || r.Assignment.Response.DiwanCase.Stage == StudyDiwanStage.Rejected)
-                            ? (int)StudyDiwanStage.AwaitingDispatch
-                        : r.Assignment.Response.DiwanCase != null ? (int)r.Assignment.Response.DiwanCase.Stage : null,
+                    // خطوة الديوان دائماً بعد الرد: فارغة ما لم تُنشأ المعاملة
+                    DiwanId = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.DiwanTransaction == null
+                        ? null : r.Assignment.Response.DiwanTransaction.Id,
+                    DiwanNumber = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.DiwanTransaction == null
+                        ? null : r.Assignment.Response.DiwanTransaction.TransactionNumber,
+                    DiwanStatus = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.DiwanTransaction == null
+                        ? null : (int)r.Assignment.Response.DiwanTransaction.Status,
+                    CentralDecision = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.DiwanTransaction == null
+                        ? null : (int?)r.Assignment.Response.DiwanTransaction.CentralDecision,
                     StartOrderId = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.StartOrder == null
                         ? null : r.Assignment.Response.StartOrder.Id,
                     StartOrderNumber = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.StartOrder == null
@@ -182,14 +186,11 @@ namespace Infrastructure.Persistence.Repositories
             .Include(r => r.StaffEstimates).ThenInclude(s => s.Discipline)
             .Include(r => r.LogisticItems)
             .Include(r => r.StartOrder)
-            .Include(r => r.DiwanCase).ThenInclude(d => d!.Replies)
+            .Include(r => r.DiwanTransaction)
             .AsSplitQuery();
 
         public async Task<StudyAssignmentResponse?> GetByIdAsync(int id) =>
             await WithDetails().FirstOrDefaultAsync(r => r.Id == id);
-
-        public async Task<StudyAssignmentResponse?> GetByDiwanReplyAsync(int replyId) =>
-            await WithDetails().FirstOrDefaultAsync(r => r.DiwanCase != null && r.DiwanCase.Replies.Any(reply => reply.Id == replyId));
 
         public async Task<(List<StudyAssignmentResponse> Items, int Total)> SearchAsync(
             StudyDocumentFilterDto filter, int? branchLimit, int page, int pageSize)
@@ -198,21 +199,6 @@ namespace Infrastructure.Persistence.Repositories
             if (branchLimit != null) query = query.Where(r => r.Assignment.Request.BranchId == branchLimit);
             if (filter.BranchId is int branchId) query = query.Where(r => r.Assignment.Request.BranchId == branchId);
             if (filter.Status is int status) query = query.Where(r => (int)r.Status == status);
-            if (filter.DiwanOnly)
-                query = query.Where(r => r.DiwanCase != null || (r.Status == StudyDocumentStatus.Approved && r.StartOrder == null));
-            // يطابق StudyDiwanRules.StageOf: الرد المعدّل بعد رفض مركزي واعتماده من جديد ينتظر صادراً جديداً،
-            // و«رُفضت» تشمل الرد العائد للقسم المتابع للتعديل (ليس معتمداً الآن)
-            if (filter.DiwanStage is int diwanStage)
-            {
-                query = diwanStage switch
-                {
-                    (int)StudyDiwanStage.AwaitingDispatch => query.Where(r => r.Status == StudyDocumentStatus.Approved && r.StartOrder == null
-                        && (r.DiwanCase == null || r.DiwanCase.Stage == StudyDiwanStage.Rejected)),
-                    (int)StudyDiwanStage.Rejected => query.Where(r => r.DiwanCase != null && r.DiwanCase.Stage == StudyDiwanStage.Rejected
-                        && r.Status != StudyDocumentStatus.Approved),
-                    _ => query.Where(r => r.Status == StudyDocumentStatus.Approved && r.DiwanCase != null && (int)r.DiwanCase.Stage == diwanStage)
-                };
-            }
             if (filter.From is DateTime from) query = query.Where(r => r.ResponseDate >= from.Date);
             if (filter.To is DateTime to) query = query.Where(r => r.ResponseDate <= to.Date);
             if (!string.IsNullOrWhiteSpace(filter.Search))
@@ -220,21 +206,11 @@ namespace Infrastructure.Persistence.Repositories
                 var text = filter.Search.Trim();
                 query = query.Where(r => r.ResponseNumber.Contains(text) || r.Assignment.AssignmentNumber.Contains(text)
                                          || (r.Assignment.ProjectCode != null && r.Assignment.ProjectCode.Contains(text))
-                                         || r.Assignment.Request.MainBeneficiary.Contains(text)
-                                         || (r.DiwanCase != null && (r.DiwanCase.DispatchNumber.Contains(text)
-                                             || r.DiwanCase.Replies.Any(reply => reply.Number.Contains(text)))));
+                                         || r.Assignment.Request.MainBeneficiary.Contains(text));
             }
 
-            if (filter.DiwanOpen)
-                query = query.Where(r => r.Status == StudyDocumentStatus.Approved && r.StartOrder == null
-                    && (r.DiwanCase == null || r.DiwanCase.Stage == StudyDiwanStage.AwaitingReply
-                        || r.DiwanCase.Stage == StudyDiwanStage.AwaitingBranchHead || r.DiwanCase.Stage == StudyDiwanStage.CorrectionRequested
-                        || r.DiwanCase.Stage == StudyDiwanStage.Rejected));
-
             var total = await query.CountAsync();
-            var ordered = filter.DiwanOpen
-                ? query.OrderBy(r => r.UpdatedAt ?? r.CreatedAt).ThenBy(r => r.Id)   // الأطول انتظاراً أولاً
-                : query.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id);
+            var ordered = query.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id);
             var ids = await ordered.Skip((page - 1) * pageSize).Take(pageSize).Select(r => r.Id).ToListAsync();
             var items = await WithDetails().Where(r => ids.Contains(r.Id)).AsNoTracking().ToListAsync();
             return (items.OrderBy(r => ids.IndexOf(r.Id)).ToList(), total);
@@ -256,15 +232,6 @@ namespace Infrastructure.Persistence.Repositories
             await SaveChangesAsync();
         }
 
-        public Task SaveDiwanStepAsync(StudyAssignmentResponse response, byte[] expectedRowVersion, StudyActivityLog activity,
-            IReadOnlyCollection<Domain.Entities.Notification> notifications)
-        {
-            ExpectVersion(response, expectedRowVersion);
-            _context.StudyActivityLogs.Add(activity);
-            _context.Notifications.AddRange(notifications);
-            return SaveChangesAsync();
-        }
-
         public async Task DeleteAsync(StudyAssignmentResponse response)
         {
             _context.StudyAssignmentResponses.Remove(response);
@@ -278,7 +245,7 @@ namespace Infrastructure.Persistence.Repositories
 
         private IQueryable<StudyStartOrder> WithDetails() => _context.StudyStartOrders
             .Include(o => o.Response).ThenInclude(r => r.Assignment).ThenInclude(a => a.Request).ThenInclude(q => q.Branch)
-            .Include(o => o.DiwanReply)
+            .Include(o => o.DiwanTransaction)
             .Include(o => o.CompetentDepartment)
             .Include(o => o.ProjectManager)
             .Include(o => o.CreatedBy)
