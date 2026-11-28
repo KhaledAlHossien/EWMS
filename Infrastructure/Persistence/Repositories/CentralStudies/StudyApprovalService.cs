@@ -25,6 +25,8 @@ namespace Infrastructure.Persistence.Repositories
             .Include(a => a.Signer)
             .Include(a => a.Assignment).ThenInclude(x => x!.Request).ThenInclude(r => r.Branch)
             .Include(a => a.Response).ThenInclude(x => x!.Assignment).ThenInclude(x => x.Request).ThenInclude(r => r.Branch)
+            // معاملة ديوان الرد: اعتماد الرد المعدّل بعد رفض مركزي ينقلها إلى «جاهزة لإعادة الإرسال»
+            .Include(a => a.Response).ThenInclude(x => x!.DiwanTransaction)
             .Include(a => a.StartOrder).ThenInclude(x => x!.Response).ThenInclude(x => x.Assignment).ThenInclude(x => x.Request).ThenInclude(r => r.Branch)
             // المشروع يحمل رقم طلبه (RequestId) فلا حاجة إلى سلسلة أمر البدء (مشروع الفرع الجغرافي بلا أمر بدء)
             .Include(a => a.DesignApproval).ThenInclude(x => x!.Version).ThenInclude(v => v.Drawing).ThenInclude(d => d.Project).ThenInclude(p => p.Branch)
@@ -35,6 +37,9 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<List<StudyApproval>> GetForOwnerAsync(StudyEntityType ownerType, int ownerId) =>
             await ForOwner(ownerType, ownerId).Include(a => a.Signer)
                 .OrderBy(a => a.SortOrder).AsNoTracking().ToListAsync();
+
+        public async Task<List<StudyApproval>> GetTrackedForOwnerAsync(StudyEntityType ownerType, int ownerId) =>
+            await ForOwner(ownerType, ownerId).OrderBy(a => a.SortOrder).ToListAsync();
 
         public async Task<StudyApproval?> GetWithOwnerAsync(int id) =>
             await WithOwners().FirstOrDefaultAsync(a => a.Id == id);
@@ -85,6 +90,9 @@ namespace Infrastructure.Persistence.Repositories
 
         public async Task<int> CountForOwnerAsync(StudyEntityType ownerType, int ownerId) =>
             await ForOwner(ownerType, ownerId).CountAsync();
+
+        public async Task<int> CountForOwnerSinceAsync(StudyEntityType ownerType, int ownerId, DateTime since) =>
+            await ForOwner(ownerType, ownerId).CountAsync(a => a.UploadedAt > since);
 
         public async Task AddAsync(StudyAttachment attachment)
         {
@@ -177,6 +185,7 @@ namespace Infrastructure.Persistence.Repositories
             || await _context.StudyAssignments.AnyAsync(x => x.CreatedByUserId == userId)
             || await _context.StudyAssignmentResponses.AnyAsync(x => x.CreatedByUserId == userId || x.ProposedManagerUserId == userId)
             || await _context.StudyDiwanTransactions.AnyAsync(x => x.CreatedByUserId == userId)
+            || await _context.StudyDiwanRounds.AnyAsync(x => x.ReferredByUserId == userId || x.RevisionByUserId == userId)
             || await _context.StudyStartOrders.AnyAsync(x => x.CreatedByUserId == userId || x.ProjectManagerUserId == userId)
             || await _context.StartOrderEngineers.AnyAsync(x => x.EngineerUserId == userId)
             || await _context.StudyProjects.AnyAsync(x => x.CreatedByUserId == userId || x.ManagerUserId == userId)

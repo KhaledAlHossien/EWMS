@@ -7,8 +7,8 @@ namespace Application.Features.CentralStudies.Projects.Commands.CreateRegional
 {
     /// <summary>
     /// الإحالة إلى الفرع الجغرافي (قرار المستخدم 2026-11-28): الطلب المعتمد لفرع دراسة بمسار التنسيق يصبح مشروعاً مباشرة،
-    /// كوده برمز فرع الدراسة وسنة الإحالة، ومراحله من أنواع مسار التنسيق. قسم من يحيل (التنسيق والارتباط) مسؤول عن المراحل
-    /// ومشارك في المشروع، والمدير من يحيل ما لم يُختر غيره. الإنجاز يوقّعه التنسيق والارتباط ثم ضبط الجودة.
+    /// كوده برمز فرع الدراسة وسنة الإحالة، ومراحله من أنواع مسار التنسيق. المدير رئيس قسم التنسيق والارتباط
+    /// (من يملك التوقيع بصفته، StudyProjectSupport.CoordinationManagerAsync)، وقسمه مسؤول عن المراحل ومشارك في المشروع. الإنجاز يوقّعه التنسيق والارتباط ثم ضبط الجودة.
     /// </summary>
     public class CreateRegionalStudyProjectCommandHandler : IRequestHandler<CreateRegionalStudyProjectCommand, StudyProjectDto>
     {
@@ -16,18 +16,16 @@ namespace Application.Features.CentralStudies.Projects.Commands.CreateRegional
         private readonly IStudyRequestService _requests;
         private readonly IStudyAssignmentService _assignments;
         private readonly IStudyLookupService _lookups;
-        private readonly IUserService _users;
         private readonly StudyKit _kit;
         private readonly StudyProjectSupport _support;
 
         public CreateRegionalStudyProjectCommandHandler(IStudyProjectService service, IStudyRequestService requests, IStudyAssignmentService assignments,
-            IStudyLookupService lookups, IUserService users, StudyKit kit, StudyProjectSupport support)
+            IStudyLookupService lookups, StudyKit kit, StudyProjectSupport support)
         {
             _service = service;
             _requests = requests;
             _assignments = assignments;
             _lookups = lookups;
-            _users = users;
             _kit = kit;
             _support = support;
         }
@@ -49,15 +47,14 @@ namespace Application.Features.CentralStudies.Projects.Commands.CreateRegional
             if (await _assignments.ProjectCodeExistsAsync(code))
                 throw new InvalidOperationException($"كود المشروع «{code}» مستخدم في تكليف أو مشروع آخر — تحقق من رقم أرشيف ديوان الإدارة وتاريخ الإحالة");
 
-            var managerId = dto.ManagerUserId ?? viewer.Id;
-            StudyRules.EnsureBranchEmployee(await _users.GetByIdAsync(managerId), studyRequest.BranchId, "مدير المشروع");
+            // المدير رئيس قسم التنسيق والارتباط، وقسمه مسؤول عن المراحل (يدير مهامها) ومشارك في المشروع
+            var manager = await _support.CoordinationManagerAsync(studyRequest.BranchId, dto.ManagerUserId, viewer);
+            var managerId = manager.Id;
+            int? departmentId = manager.DepartmentId;
 
             var types = (await _lookups.GetStageTypesAsync(activeOnly: true)).Where(t => t.Track == StudyTrack.Coordination).ToList();
             if (types.Count == 0)
                 throw new InvalidOperationException("لا مراحل فعّالة لمسار التنسيق — عرّفها من أنواع المراحل قبل الإحالة");
-
-            // قسم من يحيل (التنسيق والارتباط) إن كان من أقسام فرع الطلب: مسؤول عن المراحل (يدير مهامها) ومشارك في المشروع
-            int? departmentId = viewer.User.BranchId == studyRequest.BranchId ? viewer.User.DepartmentId : null;
 
             var now = DateTime.Now;
             var referral = dto.ReferralDate.Date;

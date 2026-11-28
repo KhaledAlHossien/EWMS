@@ -27,6 +27,10 @@ namespace Application.Features.CentralStudies.Attachments
             !owner.Closed && viewer.Has(owner.EditPermission) && StudyRules.InScope(viewer, owner.BranchId)
             && (owner.EditDepartmentId == null || StudyRules.InDepartment(viewer, owner.EditDepartmentId));
 
+        /// <summary>يحذف المرفق من يعدّل صاحبه، إلا مرفقاً أغلقته جولة سابقة (كتب معاملة الديوان قبل آخر إحالة)</summary>
+        public static bool CanDelete(Viewer viewer, AttachmentOwner owner, StudyAttachment attachment) =>
+            CanEdit(viewer, owner) && (owner.LockedBefore is not DateTime locked || attachment.UploadedAt > locked);
+
         public async Task<AttachmentOwner> OwnerAsync(int type, int id)
         {
             var ownerType = (StudyEntityType)type;

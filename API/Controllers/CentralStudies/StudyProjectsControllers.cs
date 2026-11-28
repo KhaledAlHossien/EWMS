@@ -96,7 +96,7 @@ namespace API.Controllers
         public async Task<ActionResult<StudyProjectDto>> Reactivate(int id)
             => Ok(await _mediator.Send(new ReactivateStudyProjectCommand(id)));
 
-        /// <summary>بعد إغلاق كل المراحل: يُرسل الإنجاز لتوقيع إدارة المشاريع ثم رئيس الفرع (يكتمل المشروع بالموافقتين)</summary>
+        /// <summary>بعد إغلاق كل المراحل: يُرسل الإنجاز للتوقيع — المركزية: إدارة المشاريع ثم رئيس الفرع، والفرع الجغرافي: التنسيق والارتباط ثم ضبط الجودة</summary>
         [HttpPut("RequestCompletion/{id}")]
         [Authorize(Policy = "EditStudyProject")]
         public async Task<ActionResult<StudyProjectDto>> RequestCompletion(int id)

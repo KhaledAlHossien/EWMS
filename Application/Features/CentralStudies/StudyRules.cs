@@ -35,6 +35,9 @@ namespace Application.Features.CentralStudies
         public const string ViewDepartmentTasks = "ViewDepartmentStudyTasks";
         public const string ViewOfficeTasks = "ViewOfficeStudyTasks";
         public const string CreateRegionalProject = "CreateRegionalStudyProject";
+        public const string HandleDiwanRejection = "HandleStudyDiwanRejection";
+        public const string SignAsBranchHead = "SignStudyAsBranchHead";
+        public const string SignAsPlanning = "SignStudyAsPlanning";
     }
 
     /// <summary>
@@ -302,6 +305,48 @@ namespace Application.Features.CentralStudies
         };
 
         public static string Name(StudyDiwanDecision s) => s == StudyDiwanDecision.Approved ? "موافقة" : "رفض";
+
+        public static string Name(StudyDiwanStage s) => s switch
+        {
+            StudyDiwanStage.Registering => "لدى الديوان",
+            StudyDiwanStage.AtBranchHead => "بانتظار رئيس الفرع",
+            StudyDiwanStage.ReturnedToDiwan => "معادة إلى الديوان للتصحيح",
+            StudyDiwanStage.CentralApproved => "موافقة مركزية",
+            StudyDiwanStage.CentralRejected => "رفض مركزي — بانتظار مدير المشاريع",
+            StudyDiwanStage.PlanningRevision => "تعديل تخطيطي لدى مدير المشاريع",
+            StudyDiwanStage.TechnicalRevision => "تعديل فني لدى القسم المتابع",
+            StudyDiwanStage.ReadyToResend => "جاهزة لصادر جديد",
+            StudyDiwanStage.Cancelled => "ملغاة",
+            _ => s.ToString()
+        };
+
+        public static string Name(StudyDiwanRevision s) => s == StudyDiwanRevision.Planning ? "تعديل تخطيطي" : "تعديل فني";
+
+        /// <summary>الحالة العامة لكل مرحلة من مراحل معاملة الديوان (Status يبقى كباقي المستندات للبحث والسلسلة)</summary>
+        public static StudyDocumentStatus StatusOf(StudyDiwanStage stage) => stage switch
+        {
+            StudyDiwanStage.Registering => StudyDocumentStatus.Draft,
+            StudyDiwanStage.AtBranchHead => StudyDocumentStatus.PendingApproval,
+            StudyDiwanStage.CentralApproved => StudyDocumentStatus.Approved,
+            StudyDiwanStage.Cancelled => StudyDocumentStatus.Cancelled,
+            _ => StudyDocumentStatus.Rejected
+        };
+
+        /// <summary>مراحل يعمل فيها موظف الديوان على المعاملة (التعديل والمرفقات)</summary>
+        public static bool AtDiwan(StudyDiwanStage stage) =>
+            stage is StudyDiwanStage.Registering or StudyDiwanStage.ReturnedToDiwan or StudyDiwanStage.ReadyToResend;
+
+        /// <summary>الرد قيد التعديل بعد رفض مركزي (تخطيطي أو فني)</summary>
+        public static bool InDiwanRevision(StudyDiwanStage stage) =>
+            stage is StudyDiwanStage.PlanningRevision or StudyDiwanStage.TechnicalRevision;
+
+        /// <summary>آخر جولة مغلقة (آخر إحالة من رئيس الفرع)، أو لا شيء قبل أول إحالة</summary>
+        public static StudyDiwanRound? LastRound(StudyDiwanTransaction t) =>
+            t.Rounds.OrderBy(r => r.RoundNumber).LastOrDefault();
+
+        /// <summary>جولة الرفض المركزي التي يُعدَّل الرد بسببها الآن (أثناء التعديل التخطيطي أو الفني فقط)</summary>
+        public static StudyDiwanRound? RevisionRound(StudyDiwanTransaction? t) =>
+            t != null && InDiwanRevision(t.Stage) ? LastRound(t) : null;
 
         public static string Name(StudyUrgency s) => s == StudyUrgency.Urgent ? "مستعجل" : "عادي";
 

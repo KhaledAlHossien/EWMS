@@ -23,8 +23,12 @@
 طلب (REQ) ─Submit→ معتمد
   └─ تكليف IPA ─Submit→ رئيس الفرع ─→ معتمد
        └─ رد ─Submit→ القسم المتابع → التخطيط وإدارة المشاريع ─→ معتمد
-            └─ معاملة الديوان DWN (الصادر + الرد المركزي وصورة كتابه) ─Submit→ رئيس الفرع ─→ معتمدة بقرار الديوان المركزي
-                 └─ أمر بدء PIO (بقرار موافقة، وإن لم تكن التوصية «غير متاح») ─Submit→ رئيس القسم المختص → رئيس الفرع ─→ معتمد
+            └─ معاملة الديوان DWN: الديوان يسجّل الصادر والرد المركزي وصورة كتابه ─Submit→ رئيس الفرع
+                 ├─ يعيدها إلى الديوان للتصحيح (Return) ─→ تُصحَّح وتُرسل من جديد
+                 ├─ يحيلها بموافقة (Refer 1) ─→ مدير المشاريع يصدر أمر البدء
+                 └─ يحيلها برفض (Refer 2) ─→ مدير المشاريع: تعديل تخطيطي (يعدّله ويوقّعه وحده) أو فني (القسم المتابع ثم التخطيط)
+                      └─ اعتُمد الرد المعدّل ─→ الديوان يسجّل صادراً جديداً على المعاملة نفسها (جولة جديدة) ─Submit→ رئيس الفرع…
+                 └─ أمر بدء PIO (بإحالة موافقة، وإن لم تكن التوصية «غير متاح») ─Submit→ رئيس القسم المختص → رئيس الفرع ─→ معتمد
                       └─ مشروع: مراحل + أقسام مشاركة + فريق + مهام + مخططات
                            └─ RequestCompletion → إدارة المشاريع → رئيس الفرع ─→ مكتمل
 ```
@@ -49,7 +53,8 @@
 - **كود المشروع يبدأ برمز فرع الدراسة** (0–5) لا برقم الفرع في النظام: `رمز فرع الدراسة-سنة التكليف أو الإحالة-N/R/RN-رقم الطلب-رقم أرشيف ديوان الإدارة`. الأكواد التجريبية القديمة صُحّحت إلى `0-…`.
 - **مشروع الفرع الجغرافي:**
   - `startOrderId`/`startOrderNumber` = `null`، و`requestId`/`requestNumber`/`requestStatus` موجودة لكل مشروع.
-  - مراحله من أنواع المراحل ذات `track = 2` فقط (مشاريع المركزية من `track = 1` فقط)، وقسم من أحال (التنسيق والارتباط) مسؤول عنها ومشارك في المشروع. **بلا نوع مرحلة فعّال لمسار التنسيق تُرفض الإحالة** — عرّف الأنواع أولاً.
+  - **مديره رئيس قسم التنسيق والارتباط** (قرار المستخدم 2026-11-28): من يملك `SignStudyAsCoordination` في فرع الدراسة وله قسم (لا يُستنتج من اسم الدور). القائمة: `GET api/StudyLookups/CoordinationHeads?branchId` (`branchId` لمن يتصفح المؤسسة فقط). في الإحالة `managerUserId` اختياري: إن كان من يحيل رئيساً فهو المدير، وإلا الرئيس الوحيد في الفرع؛ إن تعدّد الرؤساء يرجع 400 بأسمائهم فاعرض القائمة، وإن لم يوجد رئيس يرجع 400 يشرح الصلاحية المطلوبة. مدير ليس رئيساً = 400، في الإحالة وفي `Update` لمشروع جغرافي.
+  - مراحله من أنواع المراحل ذات `track = 2` فقط (مشاريع المركزية من `track = 1` فقط)، و**قسم المدير** (التنسيق والارتباط) مسؤول عنها (يدير مهامها) ومشارك في المشروع — حتى لو أحال المدير العام. **بلا نوع مرحلة فعّال لمسار التنسيق تُرفض الإحالة** — عرّف الأنواع أولاً.
   - **لا مخططات** (400): ما يرد من الفرع يُرفع مرفقات للمشروع. أخفِ تبويب المخططات حين `track = 2`.
   - إنجازه: سطرا توقيع `signerRole` 9 «التنسيق والارتباط» ثم 7 «ضبط الجودة».
   - إعادة التفعيل تتبع الطلب (لا أمر بدء)، والطلب لا يُلغى ما دام له مشروع غير ملغى.
@@ -80,6 +85,7 @@
 | GET/POST/PUT/DELETE | `Disciplines/…` بالنمط نفسه | ViewStudyLookups… | |
 | GET/POST/PUT/DELETE | `Beneficiaries/…` بالنمط نفسه | القراءة: أي صلاحية للقوائم View/Create/Edit/DeleteStudyLookup أو Create/EditStudyRequest؛ الإدارة: Create/Edit/DeleteStudyLookup | اسم حتى 200 حرف + رمز `code` مطلوب وفريد حتى 30 حرفاً + `isActive`؛ و`activeOnly=true` يعيد الجهات الفعالة ذات الرمز المكتمل |
 | GET | `Employees?branchId&departmentId` | `AnyStudyEmployeePick` (أيٌّ من: Create/EditStudyResponse، Create/EditStudyStartOrder، EditStudyProject، AddStudyProjectMember، CreateRegionalStudyProject) | موظفو فرع الدراسة لقوائم الاختيار — انظر تحت الجدول |
+| GET | `CoordinationHeads?branchId` | `AnyStudyEmployeePick` | رؤساء قسم التنسيق والارتباط (مدير مشروع الفرع الجغرافي): `[{ id, fullName, departmentName, jobTitle }]` |
 | GET | `StudyBranches/GetAll?branchId&activeOnly` | `AnyStudyBranchPick` (قوائم الدراسات، Create/EditStudyRequest، ViewStudyRequests، ViewStudyProjects) | أفرع الدراسات: `{ id, branchId, branchName, code, name, track, trackName, isActive, inUse, rowVersion }` |
 | POST/PUT/DELETE | `StudyBranches/Create`، `StudyBranches/Update/{id}`، `StudyBranches/Delete/{id}` | Create/Edit/DeleteStudyLookup | الجسم `{ branchId?, code, name, track, isActive }` — `branchId` لنظرة المؤسسة عند الإنشاء فقط؛ الرمز 0–99 فريد في الفرع، والاسم كذلك. **`inUse` (له طلبات): لا يتغير الرمز ولا المسار ولا يُحذف** (عطّله) |
 
@@ -162,25 +168,46 @@
 - الترحيل `Study_Response_Unified_Buildings` حوّل الردود القديمة مرة واحدة: المبنى بلا تفاصيل صار أسطراً رموزها `M1` `M2`… ووظيفتها «غير محددة» والمساحة بالتساوي، وبند لكل مبنى بسعر متر يحفظ إجمالي الرد القديم (فرق تقريب سعر المتر بخانتين فقط). نسخة من الأسطر القديمة في الجداول `StudyResponseLegacy*` حتى التحقق.
 - الترحيل `Study_Response_Building_Repetitions` (2026-11-28) أضاف `siteNote` و`note` و`repetitions`؛ الأسطر الموجودة تكرارها 1 فلم تتغير مساحاتها ولا كلفها. الواجهة التي لا ترسل الحقول الجديدة تبقى تعمل (تكرار 1، بلا ملاحظات)، لكن حفظ رد من شاشة قديمة يمسح ملاحظاته ويعيد تكراره إلى 1.
 
-### معاملة الديوان — `api/StudyDiwanTransactions` (2026-11-26)
+### معاملة الديوان — `api/StudyDiwanTransactions` (2026-11-26، المسار الجديد 2026-11-28)
 
-مستند كباقي المستندات (المسارات والحالات والإلغاء والحذف نفسها، الجدول أعلاه)، واحد لكل إشعار رد، رقمه `DWN-yy-nnnn`، وخطوته في `chain` دائماً بعد الرد: `diwanId` و`diwanNumber` و`diwanStatus` و`centralDecision` (فارغة ما لم تُنشأ). حلّ محل المسارات `api/StudyResponses/Diwan/{id}/…` وصفحة الديوان الخاصة (حُذفت، وحُذف `diwanStage` وفلاتر `diwanStage`/`diwanOnly`/`diwanOpen` من قائمة الردود).
+مستند واحد لكل إشعار رد، رقمه `DWN-yy-nnnn`، وخطوته في `chain` دائماً بعد الرد: `diwanId` و`diwanNumber` و`diwanStatus` و**`diwanStage`** و`centralDecision` (فارغة ما لم تُنشأ). **منذ 2026-11-28 (طلب يمان):** الموظف لا يحدد قرار المركز؛ رئيس الفرع يقرأ الكتاب ويحيل أو يعيد، ومدير المشاريع يستلم الرفض ويختار التعديل.
 
-| الخطوة | الطلب | الشرط |
-|---|---|---|
-| تسجيل الصادر | `POST Create` ‏`{ responseId, dispatchNumber, dispatchDate, notes? }` | رد معتمد بلا معاملة ولا أمر بدء (`response.canCreateDiwanTransaction`) |
-| تسجيل الرد المركزي | `PUT Update/{id}` ‏`{ dispatchNumber, dispatchDate, replyNumber, replyDate, centralDecision, notes, rowVersion }` | مسودة أو مرفوضة، والرد معتمد. `centralDecision`: 1 موافقة، 2 رفض |
-| صورة الكتاب | `POST api/StudyAttachments/Upload?ownerType=14&ownerId={id}&attachmentTypeId=…` (نوع «كتاب رسمي») | مرفق عادي يظهر مع مرفقات الدراسة |
-| الإرسال للاعتماد | `PUT Submit/{id}` | رقم الرد المركزي وتاريخه وقراره، ومرفق واحد على الأقل |
-| توقيع رئيس الفرع | `PUT api/StudyApprovals/Decide/{approvalId}` (يظهر في `Pending` و`ByOwner?ownerType=14`) | `SignStudyAsBranchHead` في فرع الدراسة |
+**المرحلة `stage` / `stageName`** هي ما تبني عليه الواجهة (يبقى `status` كباقي المستندات للبحث والسلسلة):
 
-- **أثر التوقيع:** موافقة رئيس الفرع تُثبت قرار الديوان المركزي:
-  - قرار موافقة: المعاملة معتمدة، و`canCreateStartOrder` يفتح أمر البدء (`POST api/StudyStartOrders/Create` بـ `diwanTransactionId`)، إلا مع التوصية «غير متاح» فتُغلق السلسلة بلا أمر بدء.
-  - قرار رفض: المعاملة «مرفوضة» ويعود الرد «مرفوضاً» إلى القسم المتابع مع إشعاره. بعد اعتماد الرد المعدّل تُعدَّل **المعاملة نفسها** بصادر ورد جديدين وتُرسل من جديد (`canEdit` لا يُفتح قبل اعتماد الرد).
-  - رفض رئيس الفرع نفسه: المعاملة مرفوضة كأي مستند، تُصحَّح وتُرسل من جديد.
-- **الصلاحيات:** `ViewStudyDiwanTransactions`، `CreateStudyDiwanTransaction`، `EditStudyDiwanTransaction`، `DeleteStudyDiwanTransaction` (بدل `ManageStudyDiwanCorrespondence`)، والإلغاء `CancelStudyDocuments`. الحدّ فرع الدراسة (مدير النظام ونظرة المؤسسة كل الفروع).
-- **الإلغاء:** لا تُلغى المعاملة ولها أمر بدء قائم، ولا يُلغى الرد أو يُحذف وله معاملة قائمة.
-- **الترحيل** `Study_Diwan_Transactions`: كل معاملة قديمة صارت مستنداً (المرحلة 2 مسودة، 3 بانتظار الاعتماد، 4 مرفوضة، 5 و7 معتمدة، 6 مرفوضة بقرار رفض)، وكتب الرد مرفقات، وأوامر البدء المرتبطة بكتاب صارت مرتبطة بمعاملتها؛ الأوامر الأقدم بلا معاملة. الجدولان القديمان باسم `StudyDiwanCases_Legacy` و`StudyDiwanReplies_Legacy` حتى التحقق.
+| `stage` | الاسم | `status` | من عليه الخطوة (`nextSigners` / `nextIssuers`) | ما يُتاح |
+|---|---|---|---|---|
+| 1 | لدى الديوان | 1 مسودة | — | `canEdit`، `canSubmit`، `canDelete` (الجولة الأولى فقط)، المرفقات |
+| 2 | بانتظار رئيس الفرع | 2 | `nextSigners` = رئيس الفرع | `canRefer`، `canReturn` |
+| 3 | معادة إلى الديوان للتصحيح | 4 | `nextIssuers` = موظفو الديوان | `canEdit`، `canSubmit`، المرفقات |
+| 4 | موافقة مركزية | 3 معتمد | `nextIssuers` = من يصدر أمر البدء | `canCreateStartOrder` (إلا مع «غير متاح») |
+| 5 | رفض مركزي — بانتظار مدير المشاريع | 4 | `nextIssuers` = حاملو `HandleStudyDiwanRejection` | `canRequestRevision` |
+| 6 | تعديل تخطيطي لدى مدير المشاريع | 4 | `nextIssuers` = موقّعو التخطيط | — (العمل على الرد) |
+| 7 | تعديل فني لدى القسم المتابع | 4 | `nextIssuers` = موظفو القسم المتابع، ثم موقّعو الرد بعد إرساله | — (العمل على الرد) |
+| 8 | جاهزة لصادر جديد | 4 | `nextIssuers` = موظفو الديوان | `canEdit` (لا `canSubmit` قبل تسجيل الصادر الجديد)، المرفقات |
+| 9 | ملغاة | 5 | — | — |
+
+| الخطوة | الطلب | من | الشرط |
+|---|---|---|---|
+| تسجيل الصادر | `POST Create` ‏`{ responseId, dispatchNumber, dispatchDate, notes? }` | الديوان (`CreateStudyDiwanTransaction`) | رد معتمد بلا معاملة ولا أمر بدء (`response.canCreateDiwanTransaction`) |
+| تسجيل الرد المركزي / صادر جديد | `PUT Update/{id}` ‏`{ dispatchNumber, dispatchDate, replyNumber, replyDate, notes, rowVersion }` | الديوان (`EditStudyDiwanTransaction`) | المرحلة 1 أو 3 أو 8، والرد معتمد. **لا `centralDecision`** (إن أُرسل يُتجاهل). من المرحلة 8 = جولة جديدة (`roundNumber` + 1) ورقم صادر غير صادر الجولة السابقة |
+| صورة الكتاب | `POST api/StudyAttachments/Upload?ownerType=14&ownerId={id}&attachmentTypeId=…` (نوع «كتاب رسمي») | الديوان | في المراحل 1 و3 و8 فقط (غيرها 400 برسالة) |
+| الإرسال إلى رئيس الفرع | `PUT Submit/{id}` | الديوان | المرحلة 1 أو 3؛ رقم الرد وتاريخه، ومرفق. **في جولة لاحقة:** رقم رد غير رد الجولة السابقة، ومرفق رُفع بعد إحالتها |
+| إحالة إلى مدير المشاريع | `PUT Refer/{id}` ‏`{ centralDecision: 1 موافقة \| 2 رفض, note, rowVersion? }` | رئيس الفرع (`SignStudyAsBranchHead`، فرع الدراسة) | المرحلة 2. `note` إلزامية مع الرفض (سببه، يراه مدير المشاريع) |
+| إعادة إلى الديوان | `PUT Return/{id}` ‏`{ reason, rowVersion? }` | رئيس الفرع | المرحلة 2. السبب إلزامي. ليست جولة: الصادر نفسه يُصحَّح ويُرسل (يكفي تصحيح المرفق) |
+| اختيار التعديل | `PUT RequestRevision/{id}` ‏`{ kind: 1 تخطيطي \| 2 فني, reason, rowVersion? }` | مدير المشاريع (`HandleStudyDiwanRejection`، فرع الدراسة) | المرحلة 5 |
+| أمر البدء | `POST api/StudyStartOrders/Create` بـ `diwanTransactionId` | `CreateStudyStartOrder` | المرحلة 4، والتوصية ليست «غير متاح» |
+
+- **رئيس الفرع لا يوقّع المعاملة بـ `StudyApprovals/Decide`:** سطرها يبقى في `StudyApprovals/Pending` (`ownerType` = 14) ليظهر في «بانتظار توقيعي»، لكن `Decide` عليه يعيد 400 «…يقرّر فيها رئيس الفرع من صفحتها». افتح صفحة المعاملة من السطر واعرض الأزرار الثلاثة. الإحالة تملأ سطره (موافقة + توقيعه الحالي)، والإعادة ترفضه بالسبب.
+- **التعديل التخطيطي (`kind: 1`):** الرد يعود «بانتظار الاعتماد»، ويبقى سطر القسم المتابع موقّعاً، ويعود سطر التخطيط وحده إلى الانتظار. فيظهر للمستخدم `canEditPlanningPart` على الرد، فيعدّل `PUT api/StudyResponses/UpdatePlanning/{id}` ثم يوقّع `StudyApprovals/Decide`. الجزء الفني لا يُعدَّل في هذا المسار. رفض توقيع التخطيط هنا يحوّلها إلى تعديل فني (المرحلة 7).
+- **التعديل الفني (`kind: 2`):** الرد «مرفوض» عند القسم المتابع (`canEditFollowingPart`)، يعدّله ويرسله `Submit`، فيوقّع القسم المتابع ثم التخطيط (ويستطيع مدير المشاريع تعديل جزء التخطيط بينهما كالمعتاد).
+- **في صفحة الرد** (أثناء المرحلتين 6 و7 فقط): `diwanStage`/`diwanStageName`، و`diwanRejectionNote` (سبب الرفض المركزي من رئيس الفرع)، و`diwanRevisionReason` (سبب التعديل من مدير المشاريع). بعد اعتماد الرد المعدّل تنتقل المعاملة وحدها إلى المرحلة 8 ويُشعَر الديوان.
+- **الجولات `rounds`** (بالترتيب، صف لكل إحالة): `roundNumber`، `dispatchNumber`/`dispatchDate`، `replyNumber`/`replyDate`، `centralDecision`/`centralDecisionName`، `referredByName`/`referredAt`/`referralNote`، و`revisionKind`/`revisionKindName`/`revisionByName`/`revisionAt`/`revisionReason` (للرفض بعد اختيار مدير المشاريع). حقول المعاملة نفسها (`dispatchNumber`، `replyNumber`، `centralDecision`) هي الجولة الحالية، و`roundNumber` رقمها.
+- **المرفقات:** كتب الجولات المغلقة (المرفوعة قبل آخر إحالة) لا تُحذف (`canDelete: false`، والحذف 400)، لتبقى للأرشيف.
+- **الحذف والإلغاء:** تُحذف المسودة في جولتها الأولى فقط؛ معاملة لها جولات تُلغى (`CancelStudyDocuments`، بسبب). لا إلغاء ولها أمر بدء قائم، ولا يُلغى الرد أو يُحذف وله معاملة قائمة. **إلغاء المعاملة ينهي سلسلة الرد** (معاملة واحدة لكل رد): هو طريق الرفض النهائي الذي لا يُعدَّل، وبعده يُلغى الرد ثم ما قبله.
+- **البحث:** `GetAll?diwanStage=5` (مثلاً صندوق مدير المشاريع)، مع الفلاتر المعتادة.
+- **الصلاحيات:** `ViewStudyDiwanTransactions`، `CreateStudyDiwanTransaction`، `EditStudyDiwanTransaction`، `DeleteStudyDiwanTransaction`، **`HandleStudyDiwanRejection`** (جديدة)، و`SignStudyAsBranchHead` للإحالة والإعادة، والإلغاء `CancelStudyDocuments`. الحدّ فرع الدراسة. «مدير المشاريع» يُحدَّد بالصلاحيات: يحتاج دوره `HandleStudyDiwanRejection` و`EditStudyResponsePlanning` و`SignStudyAsPlanning` و`CreateStudyStartOrder` (و`ViewStudyDiwanTransactions` لفتح المعاملة).
+- **الترحيل** `Study_Diwan_Branch_Head_Routing` (2026-11-28): المرحلة من الحالة القديمة: مسودة 1، بانتظار 2، معتمدة 4، ملغاة 9، رفض رئيس الفرع لسطره 3، والرفض المركزي القديم (أعاد الرد تلقائياً) 7، أو 8 إن اعتُمد الرد المعدّل. المعاملات المحالة سابقاً أخذت جولتها الأولى، وقرار المعاملات التي لم يُحِلها رئيس الفرع بعد (سجّله الموظف) مُحي. `HandleStudyDiwanRejection` مُنحت لكل دور يملك `CreateStudyStartOrder`.
+- **الترحيل** `Study_Diwan_Transactions` (2026-11-26): كل معاملة قديمة صارت مستنداً، وكتب الرد مرفقات، وأوامر البدء المرتبطة بكتاب صارت مرتبطة بمعاملتها؛ الأوامر الأقدم بلا معاملة. الجدولان القديمان باسم `StudyDiwanCases_Legacy` و`StudyDiwanReplies_Legacy` حتى التحقق.
 
 ### الطباعة — `api/StudyPrint`
 
@@ -207,7 +234,7 @@
 - **`GetAll?siteId=`:** فلتر اختياري بموقع واحد من سجل المواقع (لعرض مشاريع الموقع عند النقر عليه في الخريطة). يتركّب مع بقية الفلاتر (الحالة، البحث، التاريخ) والترقيم كما هو، وحدّ فرع المستخدم باقٍ، فلا يرى أحد مشاريع موقع خارج فرعه. تتجاهله بقية المستندات.
 
 | POST | `Create` بالجسم `{ startOrderId, name, plannedStartDate, plannedEndDate, code? }` (مشروع المركزية) | CreateStudyProject |
-| POST | `CreateRegional` بالجسم `{ requestId, name, referralDate, plannedStartDate, plannedEndDate, managerUserId?, adminArchiveNumber? }` — الإحالة إلى الفرع الجغرافي؛ `referralDate` سنته في الكود وهو البدء الفعلي، `managerUserId` الافتراضي من يحيل (المدير العام بلا فرع يجب أن يختار موظفاً)، `adminArchiveNumber` إن خلا منه الطلب | CreateRegionalStudyProject |
+| POST | `CreateRegional` بالجسم `{ requestId, name, referralDate, plannedStartDate, plannedEndDate, managerUserId?, adminArchiveNumber? }` — الإحالة إلى الفرع الجغرافي؛ `referralDate` سنته في الكود وهو البدء الفعلي، `managerUserId` رئيس قسم التنسيق والارتباط (اختياري: الافتراضي من يحيل إن كان رئيساً، وإلا الرئيس الوحيد)، `adminArchiveNumber` إن خلا منه الطلب | CreateRegionalStudyProject |
 | PUT | `Update/{id}` (`status`: 1 جارٍ أو 2 معلّق، و`managerUserId`) | EditStudyProject |
 | DELETE | `Delete/{id}` (بلا مهام ولا مخططات ولا مرفقات) | DeleteStudyProject |
 | PUT | `Cancel/{id}` | CancelStudyDocuments |
@@ -220,7 +247,7 @@
 - **مكاتب الأقسام المشاركة:** كل `departments[]` في التفاصيل يحمل `offices: [{ id, name }]` (مرتبة بالاسم، وقائمة فارغة لقسم بلا مكاتب). منها يُختار هدف «مكتب» في المهمة، بلا `ViewOffices`.
 - **`siteId`:** موقع المشروع في سجل المواقع، منسوخ من طلب الدراسة عند إنشاء المشروع (قد يكون فارغاً). منه تظهر المشاريع على خريطة الفرع (انظر «الخريطة» أدناه).
 - **تفاصيل المشروع:** تأتي من `Get/{id}` ومن ردود كل التعديلات (الأقسام والأعضاء…)، أما `GetAll` فلا يحمل الأقسام.
-- **`managerUserId`:** موظف نشط من فرع المشروع (من `StudyLookups/Employees`).
+- **`managerUserId`:** موظف نشط من فرع المشروع (من `StudyLookups/Employees`)، وفي مشروع الفرع الجغرافي رئيس قسم التنسيق والارتباط فقط (من `StudyLookups/CoordinationHeads`).
 
 ### حدّ رؤية المشروع بالقسم والمكتب (2026-11-10)
 
@@ -332,6 +359,7 @@
 
 - **`ownerType`:** 2 تكليف، 3 رد، 4 أمر بدء، 5 مشروع، 10 CDA، 14 معاملة ديوان.
 - **`decision`:** 2 معتمد، 3 معتمد مع ملاحظات، 4 مرفوض. الملاحظة مطلوبة للأخيرين.
+- **معاملة الديوان (14):** تظهر في `Pending` لكن لا تُوقَّع بـ `Decide` (400)؛ يقرّر رئيس الفرع من صفحتها بـ `Refer`/`Return` (انظر «معاملة الديوان»).
 
 ### المرفقات — `api/StudyAttachments`
 
@@ -364,7 +392,7 @@
 | `StudyApprovalRequested` | مستند بانتظار توقيع صفتك | `StudyAssignment` / `StudyResponse` / `StudyStartOrder` / `StudyDesignApproval` / `StudyProject` |
 | `StudyDocumentDecided` | اعتُمد مستندك نهائياً أو رُفض | كما سبق |
 | `StudyTaskAssigned` | مهمة جديدة لك أو لمكتبك أو قسمك | `StudyTask` |
-| `StudyNextStepReady` (29) | الخطوة التالية في السلسلة: الطلب ← التكليف (أو، لطلب فرع جغرافي، ← الإحالة لحاملي `CreateRegionalStudyProject`)، التكليف ← الرد، الرد المعتمد ← إنشاء معاملة الديوان (أو تحديثها بعد رفض مركزي)، المعاملة المعتمدة بموافقة ← أمر البدء، أمر البدء المعتمد ← إنشاء المشروع. الرفض المركزي يُشعر موظفي القسم المتابع ومنشئ المعاملة (الرابط إلى الرد). | `StudyRequest` / `StudyAssignment` / `StudyResponse` / `StudyDiwanTransaction` / `StudyStartOrder` |
+| `StudyNextStepReady` (29) | الخطوة التالية في السلسلة: الطلب ← التكليف (أو، لطلب فرع جغرافي، ← الإحالة لحاملي `CreateRegionalStudyProject`)، التكليف ← الرد، الرد المعتمد ← إنشاء معاملة الديوان (أو صادر جديد بعد اعتماد الرد المعدّل)، الإحالة بموافقة ← أمر البدء، أمر البدء المعتمد ← إنشاء المشروع. **انتقالات معاملة الديوان** (النوع نفسه): الإعادة إلى الديوان ← موظفو الديوان ومنشئ المعاملة (مع السبب، الرابط إلى المعاملة)؛ الإحالة برفض ← حاملو `HandleStudyDiwanRejection` (مع سبب الرفض، الرابط إلى المعاملة)؛ التعديل التخطيطي ← حاملو `EditStudyResponsePlanning` (ومعه `StudyApprovalRequested` لموقّعي التخطيط)؛ التعديل الفني ← موظفو القسم المتابع ومنشئ الرد (مع السبب، الرابط إلى الرد). | `StudyRequest` / `StudyAssignment` / `StudyResponse` / `StudyDiwanTransaction` / `StudyStartOrder` |
 
 ## الصلاحيات في الواجهة
 
@@ -372,3 +400,4 @@
 - **صفحة الأدوار:** أضف لها قسماً جديداً «الدراسات» بمجموعات: القوائم، الطلبات، التكليفات، الردود، أوامر البدء، التواقيع، المشاريع والفريق، المراحل والمهام، المخططات وCDA، السجل.
 - **صلاحيات «أيٌّ من»:** `AnyStudySign`، `AnyStudyView`، `AnyStudyTaskView`، `AnyStudyAttachmentWrite`، `AnyStudyEmployeePick`، `AnyStudyBranchPick`.
 - **جديد 2026-11-28 (تُمنح من صفحة الأدوار، للمدير العام فقط افتراضياً):** `CreateRegionalStudyProject` (الإحالة إلى الفرع الجغرافي) و`SignStudyAsCoordination` (توقيع التنسيق والارتباط على إنجاز دراسات الأفرع الجغرافية؛ ضمن `AnyStudySign`). أضفهما إلى `access.ts` وصفحة الأدوار.
+- **جديد 2026-11-28 (مسار الديوان):** `HandleStudyDiwanRejection` (استلام المعاملة المرفوضة مركزياً وإحالتها للتعديل). منحها الترحيل لكل دور يملك `CreateStudyStartOrder`، وتُعدَّل من صفحة الأدوار (مجموعة الديوان).

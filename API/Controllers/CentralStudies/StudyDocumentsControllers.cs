@@ -11,6 +11,9 @@ using Application.Features.CentralStudies.Assignments.Queries.Search;
 using Application.Features.CentralStudies.DiwanTransactions.Commands.Cancel;
 using Application.Features.CentralStudies.DiwanTransactions.Commands.Create;
 using Application.Features.CentralStudies.DiwanTransactions.Commands.Delete;
+using Application.Features.CentralStudies.DiwanTransactions.Commands.Refer;
+using Application.Features.CentralStudies.DiwanTransactions.Commands.RequestRevision;
+using Application.Features.CentralStudies.DiwanTransactions.Commands.Return;
 using Application.Features.CentralStudies.DiwanTransactions.Commands.Submit;
 using Application.Features.CentralStudies.DiwanTransactions.Commands.Update;
 using Application.Features.CentralStudies.DiwanTransactions.Queries.GetById;
@@ -297,6 +300,24 @@ namespace API.Controllers
         [HttpPut("Submit/{id}")]
         [Authorize(Policy = "EditStudyDiwanTransaction")]
         public async Task<ActionResult<StudyDiwanTransactionDto>> Submit(int id) => Ok(await _mediator.Send(new SubmitStudyDiwanTransactionCommand(id)));
+
+        /// <summary>رئيس الفرع: إحالة إلى مدير المشاريع بقرار الديوان المركزي { centralDecision: 1 موافقة | 2 رفض, note (إلزامية للرفض), rowVersion }</summary>
+        [HttpPut("Refer/{id}")]
+        [Authorize(Policy = "SignStudyAsBranchHead")]
+        public async Task<ActionResult<StudyDiwanTransactionDto>> Refer(int id, [FromBody] StudyDiwanReferFormDto dto)
+            => Ok(await _mediator.Send(new ReferStudyDiwanTransactionCommand(id, dto)));
+
+        /// <summary>رئيس الفرع: إعادة إلى الديوان لتصحيح المعاملة أو مرفقاتها { reason, rowVersion }</summary>
+        [HttpPut("Return/{id}")]
+        [Authorize(Policy = "SignStudyAsBranchHead")]
+        public async Task<ActionResult<StudyDiwanTransactionDto>> Return(int id, [FromBody] StudyDiwanReturnFormDto dto)
+            => Ok(await _mediator.Send(new ReturnStudyDiwanTransactionCommand(id, dto)));
+
+        /// <summary>مدير المشاريع بعد الرفض المركزي: { kind: 1 تعديل تخطيطي | 2 تعديل فني, reason, rowVersion }</summary>
+        [HttpPut("RequestRevision/{id}")]
+        [Authorize(Policy = "HandleStudyDiwanRejection")]
+        public async Task<ActionResult<StudyDiwanTransactionDto>> RequestRevision(int id, [FromBody] StudyDiwanRevisionFormDto dto)
+            => Ok(await _mediator.Send(new RequestStudyDiwanRevisionCommand(id, dto)));
 
         [HttpPut("Cancel/{id}")]
         [Authorize(Policy = "CancelStudyDocuments")]
