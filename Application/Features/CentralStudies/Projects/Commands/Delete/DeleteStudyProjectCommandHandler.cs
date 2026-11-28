@@ -25,7 +25,7 @@ namespace Application.Features.CentralStudies.Projects.Commands.Delete
                 throw new InvalidOperationException("لا يُحذف إلا مشروع جارٍ لم يُعمل عليه — غيره يُلغى");
             if (await _service.HasContentAsync(entity.Id))
                 throw new InvalidOperationException("للمشروع مهام أو مخططات أو مرفقات — ألغِه بدلاً من حذفه");
-            var requestId = await _support.RequestIdOf(entity);
+            var requestId = entity.RequestId;
             var code = entity.Code;
             await _service.DeleteAsync(entity);   // المراحل والأقسام والتواقيع تُحذف معه
             await _kit.LogAsync(requestId, StudyEntityType.Project, request.Id, StudyLogAction.Deleted, $"حذف المشروع {code}");

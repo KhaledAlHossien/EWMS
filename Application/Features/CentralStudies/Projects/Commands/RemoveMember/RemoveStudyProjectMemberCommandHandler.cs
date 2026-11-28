@@ -28,7 +28,7 @@ namespace Application.Features.CentralStudies.Projects.Commands.RemoveMember
                 throw new InvalidOperationException("للعضو مهام في المشروع — انقلها أولاً");
 
             await _service.RemoveMemberAsync(member);
-            await _kit.LogAsync(await _support.RequestIdOf(project), StudyEntityType.ProjectMember, project.Id, StudyLogAction.Deleted,
+            await _kit.LogAsync(project.RequestId, StudyEntityType.ProjectMember, project.Id, StudyLogAction.Deleted,
                 $"أزال عضواً من فريق المشروع {project.Code}", $"المستخدم رقم {request.UserId}");
             return await _support.DetailAsync(project.Id, viewer);
         }

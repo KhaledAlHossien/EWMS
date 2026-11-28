@@ -28,7 +28,7 @@ namespace Application.Features.CentralStudies.Projects.Commands.Reactivate
             if (project.Status != StudyProjectStatus.Cancelled)
                 throw new InvalidOperationException("إعادة التفعيل متاحة للمشاريع الملغاة فقط");
 
-            var requestId = await _support.RequestIdOf(project);
+            var requestId = project.RequestId;
             var activity = StudyKit.CreateActivity(viewer, requestId, StudyEntityType.Project,
                 project.Id, StudyLogAction.Reactivated, $"أعاد تفعيل المشروع {project.Code}");
             var notifications = await _kit.ProjectReactivationNotificationsAsync(project, requestId, ct);

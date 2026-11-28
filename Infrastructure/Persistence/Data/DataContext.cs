@@ -69,6 +69,7 @@ namespace Infrastructure.Persistence.Data
 
         // ==================== فرع الدراسات المركزية (التكوين في CentralStudiesModel) ====================
         public DbSet<StudyStageType> StudyStageTypes { get; set; }
+        public DbSet<StudyBranch> StudyBranches { get; set; }
         public DbSet<StudyAttachmentType> StudyAttachmentTypes { get; set; }
         public DbSet<StudyBeneficiary> StudyBeneficiaries { get; set; }
         public DbSet<EngineeringDiscipline> EngineeringDisciplines { get; set; }

@@ -14,9 +14,11 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<StudyRequest?> GetByIdAsync(int id) =>
             await _context.StudyRequests
                 .Include(r => r.Branch)
+                .Include(r => r.StudyBranch)
                 .Include(r => r.Site)
                 .Include(r => r.CreatedBy)
                 .Include(r => r.Assignment)
+                .Include(r => r.Project)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
         public async Task<(List<StudyRequest> Items, int Total)> SearchAsync(
@@ -25,6 +27,7 @@ namespace Infrastructure.Persistence.Repositories
             var query = _context.StudyRequests.AsQueryable();
             if (branchLimit != null) query = query.Where(r => r.BranchId == branchLimit);
             if (filter.BranchId is int branchId) query = query.Where(r => r.BranchId == branchId);
+            if (filter.StudyBranchId is int studyBranchId) query = query.Where(r => r.StudyBranchId == studyBranchId);
             if (filter.Status is int status) query = query.Where(r => (int)r.Status == status);
             if (filter.From is DateTime from) query = query.Where(r => r.RequestDate >= from.Date);
             if (filter.To is DateTime to) query = query.Where(r => r.RequestDate <= to.Date);
@@ -39,9 +42,27 @@ namespace Infrastructure.Persistence.Repositories
             var items = await query
                 .OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id)
                 .Skip((page - 1) * pageSize).Take(pageSize)
-                .Include(r => r.Branch).Include(r => r.Site).Include(r => r.CreatedBy).Include(r => r.Assignment)
+                .Include(r => r.Branch).Include(r => r.StudyBranch).Include(r => r.Site).Include(r => r.CreatedBy)
+                .Include(r => r.Assignment).Include(r => r.Project)
                 .AsNoTracking().ToListAsync();
             return (items, total);
+        }
+
+        public async Task CancelAsync(StudyRequest request, StudyActivityLog activity, CancellationToken ct)
+        {
+            // القفل نفسه الذي تأخذه إعادة تفعيل مشروع الفرع الجغرافي قبل التحقق من حالة طلبه
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+            await LockRequestStatusAsync(request.Id, ct);
+            if (await _context.StudyAssignments.AnyAsync(a => a.RequestId == request.Id && a.Status != StudyDocumentStatus.Cancelled, ct))
+                throw new InvalidOperationException("للطلب تكليف قائم — ألغِ التكليف أولاً");
+            if (await _context.StudyProjects.AnyAsync(p => p.RequestId == request.Id && p.Status != StudyProjectStatus.Cancelled, ct))
+                throw new InvalidOperationException("للطلب مشروع قائم — ألغِ المشروع أولاً");
+
+            request.Status = StudyDocumentStatus.Cancelled;
+            request.UpdatedAt = DateTime.Now;
+            _context.StudyActivityLogs.Add(activity);
+            await SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
         }
 
         public async Task<bool> NumberExistsAsync(string number, int? excludeRequestId = null) =>
@@ -73,6 +94,9 @@ namespace Infrastructure.Persistence.Repositories
                     RequestId = r.Id,
                     RequestNumber = r.RequestNumber,
                     RequestStatus = (int)r.Status,
+                    StudyBranchId = r.StudyBranchId,
+                    StudyBranchName = r.StudyBranch.Name,
+                    Track = (int)r.StudyBranch.Track,
                     AssignmentId = r.Assignment == null ? null : r.Assignment.Id,
                     AssignmentNumber = r.Assignment == null ? null : r.Assignment.AssignmentNumber,
                     AssignmentStatus = r.Assignment == null ? null : (int)r.Assignment.Status,
@@ -93,15 +117,10 @@ namespace Infrastructure.Persistence.Repositories
                         ? null : r.Assignment.Response.StartOrder.OrderNumber,
                     StartOrderStatus = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.StartOrder == null
                         ? null : (int)r.Assignment.Response.StartOrder.Status,
-                    ProjectId = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.StartOrder == null
-                                || r.Assignment.Response.StartOrder.Project == null
-                        ? null : r.Assignment.Response.StartOrder.Project.Id,
-                    ProjectCode = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.StartOrder == null
-                                  || r.Assignment.Response.StartOrder.Project == null
-                        ? null : r.Assignment.Response.StartOrder.Project.Code,
-                    ProjectStatus = r.Assignment == null || r.Assignment.Response == null || r.Assignment.Response.StartOrder == null
-                                    || r.Assignment.Response.StartOrder.Project == null
-                        ? null : (int)r.Assignment.Response.StartOrder.Project.Status,
+                    // المشروع من الطلب مباشرة: من أمر البدء (المركزية) أو من الإحالة (فرع جغرافي)
+                    ProjectId = r.Project == null ? null : r.Project.Id,
+                    ProjectCode = r.Project == null ? null : r.Project.Code,
+                    ProjectStatus = r.Project == null ? null : (int)r.Project.Status,
                 })
                 .AsNoTracking()
                 .FirstOrDefaultAsync() ?? throw new KeyNotFoundException("الطلب غير موجود");
@@ -113,6 +132,7 @@ namespace Infrastructure.Persistence.Repositories
 
         private IQueryable<StudyAssignment> WithDetails() => _context.StudyAssignments
             .Include(a => a.Request).ThenInclude(r => r.Branch)
+            .Include(a => a.Request).ThenInclude(r => r.StudyBranch)
             .Include(a => a.FollowingDepartment)
             .Include(a => a.CreatedBy)
             .Include(a => a.Response);
@@ -149,8 +169,9 @@ namespace Infrastructure.Persistence.Repositories
 
         public async Task<bool> ProjectCodeExistsAsync(string code, int? excludeAssignmentId = null) =>
             await _context.StudyAssignments.AnyAsync(a => a.ProjectCode == code && a.Id != excludeAssignmentId)
+            // مشروع التكليف نفسه لا يُعدّ تكراراً (كوده منسوخ منه)؛ مشاريع الأفرع الجغرافية بلا تكليف فتُعدّ دائماً
             || await _context.StudyProjects.AnyAsync(p => p.Code == code
-                && (excludeAssignmentId == null || p.StartOrder.Response.AssignmentId != excludeAssignmentId));
+                && (excludeAssignmentId == null || p.Request.Assignment == null || p.Request.Assignment.Id != excludeAssignmentId));
 
         public async Task<StudyAssignment> AddAsync(StudyAssignment assignment)
         {

@@ -23,6 +23,7 @@ namespace Application.Features.CentralStudies.Assignments.Queries.PreviewProject
                 ?? throw new KeyNotFoundException("الطلب غير موجود");
             StudyRules.EnsureInScope(viewer, request.BranchId);
             StudyRules.EnsureApproved(request.Status, "الطلب");
+            StudyRules.EnsureFullTrack(request);
             return await support.NewProjectCodeAsync(request, query.AssignmentDate, query.AdminArchiveNumber);
         }
     }

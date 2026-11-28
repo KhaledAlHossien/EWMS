@@ -32,7 +32,7 @@ namespace Application.Features.CentralStudies.Projects.Commands.RemoveDepartment
 
             var name = participation.Department.Name;
             await _service.RemoveProjectDepartmentAsync(participation);
-            await _kit.LogAsync(await _support.RequestIdOf(project), StudyEntityType.ProjectDepartment, project.Id, StudyLogAction.Deleted,
+            await _kit.LogAsync(project.RequestId, StudyEntityType.ProjectDepartment, project.Id, StudyLogAction.Deleted,
                 $"أزال القسم {name} من المشروع {project.Code}");
             return await _support.DetailAsync(project.Id, viewer);
         }

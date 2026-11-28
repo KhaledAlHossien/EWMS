@@ -181,7 +181,7 @@
             new("ViewReportLog",              "عرض سجل سحب التقارير (سحوبات موظفي فرعه، والمؤسسة كلها لنظرة المؤسسة)"),
 
             // ════════ فرع الدراسات المركزية (حدّ كل صلاحية = دراسات فرعه، والمؤسسة كلها لنظرة المؤسسة، ما لم يُذكر غيره) ════════
-            new("ViewStudyLookups",  "عرض قوائم الدراسات: أنواع المراحل وأنواع المرفقات والاختصاصات الهندسية"),
+            new("ViewStudyLookups",  "عرض قوائم الدراسات: أنواع المراحل وأنواع المرفقات والاختصاصات الهندسية وأفرع الدراسات"),
             new("CreateStudyLookup", "إضافة عنصر إلى قوائم الدراسات"),
             new("EditStudyLookup",   "تعديل عنصر في قوائم الدراسات"),
             new("DeleteStudyLookup", "حذف عنصر غير مستخدم من قوائم الدراسات"),
@@ -223,12 +223,14 @@
             new("SignStudyAsDesignManagement",    "التوقيع بصفة إدارة التصميم في اعتماد المخططات الأولي (مشاريع فرعه)"),
             new("SignStudyAsQualityControl",      "التوقيع بصفة ضبط الجودة في اعتماد المخططات الأولي (مشاريع فرعه)"),
             new("SignStudyAsProjectManagement",   "التوقيع بصفة إدارة المشاريع على إنجاز المشروع (مشاريع فرعه)"),
+            new("SignStudyAsCoordination",        "التوقيع بصفة التنسيق والارتباط على إنجاز دراسات الأفرع الجغرافية (مشاريع فرعه)"),
 
             new("ViewStudyProjects",  "عرض مشاريع الدراسات بأقسامها وفريقها ومراحلها ومهامها (مشاريع فرعه)"),
             new("ViewFullStudyProject",      "رؤية مشاريع فرعه كاملة: كل المراحل والمهام والمخطط الزمني والفريق والمرفقات والتواقيع وسجل النشاط (بلاها يرى ما يخص قسمه ومكتبه فقط؛ ومدير المشروع يرى مشروعه كاملاً)"),
             new("ViewDepartmentStudyTasks",  "رؤية كل مهام قسمه في المشاريع: مراحل قسمه والمهام المسندة لقسمه أو مكاتبه أو موظفيه، وأعضاء فريق قسمه"),
             new("ViewOfficeStudyTasks",      "رؤية مهام مكتبه وموظفيه في المشاريع، وأعضاء فريق مكتبه"),
             new("CreateStudyProject", "إنشاء مشروع من أمر بدء معتمد في فرعه"),
+            new("CreateRegionalStudyProject", "إحالة طلب دراسة معتمد لفرع جغرافي إلى فرعه: إنشاء مشروع التنسيق والمتابعة وتوليد كوده (طلبات فرعه)"),
             new("EditStudyProject",   "تعديل بيانات مشروع وطلب اعتماد إنجازه (مشاريع فرعه)"),
             new("DeleteStudyProject", "حذف مشروع لا مهام ولا مخططات ولا مرفقات له (مشاريع فرعه)"),
             new("AddStudyProjectDepartment",    "إضافة قسم مشارك إلى مشروع (مشاريع فرعه)"),
@@ -300,16 +302,20 @@
                 "ExportInstallationsReport", "ExportSitesReport", "ExportMapEntriesReport"],
             // فرع الدراسات: التوقيع بأي صفة، والقراءة المشتركة (المرفقات والتواقيع والسجل) لمن يرى أي مستند
             ["AnyStudySign"] = ["SignStudyAsFollowingDepartment", "SignStudyAsPlanning", "SignStudyAsCompetentDepartment", "SignStudyAsBranchHead",
-                "SignStudyAsSendingDepartment", "SignStudyAsDesignManagement", "SignStudyAsQualityControl", "SignStudyAsProjectManagement"],
+                "SignStudyAsSendingDepartment", "SignStudyAsDesignManagement", "SignStudyAsQualityControl", "SignStudyAsProjectManagement",
+                "SignStudyAsCoordination"],
             ["AnyStudyView"] = ["ViewStudyRequests", "ViewStudyAssignments", "ViewStudyResponses", "ViewStudyDiwanTransactions", "ViewStudyStartOrders",
                 "ViewStudyProjects", "ViewStudyDrawings", "ViewStudyActivityLog"],
             ["AnyStudyTaskView"] = ["ViewStudyProjects", "UpdateStudyTaskProgress"],
             ["AnyStudyAssignmentWrite"] = ["CreateStudyAssignment", "EditStudyAssignment"],
             ["AnyStudyBeneficiaryPick"] = ["ViewStudyLookups", "CreateStudyLookup", "EditStudyLookup", "DeleteStudyLookup",
                 "CreateStudyRequest", "EditStudyRequest"],
+            // أفرع الدراسات (المركزية والجغرافية): لمن يديرها، ولمن يختار فرع الدراسة في الطلب أو يصفّي به الطلبات والمشاريع
+            ["AnyStudyBranchPick"] = ["ViewStudyLookups", "CreateStudyLookup", "EditStudyLookup", "DeleteStudyLookup",
+                "CreateStudyRequest", "EditStudyRequest", "ViewStudyRequests", "ViewStudyProjects"],
             // قائمة موظفي فرع الدراسة (بلا بيانات حساسة): لمن يختار مدير المشروع أو المهندسين أو أعضاء الفريق
             ["AnyStudyEmployeePick"] = ["CreateStudyResponse", "EditStudyResponse", "CreateStudyStartOrder", "EditStudyStartOrder",
-                "EditStudyProject", "AddStudyProjectMember"],
+                "EditStudyProject", "AddStudyProjectMember", "CreateRegionalStudyProject"],
             // رفع مرفق أو حذفه: بصلاحية تعديل صاحبه (يفحصها الـ handler)
             ["AnyStudyAttachmentWrite"] = ["EditStudyRequest", "EditStudyAssignment", "EditStudyResponse", "EditStudyDiwanTransaction", "EditStudyStartOrder",
                 "EditStudyProject", "EditStudyDrawing", "EditArchitecturalVersion"],

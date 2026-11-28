@@ -18,7 +18,8 @@ namespace Infrastructure.Persistence.Repositories
         // ويطلب ذاكرة تنفيذ كبيرة (8.9 MB لـ 200 عضو) — انظر GetTeamAsync
         private IQueryable<StudyProject> WithDetails() =>
             _context.StudyProjects
-                .Include(p => p.StartOrder).ThenInclude(o => o.Response).ThenInclude(r => r.Assignment)
+                .Include(p => p.Request).ThenInclude(r => r.StudyBranch)
+                .Include(p => p.StartOrder)
                 .Include(p => p.Branch)
                 .Include(p => p.Manager)
                 .Include(p => p.CreatedBy)
@@ -87,6 +88,7 @@ namespace Infrastructure.Persistence.Repositories
             if (filter.BranchId is int branchId) query = query.Where(p => p.BranchId == branchId);
             // يخدمه الفهرس (BranchId, SiteId)؛ حدّ فرع المستخدم أعلاه يبقى مطبَّقاً فلا يرى أحد مشاريع موقع خارج فرعه
             if (filter.SiteId is int siteId) query = query.Where(p => p.SiteId == siteId);
+            if (filter.StudyBranchId is int studyBranchId) query = query.Where(p => p.Request.StudyBranchId == studyBranchId);
             if (filter.Status is int status) query = query.Where(p => (int)p.Status == status);
             if (filter.From is DateTime from) query = query.Where(p => p.PlannedStartDate >= from.Date);
             if (filter.To is DateTime to) query = query.Where(p => p.PlannedStartDate <= to.Date);
@@ -108,10 +110,17 @@ namespace Infrastructure.Persistence.Repositories
                     Id = p.Id,
                     Code = p.Code,
                     Name = p.Name,
+                    RequestId = p.RequestId,
+                    RequestNumber = p.Request.RequestNumber,
+                    RequestStatus = (int)p.Request.Status,
                     StartOrderId = p.StartOrderId,
-                    StartOrderNumber = p.StartOrder.OrderNumber,
+                    StartOrderNumber = p.StartOrder == null ? null : p.StartOrder.OrderNumber,
                     BranchId = p.BranchId,
                     BranchName = p.Branch.Name,
+                    StudyBranchId = p.Request.StudyBranchId,
+                    StudyBranchCode = p.Request.StudyBranch.Code,
+                    StudyBranchName = p.Request.StudyBranch.Name,
+                    Track = (int)p.Request.StudyBranch.Track,
                     SiteId = p.SiteId,
                     ManagerUserId = p.ManagerUserId,
                     ManagerName = p.Manager.FullName,
@@ -120,7 +129,7 @@ namespace Infrastructure.Persistence.Repositories
                     ActualStartDate = p.ActualStartDate,
                     ActualEndDate = p.ActualEndDate,
                     Status = (int)p.Status,
-                    StartOrderStatus = (int)p.StartOrder.Status,
+                    StartOrderStatus = p.StartOrder == null ? 0 : (int)p.StartOrder.Status,
                     CreatedByName = p.CreatedBy.FullName,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
@@ -172,6 +181,7 @@ namespace Infrastructure.Persistence.Repositories
             {
                 project.Stages = stagesByProject[project.Id].OrderBy(s => s.SortOrder).ThenBy(s => s.Id).ToList();
                 project.StatusName = StudyRules.Name((StudyProjectStatus)project.Status);
+                project.TrackName = StudyRules.Name((StudyTrack)project.Track);
                 project.Progress = StudyRules.Weighted(project.Stages.Select(s => (s.Progress, s.Weight)));
             }
             return (projects.OrderBy(p => ids.IndexOf(p.Id)).ToList(), total);
@@ -179,6 +189,9 @@ namespace Infrastructure.Persistence.Repositories
 
         public async Task<bool> ExistsForStartOrderAsync(int startOrderId) =>
             await _context.StudyProjects.AnyAsync(p => p.StartOrderId == startOrderId);
+
+        public async Task<bool> ExistsForRequestAsync(int requestId) =>
+            await _context.StudyProjects.AnyAsync(p => p.RequestId == requestId);
 
         public async Task<bool> CodeExistsAsync(string code, int? excludeId = null) =>
             await _context.StudyProjects.AnyAsync(p => p.Code == code && p.Id != excludeId);
@@ -190,7 +203,7 @@ namespace Infrastructure.Persistence.Repositories
 
         public async Task<int> GetRequestIdAsync(int projectId) =>
             await _context.StudyProjects.Where(p => p.Id == projectId)
-                .Select(p => p.StartOrder.Response.Assignment.RequestId).FirstOrDefaultAsync();
+                .Select(p => p.RequestId).FirstOrDefaultAsync();
 
         public async Task<StudyProject> AddAsync(StudyProject project)
         {
@@ -208,8 +221,14 @@ namespace Infrastructure.Persistence.Repositories
         public async Task ReactivateAsync(StudyProject project, StudyActivityLog activity, IReadOnlyCollection<Notification> notifications, CancellationToken ct)
         {
             await using var transaction = await _context.Database.BeginTransactionAsync(ct);
-            if (await LockStartOrderStatusAsync(project.StartOrderId, ct) != StudyDocumentStatus.Approved)
-                throw new InvalidOperationException("إعادة تفعيل المشروع تتطلب أمر بدء معتمداً");
+            // مشروع المركزية يتبع أمر بدئه، ومشروع الفرع الجغرافي (بلا أمر بدء) يتبع طلبه
+            if (project.StartOrderId is int startOrderId)
+            {
+                if (await LockStartOrderStatusAsync(startOrderId, ct) != StudyDocumentStatus.Approved)
+                    throw new InvalidOperationException("إعادة تفعيل المشروع تتطلب أمر بدء معتمداً");
+            }
+            else if (await LockRequestStatusAsync(project.RequestId, ct) != StudyDocumentStatus.Approved)
+                throw new InvalidOperationException("إعادة تفعيل المشروع تتطلب طلب دراسة غير ملغى");
 
             project.Status = StudyProjectStatus.Running;
             project.UpdatedAt = DateTime.Now;
@@ -267,7 +286,7 @@ namespace Infrastructure.Persistence.Repositories
         public async Task<(int Id, int ManagerUserId)?> GetBriefByRequestAsync(int requestId)
         {
             var row = await _context.StudyProjects.AsNoTracking()
-                .Where(p => p.StartOrder.Response.Assignment.RequestId == requestId)
+                .Where(p => p.RequestId == requestId)
                 .Select(p => new { p.Id, p.ManagerUserId }).FirstOrDefaultAsync();
             return row == null ? null : (row.Id, row.ManagerUserId);
         }

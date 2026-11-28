@@ -18,11 +18,20 @@ namespace Application.Helper.Profiles
             // ----- القوائم -----
             CreateMap<StudyStageType, StudyStageTypeDto>()
                 .ForMember(d => d.LinkedDocument, o => o.MapFrom(s => (int)s.LinkedDocument))
-                .ForMember(d => d.LinkedDocumentName, o => o.MapFrom(s => StudyRules.Name(s.LinkedDocument)));
+                .ForMember(d => d.LinkedDocumentName, o => o.MapFrom(s => StudyRules.Name(s.LinkedDocument)))
+                .ForMember(d => d.Track, o => o.MapFrom(s => (int)s.Track))
+                .ForMember(d => d.TrackName, o => o.MapFrom(s => StudyRules.Name(s.Track)));
             CreateMap<StudyStageTypeFormDto, StudyStageType>()
                 .ForMember(d => d.Id, o => o.Ignore())
                 .ForMember(d => d.RowVersion, o => o.Ignore())
-                .ForMember(d => d.LinkedDocument, o => o.MapFrom(s => (StudyLinkedDocument)s.LinkedDocument));
+                .ForMember(d => d.LinkedDocument, o => o.MapFrom(s => (StudyLinkedDocument)s.LinkedDocument))
+                .ForMember(d => d.Track, o => o.MapFrom(s => (StudyTrack)s.Track));
+
+            CreateMap<StudyBranch, StudyBranchDto>()
+                .ForMember(d => d.BranchName, o => o.MapFrom(s => s.Branch != null ? s.Branch.Name : string.Empty))
+                .ForMember(d => d.Track, o => o.MapFrom(s => (int)s.Track))
+                .ForMember(d => d.TrackName, o => o.MapFrom(s => StudyRules.Name(s.Track)))
+                .ForMember(d => d.InUse, o => o.Ignore());
 
             CreateMap<StudyAttachmentType, StudyLookupDto>().ForMember(d => d.Code, o => o.Ignore());
             CreateMap<EngineeringDiscipline, StudyLookupDto>().ForMember(d => d.Code, o => o.Ignore());
@@ -52,6 +61,10 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.GovernorateName, o => o.MapFrom(s => Governorates.NameOf(s.GovernorateCode)))
                 .ForMember(d => d.SiteName, o => o.MapFrom(s => s.Site != null ? s.Site.Name : null))
                 .ForMember(d => d.BranchName, o => o.MapFrom(s => s.Branch != null ? s.Branch.Name : string.Empty))
+                .ForMember(d => d.StudyBranchCode, o => o.MapFrom(s => s.StudyBranch != null ? s.StudyBranch.Code : 0))
+                .ForMember(d => d.StudyBranchName, o => o.MapFrom(s => s.StudyBranch != null ? s.StudyBranch.Name : string.Empty))
+                .ForMember(d => d.Track, o => o.MapFrom(s => s.StudyBranch != null ? (int)s.StudyBranch.Track : 0))
+                .ForMember(d => d.TrackName, o => o.MapFrom(s => s.StudyBranch != null ? StudyRules.Name(s.StudyBranch.Track) : string.Empty))
                 .ForMember(d => d.Chain, o => o.Ignore())
                 .ForMember(d => d.Approvals, o => o.Ignore());
             CreateMap<StudyRequestFormDto, StudyRequest>()
@@ -62,6 +75,8 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.WorkType, o => o.MapFrom(s => (StudyWorkType)s.WorkType))
                 .ForMember(d => d.RequestDate, o => o.MapFrom(s => s.RequestDate.Date))
                 .ForMember(d => d.BranchId, o => o.Ignore())
+                // فرع الدراسة (ومنه BranchId) يضعه المعالج بعد التحقق منه
+                .ForMember(d => d.StudyBranchId, o => o.Ignore())
                 .ForMember(d => d.RowVersion, o => o.Ignore());
 
             // ----- التكليف -----
@@ -181,8 +196,16 @@ namespace Application.Helper.Profiles
                 .ForMember(d => d.TasksTotal, o => o.MapFrom(s => s.Tasks.Count))
                 .ForMember(d => d.TasksDone, o => o.MapFrom(s => s.Tasks.Count(t => t.Status == StudyTaskStatus.Done)));
             CreateMap<StudyProject, StudyProjectDto>()
-                .ForMember(d => d.StartOrderNumber, o => o.MapFrom(s => s.StartOrder != null ? s.StartOrder.OrderNumber : string.Empty))
+                .ForMember(d => d.StartOrderNumber, o => o.MapFrom(s => s.StartOrder != null ? s.StartOrder.OrderNumber : null))
                 .ForMember(d => d.StartOrderStatus, o => o.MapFrom(s => s.StartOrder != null ? (int)s.StartOrder.Status : 0))
+                .ForMember(d => d.RequestNumber, o => o.MapFrom(s => s.Request != null ? s.Request.RequestNumber : string.Empty))
+                .ForMember(d => d.RequestStatus, o => o.MapFrom(s => s.Request != null ? (int)s.Request.Status : 0))
+                .ForMember(d => d.StudyBranchId, o => o.MapFrom(s => s.Request != null ? s.Request.StudyBranchId : 0))
+                .ForMember(d => d.StudyBranchCode, o => o.MapFrom(s => s.Request != null && s.Request.StudyBranch != null ? s.Request.StudyBranch.Code : 0))
+                .ForMember(d => d.StudyBranchName, o => o.MapFrom(s => s.Request != null && s.Request.StudyBranch != null ? s.Request.StudyBranch.Name : string.Empty))
+                .ForMember(d => d.Track, o => o.MapFrom(s => s.Request != null && s.Request.StudyBranch != null ? (int)s.Request.StudyBranch.Track : 0))
+                .ForMember(d => d.TrackName, o => o.MapFrom(s => s.Request != null && s.Request.StudyBranch != null
+                    ? StudyRules.Name(s.Request.StudyBranch.Track) : string.Empty))
                 .ForMember(d => d.BranchName, o => o.MapFrom(s => s.Branch != null ? s.Branch.Name : string.Empty))
                 .ForMember(d => d.ManagerName, o => o.MapFrom(s => s.Manager != null ? s.Manager.FullName : string.Empty))
                 .ForMember(d => d.Status, o => o.MapFrom(s => (int)s.Status))

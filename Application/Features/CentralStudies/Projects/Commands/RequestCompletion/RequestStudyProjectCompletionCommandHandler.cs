@@ -32,11 +32,12 @@ namespace Application.Features.CentralStudies.Projects.Commands.RequestCompletio
             if (rows.Any(r => r.Decision == StudyDecision.Pending) && rows.All(r => r.Decision != StudyDecision.Rejected))
                 throw new InvalidOperationException("طلب اعتماد الإنجاز قيد التوقيع مسبقاً");
 
-            await _kit.ResetApprovalsAsync(StudyEntityType.Project, entity.Id);
+            // المركزية: إدارة المشاريع ثم رئيس الفرع؛ الفرع الجغرافي: التنسيق والارتباط ثم ضبط الجودة
+            await _kit.ResetApprovalsAsync(StudyEntityType.Project, entity.Id, StudyRules.TrackOf(entity.Request));
             entity.UpdatedAt = DateTime.Now;
             await _service.UpdateAsync(entity);
 
-            var requestId = await _support.RequestIdOf(entity);
+            var requestId = entity.RequestId;
             await _kit.LogAsync(requestId, StudyEntityType.Project, entity.Id, StudyLogAction.Submitted,
                 $"طلب اعتماد إنجاز المشروع {entity.Code}");
             await _kit.NotifyNextSignersAsync(ApprovalOwner.Of(entity, requestId));

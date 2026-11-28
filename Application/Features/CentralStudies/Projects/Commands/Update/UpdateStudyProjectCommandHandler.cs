@@ -37,7 +37,7 @@ namespace Application.Features.CentralStudies.Projects.Commands.Update
             if (request.Dto.Status is int status) entity.Status = (StudyProjectStatus)status;
             entity.UpdatedAt = DateTime.Now;
             await _service.UpdateAsync(entity, request.Dto.RowVersion);
-            await _kit.LogAsync(await _support.RequestIdOf(entity), StudyEntityType.Project, entity.Id, StudyLogAction.Edited,
+            await _kit.LogAsync(entity.RequestId, StudyEntityType.Project, entity.Id, StudyLogAction.Edited,
                 $"عدّل المشروع {entity.Code}", $"الحالة: {StudyRules.Name(entity.Status)}");
             return await _support.DetailAsync(entity.Id, viewer);
         }

@@ -73,6 +73,6 @@ public class StudyRequestNumberTests
     private static StudyRequestFormDto ValidRequest() => new()
     {
         RequestNumber = "001/2026", RequestDate = new DateTime(2026, 11, 18),
-        Urgency = 2, WorkType = 1, MainBeneficiaryId = 7, GovernorateCode = "SY02"
+        Urgency = 2, WorkType = 1, MainBeneficiaryId = 7, GovernorateCode = "SY02", StudyBranchId = 1
     };
 }

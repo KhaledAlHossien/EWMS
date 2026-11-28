@@ -1,15 +1,21 @@
 namespace Domain.Entities.CentralStudiesBranch
 {
     /// <summary>
-    /// المشروع — واحد لكل أمر بدء (StartOrderId فريد)، محور المرحلة التنفيذية. نسبة التقدم تُحسب من المراحل ولا تُخزَّن.
-    /// الإنجاز النهائي يعتمده إدارة المشاريع ثم رئيس الفرع (StudyApprovals على المشروع).
+    /// المشروع — واحد لكل طلب دراسة (RequestId فريد)، محور المرحلة التنفيذية. نسبة التقدم تُحسب من المراحل ولا تُخزَّن.
+    /// مسار المركزية: يُنشأ من أمر بدء معتمد، وإنجازه تعتمده إدارة المشاريع ثم رئيس الفرع.
+    /// مسار التنسيق (فرع جغرافي): يُنشأ بإحالة الطلب مباشرة (بلا أمر بدء)، وإنجازه يعتمده التنسيق والارتباط ثم ضبط الجودة.
     /// </summary>
     public class StudyProject
     {
         public int Id { get; set; }
 
-        public int StartOrderId { get; set; }
-        public StudyStartOrder StartOrder { get; set; } = null!;
+        /// <summary>طلب الدراسة جذر السلسلة (منه فرع الدراسة ومساره)</summary>
+        public int RequestId { get; set; }
+        public StudyRequest Request { get; set; } = null!;
+
+        /// <summary>أمر البدء — مسار المركزية فقط</summary>
+        public int? StartOrderId { get; set; }
+        public StudyStartOrder? StartOrder { get; set; }
 
         public int BranchId { get; set; }
         public Branch Branch { get; set; } = null!;

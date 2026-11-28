@@ -10,10 +10,7 @@ namespace Application.Interfaces
     /// <summary>المشاريع وأقسامها المشاركة وفريقها</summary>
     public interface IStudyProjectService
     {
-        /// <summary>
-        /// مع أمر البدء (والرد والتكليف والطلب) والفرع والمدير والمراحل ومهامها؛
-        /// withTeam: الأقسام المشاركة وأعضاؤها أيضاً
-        /// </summary>
+        /// <summary>مع الطلب وفرع الدراسة (المسار) وأمر البدء إن وُجد والفرع والمدير والمراحل ومهامها — بلا الفريق (GetTeamAsync)</summary>
         Task<StudyProject?> GetByIdAsync(int id);
         /// <summary>الأقسام المشاركة وأعضاؤها بأسمائهم فقط (إسقاط مباشر بلا تحميل المستخدمين)</summary>
         /// <param name="limit">بلا حدّ = كل الأقسام وأعضائها؛ وإلا صف قسم المستخدم بأعضاء حدّه فقط</param>
@@ -26,6 +23,8 @@ namespace Application.Interfaces
         /// </summary>
         Task<(List<Application.DTOs.Response.StudyProjectDto> Items, int Total)> SearchAsync(StudyDocumentFilterDto filter, int? branchLimit, int page, int pageSize);
         Task<bool> ExistsForStartOrderAsync(int startOrderId);
+        /// <summary>للطلب مشروع (بأي حالة) — مشروع واحد لكل طلب</summary>
+        Task<bool> ExistsForRequestAsync(int requestId);
         Task<bool> CodeExistsAsync(string code, int? excludeId = null);
         /// <summary>للمشروع مهام أو مخططات أو مرفقات (لا يُحذف)</summary>
         Task<bool> HasContentAsync(int projectId);
