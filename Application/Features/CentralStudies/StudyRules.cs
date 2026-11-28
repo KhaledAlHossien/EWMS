@@ -327,7 +327,12 @@ namespace Application.Features.CentralStudies
             _ => "غير متاح"
         };
 
-        public static string Name(StudyBuildingType s) => s == StudyBuildingType.Rehabilitation ? "إعادة تأهيل" : "إنشاء جديد";
+        public static string Name(StudyBuildingType s) => s switch
+        {
+            StudyBuildingType.Rehabilitation => "إعادة تأهيل",
+            StudyBuildingType.PartialRehabilitation => "إعادة تأهيل جزئي",
+            _ => "إنشاء جديد"
+        };
 
         public static string Name(StudyProjectStatus s) => s switch
         {

@@ -26,7 +26,8 @@ namespace Domain.Entities.CentralStudiesBranch
     /// <summary>التوصية الفنية النهائية في إشعار الرد</summary>
     public enum StudyRecommendation { Accept = 1, Modify = 2, NotAvailable = 3 }
 
-    public enum StudyBuildingType { Rehabilitation = 1, NewConstruction = 2 }
+    /// <summary>نوع البناء في إشعار الرد. القيمتان 1 و2 محفوظتان في الردود السابقة فلا يتغير رقماهما؛ 3 أُضيفت 2026-11-28</summary>
+    public enum StudyBuildingType { Rehabilitation = 1, NewConstruction = 2, PartialRehabilitation = 3 }
 
     public enum StudyProjectStatus { Running = 1, Suspended = 2, Completed = 3, Cancelled = 4 }
 

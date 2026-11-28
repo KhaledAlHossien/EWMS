@@ -131,6 +131,7 @@ namespace Infrastructure.Persistence.Data
                 e.HasIndex(x => x.ResponseNumber).IsUnique();
                 e.Property(x => x.ResponseDate).HasColumnType("date");
                 e.Property(x => x.SiteArea).HasPrecision(12, 2);
+                e.Property(x => x.SiteNote).HasMaxLength(1000);
                 e.Property(x => x.InitialCost).HasPrecision(18, 2);
                 e.Property(x => x.UsdToSypRate).HasPrecision(18, 6);
                 e.ToTable(t => t.HasCheckConstraint("CK_StudyAssignmentResponses_UsdToSypRate",
@@ -147,7 +148,7 @@ namespace Infrastructure.Persistence.Data
 
             builder.Entity<ResponseBuilding>(e =>
             {
-                // سطر لكل نوع بناء: المفتاح (الرد، النوع) يمنع أكثر من سطرين
+                // سطر لكل نوع بناء: المفتاح (الرد، النوع) يمنع تكرار النوع (ثلاثة أنواع)
                 e.HasKey(x => new { x.ResponseId, x.BuildingType });
                 e.Property(x => x.BuildingType).HasConversion<int>();
                 e.Property(x => x.BuildingsArea).HasPrecision(12, 2);
@@ -157,10 +158,15 @@ namespace Infrastructure.Persistence.Data
 
             builder.Entity<ResponseBuildingDetail>(e =>
             {
-                e.ToTable("ResponseBuildingDetails", t => t.HasCheckConstraint("CK_ResponseBuildingDetails_Area", "[Area] > 0"));
+                e.ToTable("ResponseBuildingDetails", t =>
+                {
+                    t.HasCheckConstraint("CK_ResponseBuildingDetails_Area", "[Area] > 0");
+                    t.HasCheckConstraint("CK_ResponseBuildingDetails_Repetitions", "[Repetitions] >= 1");
+                });
                 e.Property(x => x.BuildingType).HasConversion<int>();
                 e.Property(x => x.Code).HasMaxLength(50).IsRequired();
                 e.Property(x => x.Function).HasMaxLength(200).IsRequired();
+                e.Property(x => x.Note).HasMaxLength(500);
                 e.Property(x => x.Area).HasPrecision(12, 2);
                 e.HasOne<ResponseBuilding>().WithMany(b => b.Details)
                     .HasForeignKey(x => new { x.ResponseId, x.BuildingType }).OnDelete(DeleteBehavior.Cascade);
@@ -174,7 +180,11 @@ namespace Infrastructure.Persistence.Data
                 e.Property(x => x.UnitPrice).HasPrecision(18, 2);
                 e.HasOne<StudyAssignmentResponse>().WithMany(r => r.CostItems).HasForeignKey(x => x.ResponseId).OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(x => new { x.ResponseId, x.SortOrder });
-                e.ToTable(t => t.HasCheckConstraint("CK_ResponseCostItems_Values", "[Quantity] >= 0 AND [UnitPrice] >= 0"));
+                e.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_ResponseCostItems_Values", "[Quantity] >= 0 AND [UnitPrice] >= 0");
+                    t.HasCheckConstraint("CK_ResponseCostItems_Repetitions", "[Repetitions] >= 1");
+                });
             });
 
             builder.Entity<ResponseStaffEstimate>(e =>
