@@ -39,7 +39,7 @@ namespace Application.Features.CentralStudies.Projects.Commands.AddMember
                 AssignedByUserId = viewer.Id,
                 AssignedAt = DateTime.Now
             });
-            await _kit.LogAsync(await _support.RequestIdOf(project), StudyEntityType.ProjectMember, project.Id, StudyLogAction.Created,
+            await _kit.LogAsync(project.RequestId, StudyEntityType.ProjectMember, project.Id, StudyLogAction.Created,
                 $"عيّن {user.FullName} في فريق المشروع {project.Code}", request.Dto.RoleTitle);
             return await _support.DetailAsync(project.Id, viewer);
         }

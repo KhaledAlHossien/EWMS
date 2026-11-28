@@ -3,7 +3,6 @@ using Application.DTOs.Request;
 using Application.DTOs.Response;
 using Application.Interfaces;
 using Domain.Entities.CentralStudiesBranch;
-using System.Globalization;
 
 namespace Application.Features.CentralStudies.Assignments
 {
@@ -46,7 +45,7 @@ namespace Application.Features.CentralStudies.Assignments
 
         public async Task<string> NewProjectCodeAsync(StudyRequest request, DateTime assignmentDate, string? adminArchiveNumber)
         {
-            var code = FormatProjectCode(request, assignmentDate, adminArchiveNumber);
+            var code = StudyRules.FormatProjectCode(request, assignmentDate, adminArchiveNumber);
             if (await _service.ProjectCodeExistsAsync(code))
                 throw new InvalidOperationException($"كود المشروع «{code}» مستخدم في تكليف أو مشروع آخر — تحقق من رقم أرشيف ديوان الإدارة وتاريخ التكليف");
             return code;
@@ -60,48 +59,12 @@ namespace Application.Features.CentralStudies.Assignments
         {
             var request = assignment.Request;
             var archive = StudyRules.Clean(request.AdminArchiveNumber) ?? StudyRules.Clean(adminArchiveNumber)
-                ?? ArchiveNumberFromCode(request, assignment.AssignmentDate, assignment.ProjectCode);
+                ?? StudyRules.ArchiveNumberFromCode(request, assignment.AssignmentDate, assignment.ProjectCode);
             if (archive == null) return assignment.ProjectCode;
-            var code = FormatProjectCode(request, assignmentDate, archive);
+            var code = StudyRules.FormatProjectCode(request, assignmentDate, archive);
             if (code != assignment.ProjectCode && await _service.ProjectCodeExistsAsync(code, assignment.Id))
                 throw new InvalidOperationException($"كود المشروع «{code}» مستخدم في تكليف أو مشروع آخر — تحقق من رقم أرشيف ديوان الإدارة وتاريخ التكليف");
             return code;
-        }
-
-        public static string FormatProjectCode(StudyRequest request, DateTime assignmentDate, string? adminArchiveNumber)
-        {
-            var prefix = ProjectCodePrefix(request, assignmentDate);
-            var archiveNumber = StudyRules.Clean(request.AdminArchiveNumber) ?? StudyRules.Clean(adminArchiveNumber)
-                ?? throw new InvalidOperationException("رقم أرشيف ديوان الإدارة مطلوب لتوليد كود المشروع");
-            if (archiveNumber.Length > 50)
-                throw new InvalidOperationException("رقم أرشيف ديوان الإدارة لا يتجاوز 50 حرفاً");
-            return prefix + archiveNumber;
-        }
-
-        /// <summary>رقم الأرشيف داخل كود مولّد بتاريخ التكليف المحفوظ؛ null إن لم يطابق الكود الصيغة</summary>
-        public static string? ArchiveNumberFromCode(StudyRequest request, DateTime savedAssignmentDate, string? code)
-        {
-            if (string.IsNullOrEmpty(code) || savedAssignmentDate == default || StudyRules.Clean(request.RequestNumber) == null
-                || !Enum.IsDefined(request.WorkType))
-                return null;
-            var prefix = ProjectCodePrefix(request, savedAssignmentDate);
-            return code.StartsWith(prefix, StringComparison.Ordinal) ? StudyRules.Clean(code[prefix.Length..]) : null;
-        }
-
-        private static string ProjectCodePrefix(StudyRequest request, DateTime assignmentDate)
-        {
-            if (assignmentDate == default)
-                throw new InvalidOperationException("تاريخ التكليف مطلوب");
-            var requestNumber = StudyRules.Clean(request.RequestNumber)
-                ?? throw new InvalidOperationException("رقم طلب الدراسة مطلوب لتوليد كود المشروع");
-            var workCode = request.WorkType switch
-            {
-                StudyWorkType.Construction => "N",
-                StudyWorkType.MaintenanceAndRestoration => "R",
-                StudyWorkType.ConstructionAndMaintenanceAndRestoration => "RN",
-                _ => throw new InvalidOperationException("نوع العمل في طلب الدراسة غير صالح لتوليد كود المشروع")
-            };
-            return string.Create(CultureInfo.InvariantCulture, $"{request.BranchId}-{assignmentDate:yy}-{workCode}-{requestNumber}-");
         }
 
         public async Task<StudyAssignment> LoadAsync(int id, Viewer viewer)

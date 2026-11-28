@@ -20,11 +20,13 @@ namespace Application.Features.CentralStudies.Lookups.StageTypes.Commands.Update
         {
             var entity = await _service.GetStageTypeAsync(request.Id) ?? throw new KeyNotFoundException("نوع المرحلة غير موجود");
             var oldLink = entity.LinkedDocument;
+            var oldTrack = entity.Track;
             _mapper.Map(request.Dto, entity);
             entity.Name = entity.Name.Trim();
-            // المراحل المرتبطة بمستند أُنشئت مغلقة من ذلك المستند: تغيير الربط بعد الاستخدام يربك المشاريع القائمة
-            if (oldLink != entity.LinkedDocument && await _service.StageTypeInUseAsync(entity.Id))
-                throw new InvalidOperationException("لا يتغيّر المستند المرتبط بنوع مرحلة مستخدم في مشاريع — أنشئ نوعاً جديداً");
+            // المراحل المرتبطة بمستند أُنشئت مغلقة من ذلك المستند: تغيير الربط بعد الاستخدام يربك المشاريع القائمة،
+            // وكذلك نقل النوع إلى مسار آخر وفي مشاريع المسار الأول مراحل منه
+            if ((oldLink != entity.LinkedDocument || oldTrack != entity.Track) && await _service.StageTypeInUseAsync(entity.Id))
+                throw new InvalidOperationException("لا يتغيّر المستند المرتبط ولا المسار لنوع مرحلة مستخدم في مشاريع — أنشئ نوعاً جديداً");
             if (await _service.StageTypeNameExistsAsync(entity.Name, entity.Id))
                 throw new InvalidOperationException("يوجد نوع مرحلة آخر بهذا الاسم");
             await _service.SaveAsync();

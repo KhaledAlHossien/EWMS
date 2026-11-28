@@ -38,7 +38,7 @@ namespace Application.Features.CentralStudies.Projects.Commands.AddDepartment
                 AddedByUserId = viewer.Id,
                 AddedAt = DateTime.Now
             });
-            await _kit.LogAsync(await _support.RequestIdOf(project), StudyEntityType.ProjectDepartment, project.Id, StudyLogAction.Created,
+            await _kit.LogAsync(project.RequestId, StudyEntityType.ProjectDepartment, project.Id, StudyLogAction.Created,
                 $"أضاف القسم {department.Name} إلى المشروع {project.Code}");
             return await _support.DetailAsync(project.Id, viewer);
         }

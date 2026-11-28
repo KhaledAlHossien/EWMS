@@ -10,6 +10,10 @@ using Application.Features.CentralStudies.Lookups.StageTypes.Commands.Create;
 using Application.Features.CentralStudies.Lookups.StageTypes.Commands.Delete;
 using Application.Features.CentralStudies.Lookups.StageTypes.Commands.Update;
 using Application.Features.CentralStudies.Lookups.StageTypes.Queries.GetAll;
+using Application.Features.CentralStudies.Lookups.StudyBranches.Commands.Create;
+using Application.Features.CentralStudies.Lookups.StudyBranches.Commands.Delete;
+using Application.Features.CentralStudies.Lookups.StudyBranches.Commands.Update;
+using Application.Features.CentralStudies.Lookups.StudyBranches.Queries.GetAll;
 using Application.Features.CentralStudies.Lookups;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -71,6 +75,32 @@ namespace API.Controllers
         {
             await _mediator.Send(new DeleteStudyStageTypeCommand(id));
             return Ok(new { message = "تم حذف نوع المرحلة" });
+        }
+
+        // ════════ أفرع الدراسات (المركزية والأفرع الجغرافية) ════════
+
+        /// <summary>أفرع الدراسات في فرع المستخدم (أو كل الفروع لنظرة المؤسسة، وbranchId يصفّي) — لاختيار فرع الدراسة في الطلب</summary>
+        [HttpGet("StudyBranches/GetAll")]
+        [Authorize(Policy = "AnyStudyBranchPick")]
+        public async Task<ActionResult<List<StudyBranchDto>>> GetStudyBranches([FromQuery] int? branchId, [FromQuery] bool activeOnly = false)
+            => Ok(await _mediator.Send(new GetStudyBranchesQuery(branchId, activeOnly)));
+
+        [HttpPost("StudyBranches/Create")]
+        [Authorize(Policy = "CreateStudyLookup")]
+        public async Task<ActionResult<StudyBranchDto>> CreateStudyBranch([FromBody] StudyBranchFormDto dto)
+            => Ok(await _mediator.Send(new CreateStudyBranchCommand(dto)));
+
+        [HttpPut("StudyBranches/Update/{id}")]
+        [Authorize(Policy = "EditStudyLookup")]
+        public async Task<ActionResult<StudyBranchDto>> UpdateStudyBranch(int id, [FromBody] StudyBranchFormDto dto)
+            => Ok(await _mediator.Send(new UpdateStudyBranchCommand(id, dto)));
+
+        [HttpDelete("StudyBranches/Delete/{id}")]
+        [Authorize(Policy = "DeleteStudyLookup")]
+        public async Task<ActionResult> DeleteStudyBranch(int id)
+        {
+            await _mediator.Send(new DeleteStudyBranchCommand(id));
+            return Ok(new { message = "تم حذف فرع الدراسة" });
         }
 
         // ════════ أنواع المرفقات ════════

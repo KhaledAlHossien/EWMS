@@ -6,6 +6,7 @@ using Application.Features.CentralStudies.Projects.Commands.AddDepartment;
 using Application.Features.CentralStudies.Projects.Commands.AddMember;
 using Application.Features.CentralStudies.Projects.Commands.Cancel;
 using Application.Features.CentralStudies.Projects.Commands.Create;
+using Application.Features.CentralStudies.Projects.Commands.CreateRegional;
 using Application.Features.CentralStudies.Projects.Commands.Delete;
 using Application.Features.CentralStudies.Projects.Commands.Reactivate;
 using Application.Features.CentralStudies.Projects.Commands.RemoveDepartment;
@@ -57,11 +58,20 @@ namespace API.Controllers
         [Authorize(Policy = "ViewStudyProjects")]
         public async Task<ActionResult<StudyProjectDto>> Get(int id) => Ok(await _mediator.Send(new GetStudyProjectQuery(id)));
 
-        /// <summary>من أمر بدء معتمد: تُنشأ المراحل من أنواع المراحل الفعّالة ويُضاف القسم المختص مشاركاً</summary>
+        /// <summary>من أمر بدء معتمد (المركزية): تُنشأ المراحل من أنواع المراحل الفعّالة لمسار المركزية ويُضاف القسم المختص مشاركاً</summary>
         [HttpPost("Create")]
         [Authorize(Policy = "CreateStudyProject")]
         public async Task<ActionResult<StudyProjectDto>> Create([FromBody] StudyProjectFormDto dto)
             => Ok(await _mediator.Send(new CreateStudyProjectCommand(dto)));
+
+        /// <summary>
+        /// إحالة طلب معتمد لفرع جغرافي إلى فرعه: مشروع تنسيق ومتابعة بلا تكليف ولا أمر بدء، كوده برمز فرع الدراسة وسنة الإحالة،
+        /// ومراحله من أنواع مسار التنسيق؛ قسم من يحيل مسؤول عنها ومشارك.
+        /// </summary>
+        [HttpPost("CreateRegional")]
+        [Authorize(Policy = "CreateRegionalStudyProject")]
+        public async Task<ActionResult<StudyProjectDto>> CreateRegional([FromBody] StudyRegionalProjectFormDto dto)
+            => Ok(await _mediator.Send(new CreateRegionalStudyProjectCommand(dto)));
 
         [HttpPut("Update/{id}")]
         [Authorize(Policy = "EditStudyProject")]

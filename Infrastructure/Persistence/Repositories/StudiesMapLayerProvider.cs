@@ -61,7 +61,7 @@ namespace Infrastructure.Persistence.Repositories
             if (Ints(filter, WorkType) is { Count: > 0 } workTypes)
             {
                 var values = workTypes.Select(s => (StudyWorkType)s).ToList();
-                query = query.Where(p => values.Contains(p.StartOrder.Response.Assignment.Request.WorkType));
+                query = query.Where(p => values.Contains(p.Request.WorkType));
             }
 
             var perSite = await query

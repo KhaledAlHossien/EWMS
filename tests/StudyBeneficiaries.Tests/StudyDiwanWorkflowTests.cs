@@ -258,7 +258,8 @@ public sealed class StudyDiwanWorkflowTests : IDisposable
         AddUser(OtherBranch, 2, null, [1, 2, 3]);
         AddUser(FollowingEditor, 1, 1, [6]);
         AddUser(Admin, null, null, [1, 2, 3], "SuperAdmin");
-        _db.StudyRequests.Add(new StudyRequest { Id = 1, BranchId = 1, CreatedByUserId = Clerk, Status = StudyDocumentStatus.Approved, MainBeneficiary = "جهة" });
+        _db.StudyBranches.Add(new StudyBranch { Id = 1, BranchId = 1, Code = 0, Name = "المركزية", Track = StudyTrack.Full, IsActive = true });
+        _db.StudyRequests.Add(new StudyRequest { Id = 1, BranchId = 1, StudyBranchId = 1, CreatedByUserId = Clerk, Status = StudyDocumentStatus.Approved, MainBeneficiary = "جهة" });
         _db.StudyAssignments.Add(new StudyAssignment { Id = 1, RequestId = 1, FollowingDepartmentId = 1, CreatedByUserId = Clerk, Status = StudyDocumentStatus.Approved });
         _db.StudyAssignmentResponses.Add(new StudyAssignmentResponse
         {

@@ -26,11 +26,9 @@ namespace Infrastructure.Persistence.Repositories
             .Include(a => a.Assignment).ThenInclude(x => x!.Request).ThenInclude(r => r.Branch)
             .Include(a => a.Response).ThenInclude(x => x!.Assignment).ThenInclude(x => x.Request).ThenInclude(r => r.Branch)
             .Include(a => a.StartOrder).ThenInclude(x => x!.Response).ThenInclude(x => x.Assignment).ThenInclude(x => x.Request).ThenInclude(r => r.Branch)
+            // المشروع يحمل رقم طلبه (RequestId) فلا حاجة إلى سلسلة أمر البدء (مشروع الفرع الجغرافي بلا أمر بدء)
             .Include(a => a.DesignApproval).ThenInclude(x => x!.Version).ThenInclude(v => v.Drawing).ThenInclude(d => d.Project).ThenInclude(p => p.Branch)
-            .Include(a => a.DesignApproval).ThenInclude(x => x!.Version).ThenInclude(v => v.Drawing).ThenInclude(d => d.Project)
-                .ThenInclude(p => p.StartOrder).ThenInclude(o => o.Response).ThenInclude(r => r.Assignment)
             .Include(a => a.Project).ThenInclude(p => p!.Branch)
-            .Include(a => a.Project).ThenInclude(p => p!.StartOrder).ThenInclude(o => o.Response).ThenInclude(r => r.Assignment)
             .Include(a => a.DiwanTransaction).ThenInclude(x => x!.Response).ThenInclude(x => x.Assignment).ThenInclude(x => x.Request).ThenInclude(r => r.Branch)
             .AsSplitQuery();
 
@@ -207,7 +205,8 @@ namespace Infrastructure.Persistence.Repositories
 
         public async Task<bool> ExistsForBranchAsync(int branchId) =>
             await _context.StudyRequests.AnyAsync(x => x.BranchId == branchId)
-            || await _context.StudyProjects.AnyAsync(x => x.BranchId == branchId);
+            || await _context.StudyProjects.AnyAsync(x => x.BranchId == branchId)
+            || await _context.StudyBranches.AnyAsync(x => x.BranchId == branchId);
 
         public async Task<bool> ExistsForSiteAsync(int siteId) =>
             await _context.StudyRequests.AnyAsync(x => x.SiteId == siteId);

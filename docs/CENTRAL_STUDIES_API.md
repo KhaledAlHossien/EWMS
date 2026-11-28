@@ -29,6 +29,32 @@
                            └─ RequestCompletion → إدارة المشاريع → رئيس الفرع ─→ مكتمل
 ```
 
+هذه سلسلة **المركزية**. طلب فرع جغرافي يسير هكذا (انظر «أفرع الدراسات والمسار الجغرافي» أدناه):
+
+```text
+طلب (فرع دراسة جغرافي) ─Submit→ معتمد
+  └─ إحالة إلى الفرع: StudyProjects/CreateRegional (مشروع تنسيق ومتابعة، بلا تكليف ولا رد ولا ديوان ولا أمر بدء)
+       └─ مراحل مسار التنسيق يغلقها التنسيق والارتباط مع تقدّم الفرع
+            └─ RequestCompletion → التنسيق والارتباط → ضبط الجودة ─→ مكتمل
+```
+
+### أفرع الدراسات والمسار الجغرافي (2026-11-28)
+
+- **فرع الدراسة ≠ فرع النظام.** أفرع الدراسات (المركزية 0، الشمالية 1، الجنوبية 2، الوسطى 3، الغربية 4، الشرقية 5) ليست فروعاً في النظام، بل قائمة تحت فرع الدراسات (`GET api/StudyLookups/StudyBranches/GetAll`). فرع النظام (`branchId`) يبقى حدّ الصلاحيات كما هو.
+- **المسار (`track`):** 1 دورة كاملة (المركزية)، 2 تنسيق ومتابعة (الأفرع الجغرافية، وهي أقسام الدراسات في الفروع الجغرافية بلا ربط بالنظام الآن). يأتي في الطلب والمشروع والسلسلة (`chain.track`)، والقيم في `Enums.track`.
+- **نموذج الطلب:** الحقل «الفرع» القديم (`branchId`، كان لنظرة المؤسسة فقط) **حُذف**. مكانه **«فرع الدراسة» `studyBranchId` إلزامي لكل المستخدمين**، من `StudyBranches/GetAll?activeOnly=true` (فرع المستخدم، أو كل الفروع لنظرة المؤسسة). الخادم يأخذ فرع الطلب في النظام من فرع الدراسة المختار. يتغير في المسودة فقط.
+- **الخطوة التالية بعد تسجيل الطلب:**
+  - المركزية: `canCreateAssignment` كما كان.
+  - الفرع الجغرافي: `canCreateRegionalProject` ← زر «إحالة إلى الفرع» يفتح نموذج `POST api/StudyProjects/CreateRegional`. التكليف ومعاينة كوده يرفضان طلب الفرع الجغرافي (400)، والإحالة ترفض طلب المركزية (400).
+- **كود المشروع يبدأ برمز فرع الدراسة** (0–5) لا برقم الفرع في النظام: `رمز فرع الدراسة-سنة التكليف أو الإحالة-N/R/RN-رقم الطلب-رقم أرشيف ديوان الإدارة`. الأكواد التجريبية القديمة صُحّحت إلى `0-…`.
+- **مشروع الفرع الجغرافي:**
+  - `startOrderId`/`startOrderNumber` = `null`، و`requestId`/`requestNumber`/`requestStatus` موجودة لكل مشروع.
+  - مراحله من أنواع المراحل ذات `track = 2` فقط (مشاريع المركزية من `track = 1` فقط)، وقسم من أحال (التنسيق والارتباط) مسؤول عنها ومشارك في المشروع. **بلا نوع مرحلة فعّال لمسار التنسيق تُرفض الإحالة** — عرّف الأنواع أولاً.
+  - **لا مخططات** (400): ما يرد من الفرع يُرفع مرفقات للمشروع. أخفِ تبويب المخططات حين `track = 2`.
+  - إنجازه: سطرا توقيع `signerRole` 9 «التنسيق والارتباط» ثم 7 «ضبط الجودة».
+  - إعادة التفعيل تتبع الطلب (لا أمر بدء)، والطلب لا يُلغى ما دام له مشروع غير ملغى.
+- **فلتر:** `studyBranchId` في `StudyRequests/GetAll` و`StudyProjects/GetAll`.
+
 - **حالات المستند:**
   - 1 مسودة؛
   - 2 بانتظار الاعتماد؛
@@ -49,11 +75,13 @@
 | الطريقة | المسار | الصلاحية | ملاحظة |
 |---|---|---|---|
 | GET | `Enums` | ViewStudyLookups | كل التعدادات |
-| GET/POST/PUT/DELETE | `StageTypes/GetAll?activeOnly`، `StageTypes/Create`، `StageTypes/Update/{id}`، `StageTypes/Delete/{id}` | View/Create/Edit/DeleteStudyLookup | `linkedDocument`: 0 لا شيء، 1 طلب، 2 تكليف، 3 رد، 4 أمر بدء |
+| GET/POST/PUT/DELETE | `StageTypes/GetAll?activeOnly`، `StageTypes/Create`، `StageTypes/Update/{id}`، `StageTypes/Delete/{id}` | View/Create/Edit/DeleteStudyLookup | `linkedDocument`: 0 لا شيء، 1 طلب، 2 تكليف، 3 رد، 4 أمر بدء. `track` (2026-11-28): 1 مشاريع المركزية (الافتراضي)، 2 مشاريع الأفرع الجغرافية — ولها `linkedDocument` 0 أو 1 فقط؛ لا يتغير المسار لنوع مستخدم |
 | GET/POST/PUT/DELETE | `AttachmentTypes/…` بالنمط نفسه | العرض: أي صلاحية عرض للدراسات | |
 | GET/POST/PUT/DELETE | `Disciplines/…` بالنمط نفسه | ViewStudyLookups… | |
 | GET/POST/PUT/DELETE | `Beneficiaries/…` بالنمط نفسه | القراءة: أي صلاحية للقوائم View/Create/Edit/DeleteStudyLookup أو Create/EditStudyRequest؛ الإدارة: Create/Edit/DeleteStudyLookup | اسم حتى 200 حرف + رمز `code` مطلوب وفريد حتى 30 حرفاً + `isActive`؛ و`activeOnly=true` يعيد الجهات الفعالة ذات الرمز المكتمل |
-| GET | `Employees?branchId&departmentId` | `AnyStudyEmployeePick` (أيٌّ من: Create/EditStudyResponse، Create/EditStudyStartOrder، EditStudyProject، AddStudyProjectMember) | موظفو فرع الدراسة لقوائم الاختيار — انظر تحت الجدول |
+| GET | `Employees?branchId&departmentId` | `AnyStudyEmployeePick` (أيٌّ من: Create/EditStudyResponse، Create/EditStudyStartOrder، EditStudyProject، AddStudyProjectMember، CreateRegionalStudyProject) | موظفو فرع الدراسة لقوائم الاختيار — انظر تحت الجدول |
+| GET | `StudyBranches/GetAll?branchId&activeOnly` | `AnyStudyBranchPick` (قوائم الدراسات، Create/EditStudyRequest، ViewStudyRequests، ViewStudyProjects) | أفرع الدراسات: `{ id, branchId, branchName, code, name, track, trackName, isActive, inUse, rowVersion }` |
+| POST/PUT/DELETE | `StudyBranches/Create`، `StudyBranches/Update/{id}`، `StudyBranches/Delete/{id}` | Create/Edit/DeleteStudyLookup | الجسم `{ branchId?, code, name, track, isActive }` — `branchId` لنظرة المؤسسة عند الإنشاء فقط؛ الرمز 0–99 فريد في الفرع، والاسم كذلك. **`inUse` (له طلبات): لا يتغير الرمز ولا المسار ولا يُحذف** (عطّله) |
 
 **`Employees`: قائمة اختيار الموظفين بلا `ViewUsers`:**
 
@@ -94,7 +122,7 @@
   - الرد: `assignmentId`؛
   - معاملة الديوان: `responseId`؛
   - أمر البدء: `diwanTransactionId` لمعاملة ديوان معتمدة بقرار موافقة مركزي (2026-11-26؛ كان `diwanReplyId`).
-- **كود المشروع في التكليف:** يولّده الخادم من `رقم الفرع-سنة التكليف (رقمان)-نوع العمل (N/R/RN)-رقم الطلب-رقم أرشيف ديوان الإدارة`. تعيد `GET api/StudyAssignments/ProjectCode/{requestId}?assignmentDate=yyyy-MM-dd` القيمة `{ projectCode }` قبل الحفظ بصلاحية إنشاء التكليف. إذا خلا الطلب من رقم أرشيف ديوان الإدارة، يُرسل `adminArchiveNumber` في المعاينة والإنشاء. يولّد الخادم الكود مجدداً عند الإنشاء. **عند تعديل مسودة التكليف** يعيد الخادم توليد الكود بسنة التاريخ الجديد، ويأخذ رقم الأرشيف من الطلب أو من `adminArchiveNumber` أو من الكود المحفوظ نفسه؛ الكود القديم المدخل يدوياً بصيغة أخرى يبقى كما هو. لمعاينة كود مسودة قائمة أضف `assignmentId` إلى طلب المعاينة (يكفي `CreateStudyAssignment` للإنشاء و`EditStudyAssignment` للتعديل). بعد الاعتماد يبقى الكود مرجعاً ثابتاً للتكليف والمشروع.
+- **كود المشروع في التكليف:** يولّده الخادم من `رمز فرع الدراسة (0–5)-سنة التكليف (رقمان)-نوع العمل (N/R/RN)-رقم الطلب-رقم أرشيف ديوان الإدارة`. تعيد `GET api/StudyAssignments/ProjectCode/{requestId}?assignmentDate=yyyy-MM-dd` القيمة `{ projectCode }` قبل الحفظ بصلاحية إنشاء التكليف. إذا خلا الطلب من رقم أرشيف ديوان الإدارة، يُرسل `adminArchiveNumber` في المعاينة والإنشاء. يولّد الخادم الكود مجدداً عند الإنشاء. **عند تعديل مسودة التكليف** يعيد الخادم توليد الكود بسنة التاريخ الجديد، ويأخذ رقم الأرشيف من الطلب أو من `adminArchiveNumber` أو من الكود المحفوظ نفسه؛ الكود القديم المدخل يدوياً بصيغة أخرى يبقى كما هو. لمعاينة كود مسودة قائمة أضف `assignmentId` إلى طلب المعاينة (يكفي `CreateStudyAssignment` للإنشاء و`EditStudyAssignment` للتعديل). بعد الاعتماد يبقى الكود مرجعاً ثابتاً للتكليف والمشروع.
 - **أجزاء الرد وأمر البدء** تُرسل كاملة في كل حفظ وتُستبدل:
   - في الرد (جزء القسم المتابع): `buildings` و`costItems` بالشكل الموحّد وحده (انظر «إشعار الرد» أدناه)؛ ومعهما `siteArea` و`initialCost` حقلان واحدان للرد كله؛
   - في أمر البدء: `engineers` و`resources`.
@@ -102,7 +130,7 @@
   - `nextSigners` (+ `nextSignersTotal`): والمستند بانتظار الاعتماد، حاملو صلاحية أول صفة لم توقّع ضمن حدّها.
   - `nextIssuers` (+ `nextIssuersTotal`): والمستند معتمد ولم يُنجز الإجراء التالي، حاملو صلاحية الإجراء. بعد اعتماد إشعار الرد تُحسب الجهة حسب حالة معاملة الديوان.
   - كل عنصر `{ id, fullName, departmentName, jobTitle }`، مرتب بالاسم ومقصوص عند 8 والباقي في `…Total`. **المدير العام لا يظهر أبداً** (يبقى مستلماً للإشعارات). **قائمة فارغة = لا أحد يملك الصلاحية** فاعرض تنبيهاً ليراجع مدير النظام الأدوار.
-- **الطلب:** تُرسل فيه `governorateCode` (SY01…SY14)، و`siteId` اختياري (من سجل المواقع)، و`branchId` لنظرة المؤسسة فقط.
+- **الطلب:** تُرسل فيه `governorateCode` (SY01…SY14)، و`siteId` اختياري (من سجل المواقع)، و`studyBranchId` إلزامي (فرع الدراسة؛ حلّ محل `branchId` في 2026-11-28).
 
 ### إشعار الرد بجزأيه — `api/StudyResponses`
 
@@ -175,12 +203,13 @@
 
 - **`GetAll?siteId=`:** فلتر اختياري بموقع واحد من سجل المواقع (لعرض مشاريع الموقع عند النقر عليه في الخريطة). يتركّب مع بقية الفلاتر (الحالة، البحث، التاريخ) والترقيم كما هو، وحدّ فرع المستخدم باقٍ، فلا يرى أحد مشاريع موقع خارج فرعه. تتجاهله بقية المستندات.
 
-| POST | `Create` بالجسم `{ startOrderId, name, plannedStartDate, plannedEndDate, code? }` | CreateStudyProject |
+| POST | `Create` بالجسم `{ startOrderId, name, plannedStartDate, plannedEndDate, code? }` (مشروع المركزية) | CreateStudyProject |
+| POST | `CreateRegional` بالجسم `{ requestId, name, referralDate, plannedStartDate, plannedEndDate, managerUserId?, adminArchiveNumber? }` — الإحالة إلى الفرع الجغرافي؛ `referralDate` سنته في الكود وهو البدء الفعلي، `managerUserId` الافتراضي من يحيل (المدير العام بلا فرع يجب أن يختار موظفاً)، `adminArchiveNumber` إن خلا منه الطلب | CreateRegionalStudyProject |
 | PUT | `Update/{id}` (`status`: 1 جارٍ أو 2 معلّق، و`managerUserId`) | EditStudyProject |
 | DELETE | `Delete/{id}` (بلا مهام ولا مخططات ولا مرفقات) | DeleteStudyProject |
 | PUT | `Cancel/{id}` | CancelStudyDocuments |
-| PUT | `Reactivate/{id}` (يعيد المشروع الملغى إلى «جارٍ» إذا كان أمر البدء معتمداً، ويعيد تفاصيل المشروع) | CancelStudyDocuments |
-| PUT | `RequestCompletion/{id}` (كل المراحل مغلقة) | EditStudyProject |
+| PUT | `Reactivate/{id}` (يعيد المشروع الملغى إلى «جارٍ» إذا كان أمر البدء معتمداً — أو الطلب غير ملغى لمشروع فرع جغرافي — ويعيد تفاصيل المشروع) | CancelStudyDocuments |
+| PUT | `RequestCompletion/{id}` (كل المراحل مغلقة؛ التواقيع حسب المسار) | EditStudyProject |
 | POST / DELETE | `Departments/{projectId}` بالجسم `{ departmentId }` / `Departments/{projectDepartmentId}` | Add/RemoveStudyProjectDepartment |
 | POST / DELETE | `Members/{projectDepartmentId}` بالجسم `{ userId, roleTitle }` / `Members/{projectDepartmentId}/{userId}` | Add/RemoveStudyProjectMember (رئيس القسم لموظفي قسمه؛ انظر `departments[].canManageMembers`) |
 | GET | `ActivityLog/{id}` | ViewStudyActivityLog |
@@ -332,10 +361,11 @@
 | `StudyApprovalRequested` | مستند بانتظار توقيع صفتك | `StudyAssignment` / `StudyResponse` / `StudyStartOrder` / `StudyDesignApproval` / `StudyProject` |
 | `StudyDocumentDecided` | اعتُمد مستندك نهائياً أو رُفض | كما سبق |
 | `StudyTaskAssigned` | مهمة جديدة لك أو لمكتبك أو قسمك | `StudyTask` |
-| `StudyNextStepReady` (29) | الخطوة التالية في السلسلة: الطلب ← التكليف، التكليف ← الرد، الرد المعتمد ← إنشاء معاملة الديوان (أو تحديثها بعد رفض مركزي)، المعاملة المعتمدة بموافقة ← أمر البدء، أمر البدء المعتمد ← إنشاء المشروع. الرفض المركزي يُشعر موظفي القسم المتابع ومنشئ المعاملة (الرابط إلى الرد). | `StudyRequest` / `StudyAssignment` / `StudyResponse` / `StudyDiwanTransaction` / `StudyStartOrder` |
+| `StudyNextStepReady` (29) | الخطوة التالية في السلسلة: الطلب ← التكليف (أو، لطلب فرع جغرافي، ← الإحالة لحاملي `CreateRegionalStudyProject`)، التكليف ← الرد، الرد المعتمد ← إنشاء معاملة الديوان (أو تحديثها بعد رفض مركزي)، المعاملة المعتمدة بموافقة ← أمر البدء، أمر البدء المعتمد ← إنشاء المشروع. الرفض المركزي يُشعر موظفي القسم المتابع ومنشئ المعاملة (الرابط إلى الرد). | `StudyRequest` / `StudyAssignment` / `StudyResponse` / `StudyDiwanTransaction` / `StudyStartOrder` |
 
 ## الصلاحيات في الواجهة
 
 - **الأسماء:** في `Application/Common/AppPermissions.cs`، قسم «فرع الدراسات المركزية» (62 صلاحية، منها `EditStudyResponsePlanning` و`PrintStudyDocuments` وصلاحيات الرؤية الثلاث `ViewFullStudyProject` و`ViewDepartmentStudyTasks` و`ViewOfficeStudyTasks`). انسخها إلى `core/constants/access.ts`.
 - **صفحة الأدوار:** أضف لها قسماً جديداً «الدراسات» بمجموعات: القوائم، الطلبات، التكليفات، الردود، أوامر البدء، التواقيع، المشاريع والفريق، المراحل والمهام، المخططات وCDA، السجل.
-- **صلاحيات «أيٌّ من»:** `AnyStudySign`، `AnyStudyView`، `AnyStudyTaskView`، `AnyStudyAttachmentWrite`، `AnyStudyEmployeePick`.
+- **صلاحيات «أيٌّ من»:** `AnyStudySign`، `AnyStudyView`، `AnyStudyTaskView`، `AnyStudyAttachmentWrite`، `AnyStudyEmployeePick`، `AnyStudyBranchPick`.
+- **جديد 2026-11-28 (تُمنح من صفحة الأدوار، للمدير العام فقط افتراضياً):** `CreateRegionalStudyProject` (الإحالة إلى الفرع الجغرافي) و`SignStudyAsCoordination` (توقيع التنسيق والارتباط على إنجاز دراسات الأفرع الجغرافية؛ ضمن `AnyStudySign`). أضفهما إلى `access.ts` وصفحة الأدوار.

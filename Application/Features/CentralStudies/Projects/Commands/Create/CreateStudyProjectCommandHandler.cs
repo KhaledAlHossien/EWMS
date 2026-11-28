@@ -46,6 +46,7 @@ namespace Application.Features.CentralStudies.Projects.Commands.Create
             var now = DateTime.Now;
             var project = new StudyProject
             {
+                RequestId = studyRequest.Id,
                 StartOrderId = order.Id,
                 BranchId = studyRequest.BranchId,
                 SiteId = studyRequest.SiteId,   // يُنسخ من الطلب (للخريطة)
@@ -60,8 +61,8 @@ namespace Application.Features.CentralStudies.Projects.Commands.Create
                 CreatedAt = now
             };
 
-            // المراحل من الأنواع الفعّالة بترتيبها؛ المرتبطة بمستند مغلقة وتواريخها من ذلك المستند
-            var types = await _lookups.GetStageTypesAsync(activeOnly: true);
+            // المراحل من الأنواع الفعّالة لمسار المركزية بترتيبها؛ المرتبطة بمستند مغلقة وتواريخها من ذلك المستند
+            var types = (await _lookups.GetStageTypesAsync(activeOnly: true)).Where(t => t.Track == StudyTrack.Full).ToList();
             var order1 = 0;
             foreach (var type in types)
             {

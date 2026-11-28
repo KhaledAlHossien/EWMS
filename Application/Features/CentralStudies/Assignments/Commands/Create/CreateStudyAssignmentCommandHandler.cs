@@ -28,6 +28,7 @@ namespace Application.Features.CentralStudies.Assignments.Commands.Create
             var studyRequest = await _requests.GetByIdAsync(request.Dto.RequestId) ?? throw new KeyNotFoundException("الطلب غير موجود");
             StudyRules.EnsureInScope(viewer, studyRequest.BranchId);
             StudyRules.EnsureApproved(studyRequest.Status, "الطلب");
+            StudyRules.EnsureFullTrack(studyRequest);
             if (await _service.ExistsForRequestAsync(studyRequest.Id))
                 throw new InvalidOperationException("للطلب تكليف داخلي مسبقاً — تكليف واحد لكل طلب");
             await _support.EnsureDepartmentAsync(request.Dto.FollowingDepartmentId, studyRequest.BranchId);

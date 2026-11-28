@@ -26,7 +26,7 @@ namespace Application.Features.CentralStudies.Projects.Commands.Cancel
             entity.Status = StudyProjectStatus.Cancelled;
             entity.UpdatedAt = DateTime.Now;
             await _service.UpdateAsync(entity);
-            await _kit.LogAsync(await _support.RequestIdOf(entity), StudyEntityType.Project, entity.Id, StudyLogAction.Cancelled,
+            await _kit.LogAsync(entity.RequestId, StudyEntityType.Project, entity.Id, StudyLogAction.Cancelled,
                 $"ألغى المشروع {entity.Code}", request.Reason.Trim());
             return await _support.DetailAsync(entity.Id, viewer);
         }

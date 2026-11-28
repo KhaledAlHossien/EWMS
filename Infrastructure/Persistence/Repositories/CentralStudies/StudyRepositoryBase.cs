@@ -32,6 +32,13 @@ namespace Infrastructure.Persistence.Repositories
                 .Select(o => o.Status)
                 .SingleAsync(ct);
 
+        // إلغاء الطلب وإعادة تفعيل مشروع الفرع الجغرافي (بلا أمر بدء) يأخذان قفل سطر الطلب
+        protected Task<StudyDocumentStatus> LockRequestStatusAsync(int id, CancellationToken ct) =>
+            _context.StudyRequests
+                .FromSqlInterpolated($"SELECT * FROM [StudyRequests] WITH (UPDLOCK, HOLDLOCK) WHERE [Id] = {id}")
+                .Select(r => r.Status)
+                .SingleAsync(ct);
+
         protected async Task SaveChangesAsync(CancellationToken ct = default)
         {
             try
@@ -66,6 +73,12 @@ namespace Infrastructure.Persistence.Repositories
                 return $"كود المشروع{value} مستخدم في تكليف أو مشروع آخر — تحقق من رقم أرشيف ديوان الإدارة وتاريخ التكليف";
             if (sqlMessage.Contains("IX_StudyDiwanTransactions_ResponseId"))
                 return "لإشعار الرد معاملة ديوان مسبقاً — معاملة واحدة لكل رد";
+            if (sqlMessage.Contains("IX_StudyProjects_RequestId"))
+                return "للدراسة مشروع مسبقاً — مشروع واحد لكل طلب";
+            if (sqlMessage.Contains("IX_StudyBranches_BranchId_Code"))
+                return "رمز فرع الدراسة مستخدم لفرع دراسة آخر في الفرع نفسه";
+            if (sqlMessage.Contains("IX_StudyBranches_BranchId_Name"))
+                return "اسم فرع الدراسة مستخدم لفرع دراسة آخر في الفرع نفسه";
             return "القيمة مستخدمة في سجل آخر (رقم أو كود أو اسم مكرر) — راجع البيانات وأعد المحاولة";
         }
     }

@@ -51,9 +51,12 @@ namespace Application.Features.CentralStudies.Projects
                             && dto.Stages.All(s => s.TasksTotal == 0);
             var canCancelDocuments = inScope && viewer.Has(StudyPermissions.CancelDocuments);
             dto.CanCancel = canCancelDocuments && open;
-            // من يملك الإلغاء يعيد التفعيل، للمشروع الملغى الذي أمر بدئه ما زال معتمداً
-            dto.CanReactivate = canCancelDocuments && status == StudyProjectStatus.Cancelled
-                                && dto.StartOrderStatus == (int)StudyDocumentStatus.Approved;
+            // من يملك الإلغاء يعيد التفعيل، للمشروع الملغى الذي ما زال أصله معتمداً:
+            // أمر البدء لمشروع المركزية، والطلب لمشروع الفرع الجغرافي (بلا أمر بدء)
+            var originApproved = dto.StartOrderId != null || dto.Track != (int)StudyTrack.Coordination
+                ? dto.StartOrderStatus == (int)StudyDocumentStatus.Approved
+                : dto.RequestStatus == (int)StudyDocumentStatus.Approved;
+            dto.CanReactivate = canCancelDocuments && status == StudyProjectStatus.Cancelled && originApproved;
             dto.CanRequestCompletion = dto.CanEdit && status == StudyProjectStatus.Running && dto.Stages.Count > 0
                                        && dto.Stages.All(s => s.Status == (int)StudyStageStatus.Closed);
             // إضافة مهمة: القسم المسؤول عن المرحلة فقط — القاعدة نفسها في StudyStageSupport.StageDto
@@ -61,9 +64,6 @@ namespace Application.Features.CentralStudies.Projects
                 s.CanAddTask = open && inScope && s.Status != (int)StudyStageStatus.Closed && viewer.Has("CreateStudyTask")
                                && StudyRules.CanManageStageTasks(viewer, s.ResponsibleDepartmentId);
         }
-
-        public async Task<int> RequestIdOf(StudyProject p) =>
-            p.StartOrder?.Response?.Assignment?.RequestId ?? await _service.GetRequestIdAsync(p.Id);
 
         public static bool IsOpen(StudyProject p) => p.Status is StudyProjectStatus.Running or StudyProjectStatus.Suspended;
 
@@ -104,7 +104,7 @@ namespace Application.Features.CentralStudies.Projects
             dto.Departments = scope.IsFull ? await _service.GetTeamAsync(id) : teamLimit == null ? [] : await _service.GetTeamAsync(id, teamLimit);
             foreach (var d in dto.Departments)
                 d.CanManageMembers = viewer.Has(StudyPermissions.AddProjectMember) && StudyRules.InDepartment(viewer, d.DepartmentId) && IsOpen(entity);
-            var requestId = entity.StartOrder.Response.Assignment.RequestId;
+            var requestId = entity.RequestId;
             // مكاتب كل قسم مشارك (هدف «مكتب» في المهمة) — بلا ViewOffices
             var offices = await _service.GetOfficesOfDepartmentsAsync(dto.Departments.Select(d => d.DepartmentId));
             foreach (var d in dto.Departments)

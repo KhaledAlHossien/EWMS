@@ -31,6 +31,7 @@ namespace Application.Features.CentralStudies.Requests
                 .WithMessage("رقم تواصل المتابع غير صحيح (رقم سوري)");
             RuleFor(x => x.Notes).MaximumLength(2000).WithMessage("الملاحظات لا تتجاوز 2000 حرف");
             RuleFor(x => x.SiteId).GreaterThan(0).When(x => x.SiteId != null).WithMessage("الموقع غير صالح");
+            RuleFor(x => x.StudyBranchId).GreaterThan(0).WithMessage("اختر فرع الدراسة (المركزية أو الفرع الجغرافي)");
         }
     }
 }
