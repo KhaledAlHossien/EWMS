@@ -11,6 +11,9 @@ namespace Application.Common
     {
         public const int Length = 64;
 
+        /// <summary>claim يضيفه الخادم بعد فحص الرمز (لا يوجد في الرمز نفسه): بصمة جلسة الطلب</summary>
+        public const string ClaimType = "token_hash";
+
         public static string Of(string token) =>
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
     }
